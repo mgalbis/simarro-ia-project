@@ -375,8 +375,7 @@ Esto permitirá evolucionar desde un sistema basado en reglas hacia un agente QA
 
 ## Arquitectura funcional
 
-
-![Arquitectura funcional](docs/images/arquitectura funcional.png)
+![Arquitectura funcional](images/arquitectura-funcional.png)
 
 ---
 
