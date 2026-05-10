@@ -171,3 +171,251 @@ Agente Orquestador QA
             │
             ▼
     Grafo de conocimiento QA
+
+
+    
+    
+    
+    # Etapas agénticas y motor de reglas
+
+Estas etapas pueden implementarse mediante distintos niveles de complejidad, desde reglas deterministas simples hasta mecanismos cognitivos avanzados basados en aprendizaje automático y razonamiento autónomo.
+
+---
+
+# Enfoque de la versión v1
+
+La versión v1 del sistema incorporará un motor de validación basado en reglas definidas por expertos en QA.
+
+Esto implica que las etapas agénticas estarán soportadas inicialmente mediante lógica basada en reglas, permitiendo:
+
+- Garantizar un comportamiento controlado y trazable.
+- Facilitar la validación funcional del sistema.
+- Reducir complejidad técnica en el piloto inicial.
+- Establecer una base evolutiva hacia componentes inteligentes más avanzados.
+
+Con esta aproximación se asegura la entrega de una primera versión funcional, aunque limitada en inteligencia autónoma, que podrá evolucionar progresivamente tanto durante el desarrollo del proyecto como posteriormente en entornos profesionales reales.
+
+---
+
+# Ciclo agéntico propuesto
+
+## 1. Comprensión de la solicitud
+
+El agente interpreta:
+
+- Objetivo del usuario.
+- Tipo de pruebas solicitadas.
+- Contexto funcional.
+- Artefactos disponibles.
+- Restricciones de ejecución.
+
+### Ejemplos
+
+- Ejecutar plan de pruebas.
+- Realizar regresión funcional.
+- Validar calidad de datos.
+- Evaluar métricas del modelo.
+
+---
+
+## 2. Planificación
+
+El sistema determina:
+
+- Fases de validación necesarias.
+- Reglas aplicables.
+- Evidencias requeridas.
+- Orden óptimo de ejecución.
+- Dependencias entre tareas.
+
+---
+
+## 3. Ejecución
+
+El agente:
+
+- Solicita artefactos.
+- Ejecuta validaciones.
+- Aplica reglas QA.
+- Detecta incumplimientos.
+- Registra evidencias.
+
+---
+
+## 4. Evaluación de resultados
+
+El sistema analiza:
+
+- Resultado de las validaciones.
+- Severidad de defectos.
+- Cobertura de pruebas.
+- Riesgos identificados.
+- Calidad de las evidencias.
+
+---
+
+## 5. Retroalimentación y aprendizaje
+
+El agente recopila feedback del usuario para:
+
+- Mejorar reglas existentes.
+- Refinar recomendaciones.
+- Incorporar nuevos patrones.
+- Adaptar el grafo de conocimiento.
+
+---
+
+# Motor de reglas
+
+El motor de reglas constituye el núcleo lógico de la v1.
+
+## Funciones principales
+
+- Ejecutar validaciones automáticas.
+- Detectar anomalías.
+- Aplicar controles QA.
+- Relacionar riesgos y evidencias.
+- Generar recomendaciones.
+- Priorizar defectos.
+
+---
+
+# Tipos de reglas iniciales
+
+## Reglas de calidad de datos
+
+### Ejemplos
+
+- Detección de nulos.
+- Validación de tipos.
+- Duplicados.
+- Distribuciones anómalas.
+- Valores fuera de rango.
+
+---
+
+## Reglas NLP
+
+### Ejemplos
+
+- Validación de codificación UTF-8.
+- Caracteres inválidos.
+- Tokenización incorrecta.
+- Longitudes máximas.
+- Normalización textual.
+
+---
+
+## Reglas de datasets
+
+### Ejemplos
+
+- Separación train/test.
+- Detección de fuga de datos.
+- Balance de clases.
+- Representatividad.
+
+---
+
+## Reglas de evaluación del modelo
+
+### Ejemplos
+
+- Tiempo máximo de ejecución.
+- Robustez ante entradas inválidas.
+- Estabilidad entre ejecuciones.
+- Umbrales mínimos de métricas.
+
+---
+
+# Grafo de conocimiento
+
+Las reglas estarán almacenadas en un grafo de conocimiento para permitir un modelo flexible, extensible y evolutivo.
+
+## Relaciones principales
+
+El grafo relacionará:
+
+- Fases del ciclo del dato.
+- Riesgos.
+- Controles.
+- Evidencias.
+- Reglas.
+- Recomendaciones.
+- Defectos.
+- Métricas.
+
+---
+
+# Ventajas del enfoque basado en grafo
+
+## Extensibilidad
+
+Permite:
+
+- Añadir nuevas reglas.
+- Ajustar comportamientos.
+- Incorporar nuevas fases QA.
+- Adaptar el sistema a nuevos dominios.
+
+---
+
+## Trazabilidad
+
+Facilita conocer:
+
+- Qué regla se ejecutó.
+- Qué evidencia se utilizó.
+- Qué riesgo se detectó.
+- Qué recomendación se generó.
+
+---
+
+## Evolución progresiva
+
+El sistema podrá evolucionar mediante:
+
+- Inclusión manual de nuevas reglas.
+- Ajustes derivados del feedback.
+- Mejora continua asistida.
+- Sustitución progresiva de reglas por componentes inteligentes.
+
+---
+
+# Evolución futura
+
+En versiones posteriores, determinadas fases o procesos podrán reemplazar las reglas estáticas por componentes inteligentes capaces de:
+
+- Inferir patrones automáticamente.
+- Aprender comportamientos QA.
+- Detectar anomalías complejas.
+- Generar nuevas reglas.
+- Adaptarse dinámicamente al dominio del proyecto.
+
+Esto permitirá evolucionar desde un sistema basado en reglas hacia un agente QA híbrido con capacidades cognitivas avanzadas.
+
+---
+
+# Arquitectura conceptual simplificada
+
+```text
+Usuario
+   │
+   ▼
+Agente Orquestador QA
+   │
+   ├── Gestor de contexto
+   ├── Planificador
+   ├── Motor de reglas
+   ├── Evaluador de resultados
+   ├── Gestor de feedback
+   │
+   ▼
+Grafo de conocimiento QA
+   │
+   ├── Reglas
+   ├── Riesgos
+   ├── Evidencias
+   ├── Controles
+   └── Recomendaciones
+```
