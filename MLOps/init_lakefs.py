@@ -12,8 +12,24 @@ LAKEFS_SECRET_KEY = os.environ.get("LAKEFS_SECRET_ACCESS_KEY", "simarrosecret")
 # datasets: cada dataset tendrá su propio repositorio en lakeFS
 DATASETS = [
     {
-        "name": "test1",
-        "description": "Testing environment",
+        "name": "bdg2",
+        "description": "Building Data Genome 2:  https://github.com/buds-lab/building-datagenome-project-2 — 3.053 contadores, 1.636 edificios, 53M+ registros horarios, metadatos de edificio y meteor",
+    },
+    {
+        "name": "ingauge",
+        "description": "Datos de sensores",
+    },
+    {
+        "name": "uci-appliances",
+        "description": "UCI Appliances Energy Prediction: https://archive.ics.uci.edu/dataset/374 — 19.735 obs. a 10 min., consumo de electrodomésticos e iluminación, T1–T9, RH_1–RH_9 y meteorología exterior.",
+    },
+    {
+        "name": "uci-occupancy",
+        "description": "UCI Occupancy - predicción de ocupación de espacios",
+    },
+    {
+        "name": "era5",
+        "description": "ERA5 (ECMWF Reanalysis v5): https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels",
     },
 ]
 
