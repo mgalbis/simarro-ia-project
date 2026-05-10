@@ -173,10 +173,9 @@ Agente Orquestador QA
     Grafo de conocimiento QA
 
 
-    
-    
-    
-    # Etapas agénticas y motor de reglas
+--- 
+
+#  Etapas agénticas y motor de reglas
 
 Estas etapas pueden implementarse mediante distintos niveles de complejidad, desde reglas deterministas simples hasta mecanismos cognitivos avanzados basados en aprendizaje automático y razonamiento autónomo.
 
