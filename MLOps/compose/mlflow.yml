@@ -1,0 +1,33 @@
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: simarro-mlflow
+    ports:
+      - "5000:5000"
+
+    # Comando de inicialización del servidor MLflow.
+    # Se configura para usar SQLite, pero sería interesante utilizar PostgreSQL cuando integremos con la infra de ITI.
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+
+    volumes:
+      - mlflow-data:/mlflow
+
+    # Dependencia con lakeFS
+    depends_on:
+      lakefs:
+        condition: service_healthy
+
+    # Comprobar el estado del servicio MLflow
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  mlflow-data:
