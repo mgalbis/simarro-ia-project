@@ -467,7 +467,7 @@ flowchart TB
     MLFLOW --> POSTGRES
 ```
 
-# Arquitectura híbrida (no definitiva)
+# Arquitectura híbrida propuesta (no definitiva)
 
 ```mermaid
 flowchart TB
