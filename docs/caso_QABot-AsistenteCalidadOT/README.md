@@ -373,7 +373,10 @@ Esto permitirá evolucionar desde un sistema basado en reglas hacia un agente QA
 
 # Enfoque técnico propuesto para v1
 
+## Arquitectura funcional
 
+
+![Arquitectura funcional](docs/images/arquitectura funcional.png)
 
 ---
 
