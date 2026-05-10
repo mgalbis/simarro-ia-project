@@ -573,6 +573,8 @@ flowchart TB
     POSTGRES --> TRACE
 ```
 
+# Arquitectura funcional y tecnológica propuesta (no validada para revisar)
+
 ---
 
 # Componentes principales
@@ -586,6 +588,9 @@ Responsable de:
 - Ejecutar flujos de prueba.
 - Solicitar evidencias.
 - Consolidar resultados.
+- Coordinar validaciones QA.
+- Mantener contexto conversacional.
+- Gestionar iteraciones de prueba.
 
 ---
 
@@ -600,6 +605,16 @@ Contendrá relaciones entre:
 - Recomendaciones.
 - Defectos.
 - Métricas.
+- Reglas QA.
+- Casos de prueba.
+- Resultados históricos.
+
+Permitirá:
+
+- Trazabilidad.
+- Reutilización de conocimiento.
+- Adaptación dinámica de reglas.
+- Evolución progresiva del sistema.
 
 ---
 
@@ -611,6 +626,10 @@ Permitirá:
 - Detectar incumplimientos.
 - Generar recomendaciones.
 - Priorizar riesgos.
+- Evaluar métricas técnicas y funcionales.
+- Detectar degradaciones.
+- Validar estabilidad y robustez.
+- Ejecutar regresiones automáticas.
 
 ---
 
@@ -622,6 +641,137 @@ Permitirá:
 - Mejorar reglas existentes.
 - Incorporar nuevo conocimiento.
 - Evolucionar el grafo de conocimiento.
+- Adaptar recomendaciones QA.
+- Registrar observaciones funcionales.
+- Mejorar validaciones futuras.
+
+---
+
+## 5. Frontend
+
+Responsable de:
+
+- Proporcionar la interfaz web del asistente.
+- Permitir iniciar sesiones de prueba.
+- Subir artefactos y evidencias.
+- Visualizar resultados e informes.
+- Gestionar interacción conversacional.
+- Mostrar métricas y resultados QA.
+
+Tecnologías propuestas:
+
+- React
+- Next.js
+- Streamlit
+- Tailwind CSS
+- Framer Motion
+
+---
+
+## 6. Backend / API
+
+Responsable de:
+
+- Exponer APIs del sistema.
+- Gestionar autenticación y seguridad.
+- Coordinar servicios QA.
+- Ejecutar lógica de negocio.
+- Gestionar peticiones desde frontend o pipelines MLOps.
+- Gestionar trazabilidad y auditoría.
+
+Tecnologías propuestas:
+
+- Python
+- FastAPI
+
+---
+
+## 7. IA agéntica y orquestación
+
+Responsable de:
+
+- Coordinar agentes inteligentes.
+- Gestionar workflows QA.
+- Mantener memoria conversacional.
+- Ejecutar flujos de validación.
+- Seleccionar reglas aplicables.
+- Gestionar razonamiento agéntico.
+
+Tecnologías propuestas:
+
+- LangChain
+- LangGraph
+- OpenAI API
+- Azure OpenAI
+
+---
+
+## 8. Persistencia y memoria
+
+Responsable de:
+
+- Almacenar información estructurada.
+- Gestionar trazabilidad.
+- Mantener estado temporal.
+- Guardar resultados históricos.
+- Gestionar memoria semántica.
+- Conservar evidencias de ejecución.
+
+Tecnologías propuestas:
+
+- PostgreSQL
+- Neo4j
+- Azure Blob Storage
+- Redis
+- ChromaDB
+
+---
+
+## 9. Machine Learning y evaluación
+
+Responsable de:
+
+- Ejecutar modelos ML.
+- Calcular métricas.
+- Comparar modelos.
+- Evaluar resultados.
+- Ejecutar validaciones automáticas.
+- Detectar anomalías y degradaciones.
+
+Tecnologías propuestas:
+
+- Scikit-learn
+- Pandas
+
+---
+
+## 10. Observabilidad y auditoría
+
+Responsable de:
+
+- Registrar logs de ejecución.
+- Gestionar evidencias QA.
+- Facilitar auditoría técnica.
+- Mantener trazabilidad completa.
+- Registrar métricas operativas.
+- Monitorizar ejecuciones.
+
+---
+
+## 11. Seguridad
+
+Responsable de:
+
+- Gestionar autenticación.
+- Controlar permisos y accesos.
+- Proteger APIs y artefactos.
+- Garantizar acceso seguro a modelos y datasets.
+
+Posibles mecanismos:
+
+- OAuth2
+- JWT
+- Control de roles
 
 ---
 
@@ -631,28 +781,39 @@ Permitirá:
 
 - Python
 - FastAPI
-- LangChain / LangGraph
-- Neo4j
+- LangChain
+- LangGraph
 - Pandas
 - Scikit-learn
 
+---
+
 ## Persistencia
 
-- Neo4j (grafo)
+- Neo4j
 - PostgreSQL
+- Redis
+- ChromaDB
 - Azure Storage / Blob Storage
+
+---
 
 ## IA y orquestación
 
 - OpenAI API
 - Azure OpenAI
 - LangGraph
+- LangChain
+
+---
 
 ## Frontend
 
-- Streamlit
 - React
 - Next.js
+- Streamlit
+- Tailwind CSS
+- Framer Motion
 
 ---
 
@@ -663,6 +824,13 @@ Evolucionar el piloto hacia una metodología de pruebas completa para proyectos 
 - Testing multimodal
 - Testing agéntico
 - Evaluación continua
-- Observabilidad
-- Trazabilidad avanzada
+- Observabilidad avanzada
+- Trazabilidad completa
 - Integración DevOps/MLOps
+- Validaciones automáticas inteligentes
+- Comparación automática de modelos
+- Detección avanzada de anomalías
+- Gobernanza y compliance de modelos IA
+- Monitorización continua en producción
+- Aprendizaje continuo basado en feedback
+```
