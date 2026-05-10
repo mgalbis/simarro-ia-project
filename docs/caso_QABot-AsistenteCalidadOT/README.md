@@ -375,29 +375,47 @@ Esto permitirá evolucionar desde un sistema basado en reglas hacia un agente QA
 
 ## Arquitectura conceptual
 
-```text
-Usuario
-   │
-   ▼
-Agente Orquestador QA
-   │
-   ├── Gestor de contexto
-   ├── Planificador
-   ├── Motor de reglas
-   ├── Gestor de artefactos
-   ├── Evaluador de resultados
-   ├── Generador de informes
-   └── Adaptador de feedback
-            │
-            ▼
-    Grafo de conocimiento QA
-            │
-            ├── Reglas
-            ├── Riesgos
-            ├── Evidencias
-            ├── Controles
-            └── Recomendaciones
+```mermaid
+flowchart TB
+    USER["Usuario"]
+
+    subgraph ORCHESTRATOR["Agente Orquestador QA"]
+        CONTEXT["Gestor de contexto"]
+        PLANNER["Planificador"]
+        RULES["Motor de reglas"]
+        ARTIFACTS["Gestor de artefactos"]
+        EVALUATOR["Evaluador de resultados"]
+        REPORTS["Generador de informes"]
+        FEEDBACK["Adaptador de feedback"]
+    end
+
+    subgraph KG["Grafo de conocimiento QA"]
+        KG_RULES["Reglas"]
+        KG_RISKS["Riesgos"]
+        KG_EVIDENCES["Evidencias"]
+        KG_CONTROLS["Controles"]
+        KG_RECOMMENDATIONS["Recomendaciones"]
+    end
+
+    USER --> ORCHESTRATOR
+
+    CONTEXT --> RULES
+    PLANNER --> RULES
+    ARTIFACTS --> RULES
+
+    RULES --> EVALUATOR
+    EVALUATOR --> REPORTS
+    REPORTS --> FEEDBACK
+
+    FEEDBACK --> KG
+
+    KG --> KG_RULES
+    KG --> KG_RISKS
+    KG --> KG_EVIDENCES
+    KG --> KG_CONTROLS
+    KG --> KG_RECOMMENDATIONS
 ```
+
 
 ---
 
