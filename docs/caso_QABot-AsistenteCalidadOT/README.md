@@ -153,46 +153,22 @@ Las métricas definitivas incluidas en v1 se determinarán posteriormente según
 
 ---
 
-# Enfoque técnico propuesto para v1
+# Etapas agénticas y motor de reglas
 
-## Arquitectura conceptual
+Los agentes inteligentes siguen una serie de etapas para identificar la tarea que le solicitan, planificar la mejor propuesta de acción, ejecutar las acciones planificadas, evaluar el resultado de sus acciones, aprender, etc.
 
-```text
-Usuario
-   │
-   ▼
-Agente Orquestador QA
-   │
-   ├── Gestor de contexto
-   ├── Motor de reglas
-   ├── Gestor de artefactos
-   ├── Generador de informes
-   └── Adaptador de feedback
-            │
-            ▼
-    Grafo de conocimiento QA
+Estas etapas pueden utilizar patrones predefinidos de comportamiento que van desde reglas sencillas hasta mecanismos cognitivos sofisticados.
 
+La v1 incluirá un motor de validación basado en reglas definidas por expertos en QA. Es decir, las etapas agénticas estarán basadas inicialmente en reglas básicas.
 
---- 
+Con esta aproximación se asegura la entrega de una versión funcional, aunque limitada en inteligencia autónoma, que podrá evolucionar progresivamente tanto durante el desarrollo del proyecto como posteriormente en entornos profesionales reales.
 
-#  Etapas agénticas y motor de reglas
+Las reglas se almacenarán en una estructura de grafo de conocimiento para que la implementación del comportamiento del agente sea extensible mediante:
 
-Estas etapas pueden implementarse mediante distintos niveles de complejidad, desde reglas deterministas simples hasta mecanismos cognitivos avanzados basados en aprendizaje automático y razonamiento autónomo.
-
----
-
-# Enfoque de la versión v1
-
-La versión v1 del sistema incorporará un motor de validación basado en reglas definidas por expertos en QA.
-
-Esto implica que las etapas agénticas estarán soportadas inicialmente mediante lógica basada en reglas, permitiendo:
-
-- Garantizar un comportamiento controlado y trazable.
-- Facilitar la validación funcional del sistema.
-- Reducir complejidad técnica en el piloto inicial.
-- Establecer una base evolutiva hacia componentes inteligentes más avanzados.
-
-Con esta aproximación se asegura la entrega de una primera versión funcional, aunque limitada en inteligencia autónoma, que podrá evolucionar progresivamente tanto durante el desarrollo del proyecto como posteriormente en entornos profesionales reales.
+- Inclusión manual de nuevas reglas.
+- Ajuste o eliminación de reglas existentes.
+- Procesos asistidos de mejora continua.
+- Sustitución progresiva de reglas por componentes inteligentes capaces de inferir automáticamente reglas de negocio.
 
 ---
 
@@ -395,7 +371,9 @@ Esto permitirá evolucionar desde un sistema basado en reglas hacia un agente QA
 
 ---
 
-# Arquitectura conceptual simplificada
+# Enfoque técnico propuesto para v1
+
+## Arquitectura conceptual
 
 ```text
 Usuario
@@ -406,15 +384,111 @@ Agente Orquestador QA
    ├── Gestor de contexto
    ├── Planificador
    ├── Motor de reglas
+   ├── Gestor de artefactos
    ├── Evaluador de resultados
-   ├── Gestor de feedback
-   │
-   ▼
-Grafo de conocimiento QA
-   │
-   ├── Reglas
-   ├── Riesgos
-   ├── Evidencias
-   ├── Controles
-   └── Recomendaciones
+   ├── Generador de informes
+   └── Adaptador de feedback
+            │
+            ▼
+    Grafo de conocimiento QA
+            │
+            ├── Reglas
+            ├── Riesgos
+            ├── Evidencias
+            ├── Controles
+            └── Recomendaciones
 ```
+
+---
+
+# Componentes principales
+
+## 1. Agente orquestador
+
+Responsable de:
+
+- Gestionar la conversación.
+- Guiar al usuario.
+- Ejecutar flujos de prueba.
+- Solicitar evidencias.
+- Consolidar resultados.
+
+---
+
+## 2. Grafo de conocimiento
+
+Contendrá relaciones entre:
+
+- Fases del ciclo del dato.
+- Riesgos.
+- Controles.
+- Evidencias.
+- Recomendaciones.
+- Defectos.
+- Métricas.
+
+---
+
+## 3. Motor de reglas
+
+Permitirá:
+
+- Ejecutar validaciones automáticas.
+- Detectar incumplimientos.
+- Generar recomendaciones.
+- Priorizar riesgos.
+
+---
+
+## 4. Sistema de feedback
+
+Permitirá:
+
+- Recoger validaciones humanas.
+- Mejorar reglas existentes.
+- Incorporar nuevo conocimiento.
+- Evolucionar el grafo de conocimiento.
+
+---
+
+# Posibles tecnologías
+
+## Backend
+
+- Python
+- FastAPI
+- LangChain / LangGraph
+- Neo4j
+- Pandas
+- Scikit-learn
+
+## Persistencia
+
+- Neo4j (grafo)
+- PostgreSQL
+- Azure Storage / Blob Storage
+
+## IA y orquestación
+
+- OpenAI API
+- Azure OpenAI
+- LangGraph
+
+## Frontend
+
+- Streamlit
+- React
+- Next.js
+
+---
+
+# Objetivo futuro
+
+Evolucionar el piloto hacia una metodología de pruebas completa para proyectos de IA y Big Data, soportando:
+
+- Testing multimodal
+- Testing agéntico
+- Evaluación continua
+- Observabilidad
+- Trazabilidad avanzada
+- Integración DevOps/MLOps
