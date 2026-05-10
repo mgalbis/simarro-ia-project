@@ -373,7 +373,7 @@ Esto permitirá evolucionar desde un sistema basado en reglas hacia un agente QA
 
 # Enfoque técnico propuesto para v1
 
-## Arquitectura conceptual
+## Arquitectura funcional propuesta
 
 ```mermaid
 flowchart TB
@@ -415,7 +415,163 @@ flowchart TB
     KG --> KG_CONTROLS
     KG --> KG_RECOMMENDATIONS
 ```
+# Arquitectura tecnológica propuesta (no definitiva)
 
+```mermaid
+flowchart TB
+    USER["Usuario"]
+    
+    subgraph FRONTEND["Frontend"]
+        REACT["React<br/>Interfaz web interactiva"]
+        TAILWIND["Tailwind CSS<br/>Diseño moderno y responsive"]
+        FRAMER["Framer Motion<br/>Animaciones y transiciones"]
+    end
+
+    subgraph BACKEND["Backend"]
+        FASTAPI["FastAPI"]
+        PYTHON["Python"]
+        QA["Lógica de negocio<br/>Validaciones QA<br/>Procesamiento de datos"]
+    end
+
+    subgraph AGENTIC["IA agéntica"]
+        LANGGRAPH["LangGraph<br/>Orquestación de agentes<br/>Contexto<br/>Workflows QA"]
+    end
+
+    subgraph MEMORY["Persistencia y memoria"]
+        POSTGRES["PostgreSQL<br/>Datos estructurados<br/>Trazabilidad"]
+        REDIS["Redis<br/>Memoria temporal<br/>Estado en tiempo real"]
+        CHROMA["ChromaDB<br/>Búsqueda semántica<br/>Memoria inteligente"]
+    end
+
+    subgraph ML["Machine Learning"]
+        SKLEARN["Scikit-learn<br/>Modelos y métricas"]
+        MLFLOW["MLflow<br/>Experimentos<br/>Versionado<br/>Trazabilidad"]
+    end
+
+    USER --> REACT
+    REACT --> TAILWIND
+    REACT --> FRAMER
+    REACT --> FASTAPI
+
+    FASTAPI --> PYTHON
+    PYTHON --> QA
+    QA --> LANGGRAPH
+
+    LANGGRAPH --> POSTGRES
+    LANGGRAPH --> REDIS
+    LANGGRAPH --> CHROMA
+    LANGGRAPH --> SKLEARN
+    LANGGRAPH --> MLFLOW
+
+    SKLEARN --> MLFLOW
+    MLFLOW --> POSTGRES
+```
+
+# Arquitectura híbrida (no definitiva)
+
+```mermaid
+flowchart TB
+    USER["Usuario / Tester QA"]
+
+    subgraph FRONTEND["Frontend"]
+        REACT["React<br/>Interfaz web interactiva"]
+        TAILWIND["Tailwind CSS<br/>Diseño moderno y responsive"]
+        FRAMER["Framer Motion<br/>Animaciones y transiciones"]
+    end
+
+    subgraph BACKEND["Backend"]
+        FASTAPI["FastAPI<br/>API principal"]
+        PYTHON["Python<br/>Servicios backend"]
+        AUTH["Seguridad<br/>OAuth2 / JWT"]
+    end
+
+    subgraph ORCHESTRATOR["Agente Orquestador QA"]
+        CONTEXT["Gestor de contexto"]
+        PLANNER["Planificador"]
+        RULES["Motor de reglas"]
+        ARTIFACTS["Gestor de artefactos"]
+        EVALUATOR["Evaluador de resultados"]
+        REPORTS["Generador de informes"]
+        FEEDBACK["Adaptador de feedback"]
+    end
+
+    subgraph AGENTIC["IA agéntica"]
+        LANGGRAPH["LangGraph<br/>Orquestación de flujos QA<br/>Memoria conversacional<br/>Decisión agéntica"]
+    end
+
+    subgraph KNOWLEDGE["Grafo de conocimiento QA"]
+        KG["Knowledge Graph"]
+        KG_RULES["Reglas"]
+        KG_RISKS["Riesgos"]
+        KG_EVIDENCES["Evidencias"]
+        KG_CONTROLS["Controles"]
+        KG_RECS["Recomendaciones"]
+    end
+
+    subgraph MEMORY["Persistencia y memoria"]
+        POSTGRES["PostgreSQL<br/>Datos estructurados<br/>Trazabilidad"]
+        REDIS["Redis<br/>Estado temporal<br/>Sesiones"]
+        CHROMA["ChromaDB<br/>Búsqueda semántica<br/>Memoria inteligente"]
+    end
+
+    subgraph MLOPS["Capa MLOps / Machine Learning"]
+        SKLEARN["Scikit-learn<br/>Modelos y métricas"]
+        MLFLOW["MLflow<br/>Experimentos<br/>Versionado<br/>Registro de modelos"]
+        PIPELINES["Pipelines CI/CD<br/>Validación automática"]
+    end
+
+    subgraph OBS["Observabilidad y auditoría"]
+        LOGS["Logs de ejecución"]
+        METRICS["Métricas QA / ML"]
+        TRACE["Trazabilidad<br/>Evidencias<br/>Auditoría"]
+    end
+
+    USER --> REACT
+    REACT --> TAILWIND
+    REACT --> FRAMER
+    REACT --> FASTAPI
+
+    FASTAPI --> AUTH
+    FASTAPI --> PYTHON
+    PYTHON --> LANGGRAPH
+
+    LANGGRAPH --> CONTEXT
+    LANGGRAPH --> PLANNER
+    LANGGRAPH --> RULES
+    LANGGRAPH --> ARTIFACTS
+    LANGGRAPH --> EVALUATOR
+    LANGGRAPH --> REPORTS
+    LANGGRAPH --> FEEDBACK
+
+    RULES --> KG
+    CONTEXT --> REDIS
+    ARTIFACTS --> POSTGRES
+    REPORTS --> POSTGRES
+    FEEDBACK --> KG
+
+    KG --> KG_RULES
+    KG --> KG_RISKS
+    KG --> KG_EVIDENCES
+    KG --> KG_CONTROLS
+    KG --> KG_RECS
+
+    EVALUATOR --> SKLEARN
+    SKLEARN --> MLFLOW
+    MLFLOW --> POSTGRES
+    PIPELINES --> FASTAPI
+    PIPELINES --> MLFLOW
+
+    LANGGRAPH --> CHROMA
+    LANGGRAPH --> POSTGRES
+    LANGGRAPH --> REDIS
+
+    FASTAPI --> LOGS
+    RULES --> METRICS
+    EVALUATOR --> METRICS
+    REPORTS --> TRACE
+    MLFLOW --> TRACE
+    POSTGRES --> TRACE
+```
 
 ---
 
