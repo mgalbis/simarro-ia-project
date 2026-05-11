@@ -60,14 +60,14 @@ def inicialize_lakefs():
     client = create_client()
 
     try:
-        client.health_check.health_check()
+        client.health_check_api.health_check()
         print("lakeFS disponible\n")
     except Exception as e:
         print(f"No se puede conectar con lakeFS: {e}")
         return
 
     # crear repositorios
-    repos_api = client.repositories
+    repos_api = client.repositories_api
 
     for dataset in DATASETS:
         nombre = dataset["name"]
@@ -92,7 +92,7 @@ def inicialize_lakefs():
                 continue
 
         # crear ramas adicionales
-        ramas_api = client.branches
+        ramas_api = client.branches_api
 
         for rama in BRANCHES:
             try:
@@ -119,7 +119,7 @@ def inicialize_lakefs():
 
     repos = repos_api.list_repositories().results
     for repo in repos:
-        ramas = client.branches.list_branches(repository=repo.id).results
+        ramas = client.branches_api.list_branches(repository=repo.id).results
         nombres_ramas = [r.id for r in ramas]
 
         print(f"  {repo.id}")
@@ -131,4 +131,4 @@ def inicialize_lakefs():
 
 # ── Punto de entrada ──────────────────────────────────────────
 if __name__ == "__main__":
-    inicializar_lakefs()
+    inicialize_lakefs()
