@@ -45,6 +45,7 @@ export default function useQABotChat(selectedFile, onReportGenerated, setSelecte
       const botMsg = {
         role: "assistant",
         content: data.assistant_message,
+        execution_id: data.execution_id, 
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, botMsg]);

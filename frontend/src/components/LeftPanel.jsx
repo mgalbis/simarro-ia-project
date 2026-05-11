@@ -17,8 +17,12 @@ export default function LeftPanel({ onNewSession }) {
         
         {/* CABECERA CON ICONO BOT */}
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-qa-bot-gradient rounded-[14px] flex items-center justify-center text-2xl shadow-[0_0_15px_rgba(142,53,255,0.4)]">
-            🤖
+          <div className="w-[40px] h-[40px] rounded-3xl bg-qa-bot-gradient shadow-[0_0_20px_rgba(142,53,255,0.70)]">
+            <img 
+              src="/QABotIcon.png" 
+              alt="Bot Icon"
+              className="w-full h-full object-contain scale-105" 
+            />
           </div>
           <div className="leading-tight">
             <span className="text-[13px] font-black text-white block uppercase tracking-tight">QABot en fase</span>

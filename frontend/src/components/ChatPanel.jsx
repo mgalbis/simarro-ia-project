@@ -26,42 +26,40 @@ export default function ChatPanel({
       <div className="flex-1 bg-qa-panel border-2 border-qa-purple/40 rounded-[22px] backdrop-blur-xl shadow-[0_0_30px_rgba(142,53,255,0.15)] p-4 flex flex-col overflow-hidden">
         
         {/* HEADER */}
-        <div className="grid grid-cols-[64px_1fr_150px] gap-4 items-center mb-4">
-          <div className="w-[54px] h-[54px] rounded-2xl bg-qa-bot-gradient flex items-center justify-center text-3xl shadow-[0_0_22px_rgba(142,53,255,0.55)]">
-            🤖
+        <div className="flex items-center gap-4 mb-4 border-b border-qa-purple/20 pb-4">
+          <div className="w-[70px] h-[70px] rounded-3xl bg-qa-bot-gradient shadow-[0_0_20px_rgba(142,53,255,0.70)]">
+            <img 
+              src="/QABotIcon.png" 
+              alt="Bot Icon"
+              className="w-full h-full object-contain scale-105" 
+            />
           </div>
 
-          <div>
-            <h1 className="text-[31px] font-[900] leading-[0.92] tracking-wider text-white">QABOT</h1>
-            <h2 className="text-[12.5px] font-[800] uppercase text-white mt-1">Asistente Agéntico de Calidad</h2>
-            <p className="text-[11px] text-qa-muted mt-1">Chatbot implementado con Arquitectura Agéntica</p>
-          </div>
-
-          {/* Escenario del Robot */}
-          <div className="relative h-[62px] flex items-center justify-center overflow-hidden">
-            <div className="absolute bottom-1 w-[120px] h-[30px] rounded-[50%] border border-qa-purple/60 shadow-[0_0_15px_rgba(142,53,255,0.4)]"></div>
-            <div className="text-4xl filter drop-shadow-[0_0_12px_rgba(142,53,255,0.75)] z-10">🤖</div>
+          <div className="flex-1">
+            <h1 className="text-[28px] font-[900] leading-none tracking-wider text-white italic">QABOT</h1>
+            <h2 className="text-[11px] font-[800] uppercase text-qa-purple-light mt-1 tracking-widest text-opacity-80">
+              Asistente Agéntico de Calidad
+            </h2>
           </div>
         </div>
 
         {/* CAJA DE MENSAJES */}
         <div className="flex-1 bg-[#030618]/60 border border-qa-purple/30 rounded-xl overflow-y-auto p-4 mb-2 scrollbar-thin">
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center">
-              <div className="w-[70px] h-[48px] border-4 border-qa-purple rounded-2xl flex items-center justify-center text-qa-purple-light text-2xl shadow-[0_0_20px_rgba(142,53,255,0.28)] mb-3 font-black">
-                •••
-              </div>
+            <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
+              <div className="text-5xl mb-3">💬</div>
               <h3 className="text-lg font-bold text-white mb-1">Inicia una conversación</h3>
-              <p className="text-qa-muted text-sm">Escribe tu mensaje para comenzar</p>
+              <p className="text-qa-muted text-sm">Carga un archivo o haz una consulta</p>
             </div>
           ) : (
             <div className="flex flex-col gap-4">
               {messages.map((msg, index) => (
                 <MessageBubble
-                  key={index}
                   role={msg.role}
                   content={msg.content}
                   timestamp={msg.timestamp}
+                  execution_id={msg.execution_id}
+                  hasReport={msg.hasReport}
                 />
               ))}
             </div>
@@ -69,21 +67,11 @@ export default function ChatPanel({
         </div>
       </div>
 
-      {/* TARJETA DE CONTROLES*/}
-      <div className="bg-qa-panel/60 border-2 border-qa-purple/40 rounded-2xl p-3 flex flex-col gap-2 shadow-[0_0_15px_rgba(142,53,255,0.1)]">
-        <p className="text-[10px] text-qa-muted">CSV opcional para ejecutar validaciones. Puedes conversar sin cargar archivo.</p>
+      {/* TARJETA DE CONTROLES */}
+      <div className="bg-qa-panel/80 border-2 border-qa-purple/40 rounded-2xl p-4 flex flex-col gap-4 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
         
         {/* Fila de Archivo */}
-        <div className="flex gap-2">
-          <div className="flex-1 bg-black/40 border border-qa-purple/30 rounded-xl px-3 py-2 flex items-center overflow-hidden">
-            <span className="text-[11px] text-[#c9c3e8] truncate">
-              {selectedFile 
-                ? `Archivo cargado: ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(1)} KB)`
-                : "No hay ningún archivo seleccionado..."}
-            </span>
-          </div>
-          
-          {/* Input de archivo oculto */}
+        <div className="flex gap-3 items-center">
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -93,23 +81,33 @@ export default function ChatPanel({
           />
           
           <button 
-            className="w-10 bg-qa-bot-gradient rounded-xl font-bold hover:scale-110 active:scale-95 transition-all text-white shadow-[0_0_10px_rgba(142,53,255,0.3)]"
+            className="flex items-center gap-2 bg-[#1a1a2e] border border-qa-purple/50 px-4 py-2.5 rounded-xl text-[11px] font-black text-qa-purple-light shadow-[0_0_15px_rgba(142,53,255,0.1)] hover:bg-qa-purple hover:text-white transition-all uppercase whitespace-nowrap"
             onClick={() => fileInputRef.current.click()}
-            title="Subir archivo CSV"
           >
-            +
+            <span>UPLOAD</span>
+            <span className="text-sm">📤</span>
           </button>
+
+          <div className="flex-1 bg-black/40 border border-qa-purple/20 rounded-xl px-4 py-2.5 flex items-center">
+            <span className="text-[11px] text-qa-muted italic truncate">
+              {selectedFile 
+                ? `📄 ${selectedFile.name}`
+                : "No hay archivo seleccionado..."}
+            </span>
+          </div>
         </div>
 
-        {/* Input y Botones */}
         <div className="flex gap-2">
-          <input
-            className="flex-1 bg-qa-deep/90 border border-qa-purple/40 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-qa-purple transition-all placeholder:text-white/40"
-            placeholder="Escribe tu mensaje aquí..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          />
+          <div className="flex-1 relative group">
+            <input
+              className="w-full bg-[#050509] border-2 border-qa-purple/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-qa-purple/60 transition-all placeholder:text-gray-500 shadow-inner"
+              placeholder="Escribir mensaje..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            />
+            <div className="absolute inset-0 rounded-xl pointer-events-none border border-transparent peer-focus:border-qa-purple/30 transition-all"></div>
+          </div>
 
           <button 
             className="bg-gradient-to-r from-qa-purple to-[#5b13db] px-5 py-2 rounded-xl text-[11px] font-black text-white shadow-[0_0_15px_rgba(142,53,255,0.4)] hover:brightness-110 hover:scale-105 active:scale-95 transition-all uppercase"
@@ -119,7 +117,7 @@ export default function ChatPanel({
           </button>
 
           <button 
-            className="bg-gradient-to-r from-[#6d28d9] to-[#35006f] px-5 py-2 rounded-xl text-[11px] font-black text-white hover:brightness-110 hover:scale-105 active:scale-95 transition-all uppercase"
+            className="bg-gradient-to-r from-[#2e1065] to-[#1e1b4b] border border-white/10 px-6 py-2 rounded-xl text-[11px] font-black text-white/70 hover:from-red-600 hover:to-red-800 hover:text-white hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.4)] active:scale-95 transition-all duration-300 uppercase"
             onClick={clearChat}
           >
             Limpiar

@@ -6,18 +6,6 @@ export default function RightPanel({
   history = [],
   lastReport = null,
 }) {
-  
-  // Función para descargar el reporte actual como JSON
-  const downloadJSON = () => {
-    if (!lastReport) return;
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(lastReport, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `QA_Report_${lastReport.execution_id || 'test'}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-  };
 
   const getStatusClass = (status) => {
     switch (status?.toUpperCase()) {
@@ -49,16 +37,6 @@ export default function RightPanel({
           <div className="flex items-center gap-2 text-qa-purple-light font-black text-[13px] tracking-wider uppercase">
             <span className="text-lg">▣</span> ÚLTIMA EJECUCIÓN
           </div>
-          
-          {/* Botón de descarga: Solo aparece si hay reporte */}
-          {lastReport && (
-            <button 
-              onClick={downloadJSON}
-              className="text-[10px] bg-qa-purple/20 hover:bg-qa-purple/40 border border-qa-purple/50 px-2 py-1 rounded text-white transition-all flex items-center gap-1"
-            >
-              📥 JSON
-            </button>
-          )}
         </div>
 
         {!lastReport ? (

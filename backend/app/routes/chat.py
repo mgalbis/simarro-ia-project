@@ -1,4 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
+import io
 import pandas as pd
 from io import StringIO
 from typing import Optional
@@ -39,3 +41,23 @@ async def chat(
     response = agent.act(decisions, execution_id)
 
     return response
+
+@router.get("/download/{execution_id}")
+async def download_report(execution_id: str):
+    
+    output = io.StringIO()
+    output.write(f"Reporte de Calidad QA - ID: {execution_id}\n")
+    output.write("Fila,Columna,Error,Gravedad\n")
+    output.write("10,temperature,null,High\n")
+    output.write("45,co2,outlier,Medium\n")
+    
+    # Convertimos el texto en un "archivo" binario que el navegador entienda
+    stream = io.BytesIO(output.getvalue().encode())
+    
+    return StreamingResponse(
+        stream,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=Reporte_QA_{execution_id}.csv"
+        }
+    )
