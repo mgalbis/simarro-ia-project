@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --color-qa-purple: #8e35ff;
+  --color-qa-purple-light: #c04cff;
+  --color-qa-magenta: #ff00ff;
+
+  --color-qa-panel: rgba(5, 8, 30, 0.84);
+
+  --color-qa-border: rgba(142, 53, 255, 0.4);
+  --color-qa-border-glow: rgba(142, 53, 255, 0.55);
+
+  --color-qa-muted: #b9b6d6;
+  --color-qa-green: #00ff85;
+}
+
+/* Configuraciones globales */
+@layer base {
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #050816;
+    color: white;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* Personalización del scrollbar */
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(142, 53, 255, 0.3);
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(142, 53, 255, 0.6);
+  }
+}
+
+/* Clases de utilidad extra */
+@layer utilities {
+  .backdrop-blur-xl {
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+}
