@@ -2,6 +2,7 @@ services:
   lakefs:
     image: treeverse/lakefs:latest
     container_name: simarro-lakefs
+    user: root
     ports:
       - "8001:8000"
 
@@ -19,10 +20,11 @@ services:
       - lakefs-data:/data
 
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/_health"]
+      test: ["CMD-SHELL", "lakefs --version || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 20s
 
 volumes:
   lakefs-data:
