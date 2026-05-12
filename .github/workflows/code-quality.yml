@@ -11,6 +11,9 @@ on:
     branches:
       - main
       - develop
+    paths:
+      - "src/**"
+      - "test/**"
   workflow_dispatch:
 
 env:
