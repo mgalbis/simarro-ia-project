@@ -29,7 +29,24 @@ async def chat(
                 "assistant_message": f"Error al leer el archivo: {str(e)}",
                 "report": None
             }
+       
+    lower_msg = user_message.lower()
 
+    if any(word in lower_msg for word in [
+        "reporte",
+        "report",
+        "informe",
+        "descargar"
+    ]):
+        return {
+            "assistant_message": "He generado el reporte QA correctamente.",
+            "execution_id": execution_id,
+            "hasReport": True,
+            "report": {
+                "execution_id": execution_id
+            }
+        }
+    
     # 2. EL CICLO DEL AGENTE (Percibir -> Decidir -> Actuar)
     # El agente mira el mensaje y el dataset
     perception = agent.perceive(df, user_message)

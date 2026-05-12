@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from app.services.rules.qa_nulls import check_nulls
 from app.services.rules.qa_duplicates import check_duplicates
+from app.services.llm_service import interpret_user_intent
 
 class QAAgent:
     def __init__(self):
@@ -16,48 +17,57 @@ class QAAgent:
         PASO 1: PERCEPCIÓN
         Recopila la información del entorno (dataset y mensaje).
         """
-        perception = {
-            "goal": user_message.lower(),
+        intent_data = interpret_user_intent(user_message)
+        
+        return {
+            "intent": intent_data.get("intent", "unknown"),
+            "actions": intent_data.get("actions", []),
             "dataset": df,
-            "columns": list(df.columns) if df is not None else []
+            "message": user_message
         }
-        return perception
 
     def decide(self, perception):
         """
         PASO 2: DECISIÓN
         Llama a las funciones de la carpeta /rules según el objetivo.
         """
-        goal = perception["goal"]
         df = perception["dataset"]
+        actions = perception["actions"]
         
         if df is None or df.empty:
             return []
 
-        decisions = []
-
-        # Lógica de disparo de reglas (Orquestación básica)
-        # Si el usuario menciona 'calidad', 'analiza' o términos generales, ejecutamos todo.
-        is_general_query = any(word in goal for word in ["analiza", "calidad", "test", "prueba", "informe"])
-
-        if is_general_query or "nulo" in goal:
-            res_nulls = check_nulls(df)
-            # Añadimos metadata necesaria para el RightPanel de React
-            res_nulls["name"] = "Nulos"
-            res_nulls["details"] = f"{len(res_nulls.get('critical', []))} críticos, {len(res_nulls.get('warnings', []))} avisos"
-            # Calculamos métrica para la barra de progreso (0-1)
-            res_nulls["metrics"] = {"global_null_ratio": float(df.isnull().mean().mean())}
-            decisions.append(res_nulls)
-
-        if is_general_query or "duplicado" in goal:
-            res_dups = check_duplicates(df)
-            res_dups["name"] = "Duplicados"
-            # Aseguramos que existan métricas para el frontend
-            if "metrics" not in res_dups:
-                res_dups["metrics"] = {"duplicate_ratio": float(df.duplicated().sum() / len(df)) if len(df) > 0 else 0}
-            decisions.append(res_dups)
-
-        return decisions
+        results = []
+        # Ejecutamos las reglas basadas en lo que el LLM decidió
+        if "check_nulls" in actions:
+            # 1. Ejecutamos la lógica
+            res = check_nulls(df) 
+            
+            # 2. Inyectamos las métricas que el Frontend espera para las barras
+            null_ratio = float(df.isnull().mean().mean())
+            res.update({
+                "name": "Nulos",
+                "details": f"Detección de {df.isnull().sum().sum()} valores vacíos",
+                "metrics": {
+                    "global_null_ratio": null_ratio
+                }
+            })
+            results.append(res)
+            
+        if "check_duplicates" in actions:
+            res = check_duplicates(df)
+            # Calculamos ratio de duplicados para la barra de "Unicidad"
+            dup_ratio = float(df.duplicated().mean())
+            res.update({
+                "name": "Duplicados",
+                "details": "Análisis de filas repetidas",
+                "metrics": {
+                    "duplicate_ratio": dup_ratio
+                }
+            })
+            results.append(res)
+            
+        return results
 
     def act(self, decisions, execution_id="EXEC-DEFAULT"):
         """
@@ -66,25 +76,29 @@ class QAAgent:
         """
         if not decisions:
             return {
-                "assistant_message": "He recibido el archivo, pero no sé qué validación quieres que haga. Prueba con 'Analiza la calidad'.",
-                "report": None
+                "assistant_message": "He recibido tu mensaje, pero no he identificado una acción clara. Por favor, reformula tu solicitud o proporciona más detalles.",
+                "report": None,
+                "hasReport": False,
+                "execution_id": execution_id
             }
 
-        # Cálculo del estado global para el encabezado del RightPanel
+        # Cálculo de severidad
         status_priority = {"FAIL": 3, "WARN": 2, "PASS": 1}
-        max_severity = max([status_priority.get(d["status"], 1) for d in decisions])
+        max_severity = max([status_priority.get(d.get("status", "PASS"), 1) for d in decisions])
         
         global_status = "PASS"
         if max_severity == 3: global_status = "FAIL"
         elif max_severity == 2: global_status = "WARN"
 
-        report = {
-            "execution_id": execution_id,
-            "global_status": global_status,
-            "results": decisions
-        }
+        msg = f"Análisis finalizado con éxito. Estado global: **{global_status}**. "
 
         return {
-            "assistant_message": f"Análisis finalizado. Estado global: **{global_status}**. Se han aplicado {len(decisions)} reglas de validación.",
-            "report": report
+            "assistant_message": msg,
+            "execution_id": execution_id,
+            "report": {
+                "execution_id": execution_id,
+                "global_status": global_status,
+                "hasReport": True,
+                "results": decisions
+            }
         }

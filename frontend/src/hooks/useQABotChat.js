@@ -34,7 +34,6 @@ export default function useQABotChat(selectedFile, onReportGenerated, setSelecte
       const response = await fetch("http://localhost:8000/chat", {
         method: "POST",
         body: formData,
-        // Nota: No poner Content-Type manual, el navegador lo hace con el boundary
       });
 
       if (!response.ok) throw new Error("Error en la respuesta del servidor");
@@ -45,13 +44,14 @@ export default function useQABotChat(selectedFile, onReportGenerated, setSelecte
       const botMsg = {
         role: "assistant",
         content: data.assistant_message,
+        hasReport: data.hasReport,
         execution_id: data.execution_id, 
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, botMsg]);
 
       // 5. Procesar el Reporte para el RightPanel
-      if (data.report) {
+      if (data.report?.results) {
         // Calculamos los porcentajes para las barras de MetricsCard
         const calculatedMetrics = transformMetrics(data.report.results);
         
