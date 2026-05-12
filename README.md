@@ -119,7 +119,25 @@ Reglas:
 
 ## Calidad de código
 
-TODO
+Instala dependencias de desarrollo y activa hooks:
+
+```bash
+pip install -r requirements-dev.txt
+pre-commit install
+```
+
+Validación manual completa:
+
+```bash
+pre-commit run --all-files
+```
+
+Notas:
+
+* `black`, `isort` y `flake8` se ejecutan automáticamente en cada commit con
+  `pre-commit`.
+* `flake8` usa `pep8-naming` para forzar convenciones de nombres (`snake_case`,
+  `CamelCase`, `UPPER_CASE`).
 
 ## Documentación
 
@@ -141,5 +159,3 @@ docs/
 Este proyecto se distribuye bajo licencia MIT.
 
 Los datasets, modelos entrenados, credenciales y artefactos pesados no forman parte del repositorio.
-
-```
