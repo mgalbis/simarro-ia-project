@@ -34,17 +34,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
 
-      - name: Check import order with isort
+      - name: Run pre-commit checks
         run: |
-          python -m isort --check-only src test 
-
-      - name: Check formatting with black
-        run: |
-          python -m black --check src test 
-
-      - name: Check PEP8 with flake8
-        run: |
-          python -m flake8 src test
+          pre-commit run --all-files
 
       - name: Run unit tests with coverage
         run: |
