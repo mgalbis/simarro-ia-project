@@ -1,0 +1,23 @@
+# Testing
+pytest==8.3.4
+pytest-cov==6.0.0
+coverage==7.6.10
+pydantic<2
+
+# Code quality / PEP8
+flake8==7.1.1
+pycodestyle==2.12.1
+black==24.10.0
+isort==5.13.2
+
+# Optional typing
+mypy==1.14.1
+
+# Project dependencies useful for mlops tests
+mlflow==2.19.0
+requests==2.32.3
+PyYAML==6.0.2
+joblib==1.4.2
+scikit-learn==1.6.0
+pandas==2.2.3
+numpy==2.2.1
