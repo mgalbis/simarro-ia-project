@@ -2,12 +2,9 @@ def check_duplicates(df):
 
     duplicated_count = df.duplicated().sum()
 
-    duplicated_percentage = (
-        duplicated_count / len(df)
-    ) * 100
+    duplicate_ratio = duplicated_count / len(df)
 
-    # Estado según cantidad
-    if duplicated_percentage > 5:
+    if duplicate_ratio > 0.05:
         status = "FAIL"
 
     elif duplicated_count > 0:
@@ -20,8 +17,5 @@ def check_duplicates(df):
         "rule": "QA-DUPLICATES",
         "status": status,
         "duplicated_count": int(duplicated_count),
-        "duplicated_percentage": round(
-            duplicated_percentage,
-            2
-        )
+        "duplicate_ratio": round(duplicate_ratio, 4)
     }

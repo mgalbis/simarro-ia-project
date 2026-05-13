@@ -2,6 +2,13 @@ import React from "react";
 import HistoryCard from "./HistoryCard";
 import MetricsCard from "./MetricsCard";
 
+const TEST_LABELS = {
+  nulls:       "Nulos",
+  duplicates:  "Duplicados",
+  data_types:  "Tipos de dato",
+  outliers:    "Outliers",
+};
+
 export default function RightPanel({
   history = [],
   lastReport = null,
@@ -27,8 +34,10 @@ export default function RightPanel({
     <aside className="bg-qa-panel border border-qa-border rounded-[22px] backdrop-blur-xl shadow-[0_0_25px_rgba(142,53,255,0.25)] p-4 flex flex-col gap-4 h-full overflow-y-auto">
       
       {/* SECCIÓN 1: HISTORIAL (Últimas ejecuciones) */}
-      <div className="bg-[#0c0d21]/40 border border-qa-border-glow rounded-xl overflow-hidden">
-        <HistoryCard history={history} />
+      <div className="flex flex-col h-[250px]">
+        <div className="bg-[#0c0d21]/40 border border-qa-border-glow rounded-xl overflow-hidden flex-1 overflow-y-auto custom-scrollbar">
+          <HistoryCard history={history} />
+        </div>
       </div>
 
       {/* SECCIÓN 2: ÚLTIMA EJECUCIÓN */}
@@ -58,7 +67,7 @@ export default function RightPanel({
               {lastReport.results?.map((r, i) => (
                 <div key={i} className="flex justify-between items-center text-[10px] bg-black/30 p-2 rounded-lg border border-white/5 hover:border-qa-purple/30 transition-colors">
                   <div className="flex flex-col">
-                    <span className="text-white/90 font-bold">{r.name}</span>
+                    <span className="text-white/90 font-bold">{TEST_LABELS[r.name] ?? r.name}</span>
                     {r.details && <span className="text-[9px] text-qa-muted">{r.details}</span>}
                   </div>
                   <span className={getStatusClass(r.status)}>{r.status}</span>
@@ -86,7 +95,7 @@ export default function RightPanel({
         <img 
           src="/QABotSimarro.png" 
           alt="IES Lluis Simarro" 
-          className="w-[240px] md:w-[280px] opacity-90 filter grayscale brightness-125 contrast-110 drop-shadow-[0_0_12px_rgba(142,53,255,0.5)] transition-all hover:scale-105"
+          className="w-[220px] md:w-[260px] opacity-90 filter grayscale brightness-125 contrast-110 drop-shadow-[0_0_12px_rgba(142,53,255,0.5)]"
         />
       </div>
     </aside>

@@ -11,51 +11,48 @@ router = APIRouter()
 # Instanciamos el agente fuera para que mantenga su configuración
 agent = QAAgent()
 
+last_report_cache: dict = {}
+
 @router.post("/chat")
 async def chat(
     user_message: str = Form(...),
     file: Optional[UploadFile] = File(None)
 ):
-    df = None
+    global last_report_cache
     execution_id = f"EXEC-{uuid.uuid4().hex[:6].upper()}"
+    df = None
 
-    # 1. Procesamiento físico del archivo
     if file:
         content = await file.read()
         try:
             df = pd.read_csv(StringIO(content.decode("utf-8")))
         except Exception as e:
-            return {
-                "assistant_message": f"Error al leer el archivo: {str(e)}",
-                "report": None
-            }
-       
-    lower_msg = user_message.lower()
+            return {"assistant_message": f"Error al leer el archivo: {str(e)}", "report": None}
 
-    if any(word in lower_msg for word in [
-        "reporte",
-        "report",
-        "informe",
-        "descargar"
-    ]):
-        return {
-            "assistant_message": "He generado el reporte QA correctamente.",
-            "execution_id": execution_id,
-            "hasReport": True,
-            "report": {
-                "execution_id": execution_id
+    # Detectar si pide descargar el informe anterior
+    lower_msg = user_message.lower()
+    if any(w in lower_msg for w in ["descargar", "informe", "reporte", "pdf"]):
+        if last_report_cache:
+            return {
+                "assistant_message": "Aquí tienes el informe del último análisis.",
+                "execution_id": last_report_cache["execution_id"],
+                "hasReport": True,
+                "report": last_report_cache,
             }
-        }
-    
-    # 2. EL CICLO DEL AGENTE (Percibir -> Decidir -> Actuar)
-    # El agente mira el mensaje y el dataset
+        else:
+            return {
+                "assistant_message": "Todavía no hay ningún análisis realizado. Carga un CSV y ejecuta una validación primero.",
+                "hasReport": False,
+                "report": None,
+            }
+
+    # Ciclo del agente
     perception = agent.perceive(df, user_message)
-    
-    # El agente decide qué reglas de /rules usar
     decisions = agent.decide(perception)
-    
-    # El agente genera la respuesta final estructurada para React
-    response = agent.act(decisions, execution_id)
+    response = agent.act(decisions, execution_id, perception["intent"])
+
+    if response.get("report"):
+        last_report_cache = response["report"]
 
     return response
 

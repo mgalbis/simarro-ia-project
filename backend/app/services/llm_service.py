@@ -11,28 +11,62 @@ client = OpenAI(
 
 def interpret_user_intent(message: str):
     prompt = f"""
-    Eres un orquestador QA. Tu objetivo es mapear el mensaje del usuario a acciones técnicas.
-    
-    Acciones disponibles:
-    - check_nulls (si pide analizar vacíos o nulos)
-    - check_duplicates (si pide analizar repetidos)
-    
-    Mensaje: "{message}"
-    
-    Responde ESTRICTAMENTE en JSON con este formato:
-    {{
-        "intent": "run_validation",
-        "actions": ["check_nulls", "check_duplicates"]
-    }}
-    """
+        Eres un intérprete de instrucciones para un sistema de QA de datos.
 
+        Tu única tarea es extraer qué validaciones quiere el usuario y devolver JSON puro.
+
+        Tests disponibles (usa EXACTAMENTE estos valores):
+        - "nulls"      → si menciona: nulos, valores vacíos, missings, null, NaN
+        - "duplicates" → si menciona: duplicados, repetidos, filas duplicadas
+        - "data_types" → si menciona: tipos, formato, columnas, tipo de dato
+        - "outliers"   → si menciona: outliers, valores extremos, anomalías, atípicos
+
+        Reglas:
+        1. Si pide UN test concreto → pon solo ese en requested_tests.
+        2. Si pide VARIOS → ponlos todos.
+        3. Si pide "analiza todo" o no especifica → deja requested_tests vacío [].
+        4. download_report: true SOLO si pide descargar, PDF o informe.
+
+        Ejemplos:
+        - "revisa nulos"              → requested_tests: ["nulls"]
+        - "solo duplicados"           → requested_tests: ["duplicates"]
+        - "comprueba nulos y outliers"→ requested_tests: ["nulls", "outliers"]
+        - "analiza el dataset"        → requested_tests: []
+        - "dame el informe en PDF"    → requested_tests: [], download_report: true
+
+        Petición del usuario: "{message}"
+
+        Responde ÚNICAMENTE con este JSON, sin explicaciones ni texto extra:
+        {{
+            "intent": "validate_dataset",
+            "requested_tests": [],
+            "excluded_columns": [],
+            "critical_columns": [],
+            "download_report": false
+        }}
+        """
     try:
         response = client.chat.completions.create(
             model="llama3.2",
             messages=[{"role": "user", "content": prompt}],
-            response_format={ "type": "json_object" } 
+            response_format={"type": "json_object"}
         )
-        return json.loads(response.choices[0].message.content)
+        result = json.loads(response.choices[0].message.content)
+        
+        # Validación defensiva: filtrar valores inválidos que el LLM pueda inventar
+        valid_tests = {"nulls", "duplicates", "data_types", "outliers"}
+        result["requested_tests"] = [
+            t for t in result.get("requested_tests", [])
+            if t in valid_tests
+        ]
+        return result
+        
     except Exception as e:
         print(f"Error IA Local: {e}")
-        return {"intent": "run_validation", "actions": ["check_nulls", "check_duplicates"]}
+        return {
+            "intent": "validate_dataset",
+            "requested_tests": [],
+            "excluded_columns": [],
+            "critical_columns": [],
+            "download_report": False
+        }

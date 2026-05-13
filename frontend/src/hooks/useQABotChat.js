@@ -79,39 +79,49 @@ export default function useQABotChat(selectedFile, onReportGenerated, setSelecte
     if (!results) return [];
     
     const metrics = [];
+
     results.forEach(res => {
-      // Test de Nulos
-      if (res.name === "Nulos" && res.metrics?.global_null_ratio !== undefined) {
-        metrics.push({ 
-          label: "Calidad Nulos", 
-          value: Math.max(0, (1 - res.metrics.global_null_ratio) * 100) 
+      console.log(`[${res.name}] metrics:`, JSON.stringify(res.metrics, null, 2));
+      const m = res.metrics?.metrics ?? res.metrics ?? {};
+
+      if (res.name === "nulls") {
+        const ratio = m.global_null_ratio ?? 0;
+        metrics.push({
+          label: "Calidad Nulos",
+          value: Math.max(0, Math.round((1 - ratio) * 100))
         });
       }
-      // Test de Duplicados
-      if (res.name === "Duplicados" && res.metrics?.duplicate_ratio !== undefined) {
-        metrics.push({ 
-          label: "Unicidad", 
-          value: Math.max(0, (1 - res.metrics.duplicate_ratio) * 100) 
+
+      if (res.name === "duplicates") {
+        const ratio = m.duplicate_ratio ?? 0;
+        metrics.push({
+          label: "Unicidad",
+          value: Math.max(0, Math.round((1 - ratio) * 100))
         });
       }
-      // Test de Outliers
-      if (res.name === "Outliers" && res.metrics?.outlier_ratio_by_column) {
-        const ratios = Object.values(res.metrics.outlier_ratio_by_column);
-        const avgOutliers = ratios.length > 0 
-          ? ratios.reduce((a, b) => a + b, 0) / ratios.length 
+
+      if (res.name === "outliers") {
+        const ratios = Object.values(m.outlier_ratio_by_column ?? {});
+        const avg = ratios.length > 0
+          ? ratios.reduce((a, b) => a + b, 0) / ratios.length
           : 0;
-        metrics.push({ 
-          label: "Limpieza Outliers", 
-          value: Math.max(0, (1 - avgOutliers) * 100) 
+        metrics.push({
+          label: "Limpieza Outliers",
+          value: Math.max(0, Math.round((1 - avg) * 100))
+        });
+      }
+
+      if (res.name === "data_types") {
+        const totalCols = m.total_columns ?? 1;
+        const mismatches = res.metrics?.mismatches?.length ?? 0;
+        metrics.push({
+          label: "Consistencia Tipos",
+          value: Math.max(0, Math.round(((totalCols - mismatches) / totalCols) * 100))
         });
       }
     });
 
-    // Si no hay métricas específicas, devolvemos un set por defecto para no romper el UI
-    return metrics.length > 0 ? metrics : [
-      { label: "Consistencia", value: 100 },
-      { label: "Integridad", value: 100 }
-    ];
+    return metrics;
   };
 
   const clearChat = () => setMessages([]);
