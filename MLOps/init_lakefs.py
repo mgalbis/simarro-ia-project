@@ -17,7 +17,7 @@ DATASETS = [
     },
     {
         "name": "ingauge",
-        "description": "Datos de sensores",
+        "description": "In-Gauge / En-Gage: https://physionet.org/content/in-gauge-and-en-gage/1.0.0/ — 16 CSVs de aulas educativas reales, 1 min. — Variables interiores (T, HR, CO₂, ruido), exteriores, ocupación y estado HVAC. Usado en Caso A (pipeline IoT) y Caso D (calidad del aire).",
     },
     {
         "name": "uci-appliances",
@@ -30,6 +30,10 @@ DATASETS = [
     {
         "name": "era5",
         "description": "ERA5 (ECMWF Reanalysis v5): https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels",
+    },
+    {
+        "name": "lbnl-fdd",
+        "description": "LBNL Fault Detection Dataset: https://faultdetection.lbl.gov/",
     },
 ]
 
