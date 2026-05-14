@@ -1,0 +1,378 @@
+{
+    "version": "1.0",
+    "fecha": "2026-05-14",
+    "proyecto": "simarro-centinela-plus",
+    "mantenido_por": "G4-CasoF-MLOps",
+    "descripcion": "Schema canónico de tags y variables CAPTIA para el proyecto Simarro. Todos los equipos deben seguir este schema al insertar datos en InfluxDB y al registrar experimentos en MLflow.",
+    "tags_captia": {
+        "descripcion": "Los 5 tags indexados que todo punto de datos debe tener en InfluxDB",
+        "campos": {
+            "captia_env": {
+                "tipo": "string",
+                "valores": [
+                    "prod",
+                    "dev"
+                ],
+                "ejemplo": "prod"
+            },
+            "domain_id": {
+                "tipo": "string",
+                "ejemplo": "bms_classrooms"
+            },
+            "site_id": {
+                "tipo": "string",
+                "ejemplo": "ies_simarro"
+            },
+            "asset_id": {
+                "tipo": "string",
+                "ejemplo": "AULA01"
+            },
+            "variable": {
+                "tipo": "string",
+                "ejemplo": "co2"
+            }
+        }
+    },
+    "metric_kinds": {
+        "analog_gauge": {
+            "descripcion": "Variable continua numérica",
+            "stats": [
+                "mean",
+                "min",
+                "max"
+            ],
+            "bucket": "telemetry",
+            "ejemplos": [
+                "co2",
+                "temperature_outdoor",
+                "relative-humidity"
+            ]
+        },
+        "bool_presence": {
+            "descripcion": "Señal continua de presencia/ocupación",
+            "stats": [
+                "duty",
+                "count_rise",
+                "last"
+            ],
+            "bucket": "telemetry",
+            "ejemplos": [
+                "occupancy"
+            ]
+        },
+        "counter": {
+            "descripcion": "Contador acumulado (energía)",
+            "stats": [
+                "sum"
+            ],
+            "bucket": "telemetry",
+            "ejemplos": [
+                "power_01",
+                "light_consumption"
+            ]
+        },
+        "bool_state": {
+            "descripcion": "Señal on-change discreta",
+            "stats": [
+                "last",
+                "count_rise"
+            ],
+            "bucket": "state_events",
+            "ejemplos": [
+                "ac_state",
+                "heat_state"
+            ]
+        },
+        "setpoint_step": {
+            "descripcion": "Setpoint on-change",
+            "stats": [
+                "last"
+            ],
+            "bucket": "state_events",
+            "ejemplos": [
+                "valve_control"
+            ]
+        }
+    },
+    "datasets": {
+        "uci-appliances": {
+            "grupo": "G1",
+            "caso": "B",
+            "repo_lakefs": "uci-appliances",
+            "variables": {
+                "Appliances": {
+                    "variable_captia": "power_01",
+                    "metric_kind": "counter",
+                    "unidad": "Wh"
+                },
+                "T_out": {
+                    "variable_captia": "temperature_outdoor",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "°C"
+                },
+                "lights": {
+                    "variable_captia": "light_consumption",
+                    "metric_kind": "counter",
+                    "unidad": "Wh"
+                },
+                "T1": {
+                    "variable_captia": "temperature_01",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "°C"
+                }
+            },
+            "tags_fijos": {
+                "captia_env": "prod",
+                "domain_id": "bms_buildings",
+                "site_id": "uci_appliances"
+            }
+        },
+        "ingauge": {
+            "grupo": "G4",
+            "caso": "D",
+            "nota": "También usado en Caso A (simulación pipeline IoT con MQTT y Telegraf)",
+            "repo_lakefs": "ingauge",
+            "fuente": "https://physionet.org/content/in-gauge-and-en-gage/1.0.0/",
+            "variables": {
+                "IndoorTemperature": {
+                    "variable_captia": "temperature_01",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "°C"
+                },
+                "IndoorRelativeHumidity": {
+                    "variable_captia": "relative-humidity",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "%"
+                },
+                "IndoorCO2": {
+                    "variable_captia": "co2",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "ppm"
+                },
+                "AvgSoundLevel": {
+                    "variable_captia": "avg-sound-level",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "dB"
+                },
+                "Luminosity": {
+                    "variable_captia": "luminosity",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "lux"
+                },
+                "Occupancy": {
+                    "variable_captia": "occupancy",
+                    "metric_kind": "bool_presence",
+                    "unidad": "bool"
+                },
+                "OutdoorTemperature": {
+                    "variable_captia": "temperature_outdoor",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "°C"
+                },
+                "CoolingState": {
+                    "variable_captia": "ac_state",
+                    "metric_kind": "bool_state",
+                    "unidad": "bool"
+                },
+                "HeatingState": {
+                    "variable_captia": "heat_state",
+                    "metric_kind": "bool_state",
+                    "unidad": "bool"
+                }
+            },
+            "tags_fijos": {
+                "captia_env": "prod",
+                "domain_id": "bms_classrooms",
+                "site_id": "ies_simarro"
+            }
+        },
+        "bdg2": {
+            "grupo": "G1",
+            "caso": "B",
+            "repo_lakefs": "bdg2",
+            "fuente": "https://github.com/buds-lab/building-datagenome-project-2",
+            "variables": {
+                "electricity": {
+                    "variable_captia": "power_01",
+                    "metric_kind": "counter",
+                    "unidad": "kWh",
+                    "fichero": "electricity.csv"
+                },
+                "airTemperature": {
+                    "variable_captia": "temperature_outdoor",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "°C",
+                    "fichero": "weather.csv"
+                },
+                "precipDepth1HR": {
+                    "variable_captia": "precipitation",
+                    "metric_kind": "counter",
+                    "unidad": "mm",
+                    "fichero": "weather.csv"
+                }
+            },
+            "tags_fijos": {
+                "captia_env": "prod",
+                "domain_id": "bms_buildings",
+                "site_id": "bdg2_education"
+            }
+        },
+        "lbnl-fdd": {
+            "grupo": "G3",
+            "caso": "C",
+            "repo_lakefs": "lbnl-fdd",
+            "fuente": "https://faultdetection.lbl.gov/",
+            "subsistema_recomendado": "RTU",
+            "variables": {
+                "SA_TEMP": {
+                    "variable_captia": "temperature_supply",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "°C"
+                },
+                "RA_TEMP": {
+                    "variable_captia": "temperature_return",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "°C"
+                },
+                "OA_TEMP": {
+                    "variable_captia": "temperature_outdoor",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "°C"
+                },
+                "CCV": {
+                    "variable_captia": "valve_control",
+                    "metric_kind": "setpoint_step",
+                    "unidad": "%"
+                },
+                "FAN_STATE": {
+                    "variable_captia": "fan_speed_01_state",
+                    "metric_kind": "bool_state",
+                    "unidad": "bool"
+                },
+                "FAULT_STATE": {
+                    "variable_captia": "fault_label",
+                    "metric_kind": "bool_state",
+                    "unidad": "bool",
+                    "nota": "Etiqueta de fallo: 0=normal, 1=anomalía. No se escribe en InfluxDB — se usa como etiqueta en el dataset de entrenamiento (capa oro)"
+                }
+            },
+            "tags_fijos": {
+                "captia_env": "prod",
+                "domain_id": "hvac_system",
+                "site_id": "lbnl_building59"
+            }
+        },
+        "uci-occupancy": {
+            "grupo": "G4",
+            "caso": "D",
+            "repo_lakefs": "uci-occupancy",
+            "fuente": "https://archive.ics.uci.edu/dataset/357",
+            "variables": {
+                "Temperature": {
+                    "variable_captia": "temperature_01",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "°C"
+                },
+                "Humidity": {
+                    "variable_captia": "relative-humidity",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "%"
+                },
+                "Light": {
+                    "variable_captia": "luminosity",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "lux"
+                },
+                "CO2": {
+                    "variable_captia": "co2",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "ppm"
+                },
+                "Occupancy": {
+                    "variable_captia": "occupancy",
+                    "metric_kind": "bool_presence",
+                    "unidad": "bool"
+                }
+            },
+            "tags_fijos": {
+                "captia_env": "prod",
+                "domain_id": "bms_classrooms",
+                "site_id": "uci_occupancy"
+            }
+        },
+        "era5": {
+            "grupo": "G3",
+            "caso": "E",
+            "repo_lakefs": "era5",
+            "fuente": "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels",
+            "variables": {
+                "2m_temperature": {
+                    "variable_captia": "temperature_outdoor",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "°C",
+                    "conversion": "K - 273.15"
+                },
+                "surface_solar_radiation_downwards": {
+                    "variable_captia": "solar_irradiance",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "W/m2",
+                    "conversion": "J/m2 / 3600"
+                },
+                "total_precipitation": {
+                    "variable_captia": "precipitation",
+                    "metric_kind": "counter",
+                    "unidad": "mm",
+                    "conversion": "m * 1000"
+                },
+                "surface_pressure": {
+                    "variable_captia": "pressure",
+                    "metric_kind": "analog_gauge",
+                    "unidad": "hPa",
+                    "conversion": "Pa / 100"
+                }
+            },
+            "tags_fijos": {
+                "captia_env": "prod",
+                "domain_id": "weather_station",
+                "site_id": "xativa"
+            }
+        }
+    },
+    "mlflow_naming": {
+        "descripcion": "Convención de nomenclatura MLflow. Los experimentos son contenedores permanentes por problema; los runs se versionan con algoritmo, fecha y descripción. Ver compose/convencion.md.",
+        "experimento": {
+            "formato": "Caso[letra]_[descripcion_del_problema]",
+            "ejemplo": "CasoB_Prediccion_de_consumo_electrico"
+        },
+        "run": {
+            "formato": "[algoritmo]_[fecha]_[descripcion_corta]",
+            "ejemplo": "XGBoost_20260510_baseline"
+        },
+        "casos": {
+            "B": {
+                "label": "CasoB",
+                "descripcion": "Predicción de consumo eléctrico"
+            },
+            "C": {
+                "label": "CasoC",
+                "descripcion": "Detección de anomalías en sistemas HVAC"
+            },
+            "D": {
+                "label": "CasoD",
+                "descripcion": "Calidad del aire, confort interior y ocupación"
+            },
+            "E": {
+                "label": "CasoE",
+                "descripcion": "Datos meteorológicos e integración exterior-interior"
+            }
+        },
+        "datasets_abrev": {
+            "uci-appliances": "UCI",
+            "uci-occupancy": "UCIOcc",
+            "bdg2": "BDG2",
+            "ingauge": "InGauge",
+            "lbnl-fdd": "LBNL",
+            "era5": "ERA5"
+        }
+    }
+}
