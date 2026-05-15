@@ -20,6 +20,8 @@ docker compose restart jupyterhub
 ## Enlaces de interés
 # LakeFS
 https://docs.lakefs.io/latest/quickstart/index.html
+# LakeFS webhooks
+https://docs.lakefs.io/understand/use_cases/cicd_for_data/
 
 # MlFlow
 https://mlflow.org/docs/latest/genai/
@@ -52,7 +54,6 @@ https://jupyterhub.readthedocs.io/en/stable/#
         python -m pip install --upgrade pip
     6- Instalar las dependencias de Python dentro del entorno virtual
         python -m pip install -r requirements.txt
-        Nota: este paso no debe ejecutarse sobre el Python global del sistema. Si aparecen conflictos con paquetes como aitana, ultralytics o tensorflow, significa que la instalacion no se esta haciendo en un entorno aislado.
     7- Inicializar lakeFS
         python init_lakefs.py
     8- Inicializar MLFlow
