@@ -5,31 +5,31 @@ import RightPanel from "./components/RightPanel";
 import useQABotChat from "./hooks/useQABotChat";
 
 export default function App() {
-  // 1. Estados para la lógica de archivos y reportes
   const [selectedFile, setSelectedFile] = useState(null);
   const [lastReport, setLastReport] = useState(null);
   const [history, setHistory] = useState([]);
 
-  // 2. Hook del chat que maneja la lógica de mensajes, input y comunicación con la API
+
   const chat = useQABotChat(
     selectedFile, 
-    (newReport) => {
-      // Esta función se ejecuta cuando la API devuelve un resultado exitoso
+    (newReport, shouldAddToHistory = true) => {
+      
       setLastReport(newReport);
       
-      const historyEntry = {
-        id: newReport.execution_id,
-        icon: newReport.global_status === "PASS" ? "◈" : "⚠",
-        title: `Análisis: ${newReport.global_status}`,
-        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        status: newReport.global_status
-      };
+      if (shouldAddToHistory) {
+        const historyEntry = {
+          id: newReport.execution_id,
+          icon: newReport.global_status === "PASS" ? "◈" : "⚠",
+          title: `Análisis: ${newReport.global_status}`,
+          date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          status: newReport.global_status
+        };
 
-      setHistory((prev) => [historyEntry, ...prev.slice(0, 4)]); // Guardamos los últimos 5
+        setHistory((prev) => [historyEntry, ...prev.slice(0, 4)]);
+      }
     },
     setSelectedFile 
   );
-  
   const BG_URL = "/QABotBackground.png";
 
   // Función para manejar la subida desde el ChatPanel

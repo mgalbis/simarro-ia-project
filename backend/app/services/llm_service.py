@@ -20,29 +20,31 @@ def interpret_user_intent(message: str):
         - "duplicates" → si menciona: duplicados, repetidos, filas duplicadas
         - "data_types" → si menciona: tipos, formato, columnas, tipo de dato
         - "outliers"   → si menciona: outliers, valores extremos, anomalías, atípicos
+        - "balance"    → si menciona: balanceo, desbalanceo, clases, distribución, dataset balanceado, imbalance
 
         Reglas:
         1. Si pide UN test concreto → pon solo ese en requested_tests.
         2. Si pide VARIOS → ponlos todos.
         3. Si pide "analiza todo" o no especifica → deja requested_tests vacío [].
-        4. download_report: true SOLO si pide descargar, PDF o informe.
+        4. Si el usuario pide analizar, revisar, validar o comprobar un dataset usa "validate_dataset".
+        4. Si el usuario pide descargar/exportar/bajar el informe: intent = "download_report"
 
         Ejemplos:
         - "revisa nulos"              → requested_tests: ["nulls"]
         - "solo duplicados"           → requested_tests: ["duplicates"]
         - "comprueba nulos y outliers"→ requested_tests: ["nulls", "outliers"]
-        - "analiza el dataset"        → requested_tests: []
-        - "dame el informe en PDF"    → requested_tests: [], download_report: true
+        - "revisa balanceo"            → requested_tests: ["balance"]
+        - "analiza/valida el dataset"        → requested_tests: [], intent: "validate_dataset"
+        - "dame el informe"    → requested_tests: [], intent: "download_report"
 
         Petición del usuario: "{message}"
 
         Responde ÚNICAMENTE con este JSON, sin explicaciones ni texto extra:
         {{
-            "intent": "validate_dataset",
+            "intent": "validate_dataset" o "download_report",
             "requested_tests": [],
             "excluded_columns": [],
-            "critical_columns": [],
-            "download_report": false
+            "critical_columns": []
         }}
         """
     try:
@@ -54,7 +56,7 @@ def interpret_user_intent(message: str):
         result = json.loads(response.choices[0].message.content)
         
         # Validación defensiva: filtrar valores inválidos que el LLM pueda inventar
-        valid_tests = {"nulls", "duplicates", "data_types", "outliers"}
+        valid_tests = {"nulls", "duplicates", "data_types", "outliers", "balance"}
         result["requested_tests"] = [
             t for t in result.get("requested_tests", [])
             if t in valid_tests
@@ -67,6 +69,5 @@ def interpret_user_intent(message: str):
             "intent": "validate_dataset",
             "requested_tests": [],
             "excluded_columns": [],
-            "critical_columns": [],
-            "download_report": False
+            "critical_columns": []
         }

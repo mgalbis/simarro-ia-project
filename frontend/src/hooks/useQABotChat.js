@@ -52,14 +52,14 @@ export default function useQABotChat(selectedFile, onReportGenerated, setSelecte
 
       // 5. Procesar el Reporte para el RightPanel
       if (data.report?.results) {
-        // Calculamos los porcentajes para las barras de MetricsCard
         const calculatedMetrics = transformMetrics(data.report.results);
         
-        // Enviamos el reporte completo al estado global de la App
-        onReportGenerated({
+        // Creamos el objeto de reporte actualizado
+        const fullReport = {
           ...data.report,
-          metrics: calculatedMetrics // Sobrescribimos con las métricas calculadas (0-100)
-        });
+          metrics: calculatedMetrics
+        };
+        onReportGenerated(fullReport, data.addToHistory); 
       }
 
     } catch (error) {

@@ -7,6 +7,7 @@ const TEST_LABELS = {
   duplicates:  "Duplicados",
   data_types:  "Tipos de dato",
   outliers:    "Outliers",
+  "balance":    "Balanceo",
 };
 
 export default function RightPanel({
