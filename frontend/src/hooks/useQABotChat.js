@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function useQABotChat(selectedFile, onReportGenerated, setSelectedFile) {
+export default function useQABotChat(selectedFile, onReportGenerated, setSelectedFile, setDownloadEnabled) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -39,6 +39,7 @@ export default function useQABotChat(selectedFile, onReportGenerated, setSelecte
       if (!response.ok) throw new Error("Error en la respuesta del servidor");
 
       const data = await response.json();
+      setDownloadEnabled(data.hasReport === true);
 
       // 4. Añadir respuesta del Bot a la conversación
       const botMsg = {
@@ -130,6 +131,7 @@ export default function useQABotChat(selectedFile, onReportGenerated, setSelecte
     setMessages([]);
     setInput("");
     if (setSelectedFile) setSelectedFile(null);
+    if (setDownloadEnabled) setDownloadEnabled(false);
   };
 
   return { messages, input, setInput, sendMessage, clearChat, newSession, isLoading };

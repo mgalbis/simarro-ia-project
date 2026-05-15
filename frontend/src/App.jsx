@@ -8,6 +8,7 @@ export default function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [lastReport, setLastReport] = useState(null);
   const [history, setHistory] = useState([]);
+  const [downloadEnabled, setDownloadEnabled] = useState(false);
 
 
   const chat = useQABotChat(
@@ -19,8 +20,7 @@ export default function App() {
       if (shouldAddToHistory) {
         const historyEntry = {
           id: newReport.execution_id,
-          icon: newReport.global_status === "PASS" ? "◈" : "⚠",
-          title: `Análisis: ${newReport.global_status}`,
+          fileName: selectedFile?.name || "Dataset",
           date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           status: newReport.global_status
         };
@@ -28,7 +28,8 @@ export default function App() {
         setHistory((prev) => [historyEntry, ...prev.slice(0, 4)]);
       }
     },
-    setSelectedFile 
+    setSelectedFile,
+    setDownloadEnabled
   );
   const BG_URL = "/QABotBackground.png";
 
@@ -70,6 +71,8 @@ export default function App() {
           onFileUpload={handleFileUpload}
           selectedFile={selectedFile}
           isLoading={chat.isLoading}
+          lastReport={lastReport} 
+          downloadEnabled={downloadEnabled}
         />
         
         {/* Panel Derecho: Métricas dinámicas y trazabilidad */}
