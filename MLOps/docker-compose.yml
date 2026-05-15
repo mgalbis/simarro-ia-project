@@ -7,3 +7,4 @@ include:
   - compose/lakefs.yml
   - compose/mlflow.yml
   - compose/jupyterhub.yml
+  - compose/pipeline.yml
