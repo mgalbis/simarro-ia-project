@@ -58,3 +58,22 @@ https://jupyterhub.readthedocs.io/en/stable/#
         python init_lakefs.py
     8- Inicializar MLFlow
         python init_mlflow.py
+
+## Comprobaciones en servidor ITI
+
+# Comprobar en el servidor si el puerto está escuchando después arrancar el servidor
+ss -tlnp | grep 8080
+
+# Comprobar desde Windows si el puerto es accesible
+Test-NetConnection -ComputerName 10.151.18.176 -Port 8080
+
+# Arrancar el servidor
+Comprobar que la configuración de .env está ok
+docker compose up -d
+docker compose ps
+
+# Comprobar que los servicios están accesibles desde fuera
+http://10.151.18.176:8001
+http://10.151.18.176:5000
+http://10.151.18.176:8000
+http://10.151.18.176:8080
