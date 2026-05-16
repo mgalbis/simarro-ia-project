@@ -2,22 +2,21 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
       - id: check-merge-conflict
 
   - repo: https://github.com/psf/black
     rev: 24.10.0
     hooks:
       - id: black
-        args: ["--line-length=88"]
-        files: ^(src|test)/.*\.py$
+        args: ["--line-length=88", "--check"]
+        files: (src|test)/.*\.py$
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.13.2
     hooks:
       - id: isort
-        files: ^(src|test)/.*\.py$
+        args: ["--check-only"]
+        files: (src|test)/.*\.py$
 
   - repo: https://github.com/PyCQA/flake8
     rev: 7.1.1
@@ -25,4 +24,15 @@ repos:
       - id: flake8
         additional_dependencies:
           - pep8-naming==0.15.1
-        files: ^(src|test)/.*\.py$
+          - flake8-bugbear
+          - flake8-comprehensions
+        files: (src|test)/.*\.py$
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        name: flake8-docstrings
+        additional_dependencies:
+          - flake8-docstrings
+        files: src/.*\.py$
