@@ -9,14 +9,14 @@ repos:
     hooks:
       - id: black
         args: ["--line-length=88", "--check"]
-        files: (src|test)/.*\.py$
+        files: .*\.py$
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.13.2
     hooks:
       - id: isort
         args: ["--check-only"]
-        files: (src|test)/.*\.py$
+        files: .*\.py$
 
   - repo: https://github.com/PyCQA/flake8
     rev: 7.1.1
@@ -26,7 +26,7 @@ repos:
           - pep8-naming==0.15.1
           - flake8-bugbear
           - flake8-comprehensions
-        files: (src|test)/.*\.py$
+        files: .*\.py$
 
   - repo: https://github.com/PyCQA/flake8
     rev: 7.1.1
@@ -35,4 +35,4 @@ repos:
         name: flake8-docstrings
         additional_dependencies:
           - flake8-docstrings
-        files: src/.*\.py$
+        files: .*/test_.+\.py$
