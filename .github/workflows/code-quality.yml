@@ -5,15 +5,13 @@ on:
     branches:
       - main
     paths:
-      - "src/**"
-      - "test/**"
+      - "**.py"
   pull_request:
     branches:
       - main
       - develop
     paths:
-      - "src/**"
-      - "test/**"
+      - "**.py"
   workflow_dispatch:
 
 env:
