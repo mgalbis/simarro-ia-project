@@ -82,10 +82,33 @@ jobs:
       - name: Verify Docker Compose availability
         run: docker compose version
 
+      - name: Restore Docker images cache
+        id: docker-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.docker-image-cache
+          key: ${{ runner.os }}-docker-images-${{ hashFiles('docker-compose.yml') }}
+
+      - name: Load cached Docker images
+        run: |
+          if [ -f /tmp/.docker-image-cache/images.tar ]; then
+            docker load -i /tmp/.docker-image-cache/images.tar
+          fi
+
       - name: Start MLOps stack
         run: |
           cp .env.example .env
+          docker compose pull --quiet
           docker compose up --wait
+
+      - name: Save Docker images for cache
+        if: always() && steps.docker-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/.docker-image-cache
+          IMAGES=$(docker compose config --images | sort -u)
+          if [ -n "$IMAGES" ]; then
+            docker image save -o /tmp/.docker-image-cache/images.tar $IMAGES
+          fi
 
       - name: Run integration tests
         run: |
