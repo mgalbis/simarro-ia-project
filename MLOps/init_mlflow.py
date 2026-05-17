@@ -12,7 +12,7 @@ mlflow.set_tracking_uri(MLFLOW_URI)
 # No incluimos aquí ni la fecha ni el algoritmo porque estos son los experimentos base
 EXPERIMENTS = [
     {
-        "nombre": "CasoB_UCI_",
+        "nombre": "CasoB_UCI",
         "descripcion": "Predicción de consumo energético",
         "equipo": "caso_b",
         "dataset": "uci-appliances",
