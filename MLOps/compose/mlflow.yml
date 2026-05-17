@@ -13,6 +13,8 @@ services:
       --default-artifact-root /mlflow/artifacts
       --host 0.0.0.0
       --port 5000
+      --dev
+      --allowed-hosts mlflow,localhost,127.0.0.1,172.18.0.0/16
 
     volumes:
       - mlflow-data:/mlflow
