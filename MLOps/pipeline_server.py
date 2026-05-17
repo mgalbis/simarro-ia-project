@@ -39,6 +39,12 @@ class WebhookHandler(BaseHTTPRequestHandler):
     GEstiona las peticiones HTTP entrantes de lakeFS y LakeFS envía un POST con un JSON que describe el evento.
     """
 
+    def do_GET(self):
+        """
+        Endpoint de salud para el healthcheck del contenedor. Responde con 200 OK a cualquier GET.
+        """
+        self._responder(200, "OK")
+
     def do_POST(self):
         """Punto de entrada para todos los eventos de lakeFS."""
 
