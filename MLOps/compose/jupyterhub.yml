@@ -10,7 +10,10 @@ services:
     # - ./jupyterhub_config.py: para montar el archivo de configuración personalizado.
     volumes:
       - jupyterhub-data:/srv/jupyterhub
-      - ./jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py
+      - ../jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py
+      - ../entrypoint.sh:/entrypoint.sh
+
+    command: bash /entrypoint.sh
 
     environment:
       JUPYTERHUB_ADMIN: admin
