@@ -6,15 +6,14 @@ services:
       - "8080:8080"
 
     volumes:
-      - ./pipeline_server.py:/app/pipeline_server.py
-      - ./pipeline_train.py:/app/pipeline_train.py
+      - ../pipeline_server.py:/app/pipeline_server.py
+      - ../pipeline_train.py:/app/pipeline_train.py
+      - ../requirements.txt:/app/requirements.txt
 
     working_dir: /app
 
     # Instalación de dependencias y arrancamos el servidor
-    command: >
-      sh -c "pip install mlflow lakefs-sdk scikit-learn pandas numpy --quiet
-      && python pipeline_server.py"
+    command: bash -c "apt-get update -qq && apt-get install -y -qq curl && pip install --quiet mlflow==3.12.0 lakefs-sdk==1.81.0 scikit-learn==1.7.2 pandas==2.3.3 numpy==2.2.6 && python pipeline_server.py"
 
     environment:
       PIPELINE_PORT: 8080
@@ -30,10 +29,13 @@ services:
         condition: service_healthy
 
     healthcheck:
-      test:
-        [
+      test: [
           "CMD-SHELL",
+          # Según el SO hay que ajustar las comillas
+          # Windows
           'python -c "import urllib.request; urllib.request.urlopen(''http://localhost:8080'')" || exit 1',
+          # Linux
+          #"python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8080\")' || exit 1"
         ]
       interval: 30s
       timeout: 10s
