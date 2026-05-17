@@ -10,6 +10,8 @@ c.JupyterHub.port = 8000  # puerto de JupyterHub
 #   autenticador simple con contraseñas locales (PAM).
 #   Cuando integremos con la infraestructura de ITI lo reemplazaremos por otro sistema de autenticación
 c.JupyterHub.authenticator_class = "pam"
+c.LocalAuthenticator.create_system_users = True
+c.Authenticator.delete_invalid_users = True
 
 # usuarios permitidos
 # TODO: para esta primera aproximación, los usuarios serán los casos de uso del proyecto
