@@ -303,8 +303,10 @@ python-dotenv==1.2.2
     #   uvicorn
 pytz==2026.2
     # via pandas
-pywin32==311
-    # via docker
+pywin32==311 ; sys_platform == "win32"
+    # via
+    #   -r requirements.in
+    #   docker
 pyyaml==6.0.3
     # via
     #   evidently
