@@ -182,3 +182,7 @@
     border-right-color: var(--border);
   }
 }
+
+.writing-mode-vertical {
+  writing-mode: vertical-rl;
+}

@@ -1,40 +1,59 @@
-export default function MessageBubble({ role, content, timestamp }) {
+import React from "react";
+
+export default function MessageBubble({
+  role = "assistant",
+  content = "",
+  timestamp = "",
+}) {
   const isUser = role === "user";
 
+  const decorateQaHtml = (html = "") => html;
+
   return (
-    <div className={`flex w-full mb-6 ${isUser ? "justify-end" : "justify-start"}`}>
-
-      {!isUser && (
-        <div className="flex-shrink-0 w-9 h-9 rounded-2xl bg-qa-bot-gradient flex items-center justify-center shadow-[0_0_15px_rgba(142,53,255,0.4)] mr-3 mt-1 overflow-hidden border border-white/10">
-          <img src="/QABotIcon.png" alt="Bot" className="w-full h-full object-contain scale-105" />
-        </div>
-      )}
-
-      <div className={`relative max-w-[85%] px-4 py-3 rounded-[20px] text-[13.5px] leading-relaxed transition-all ${
-        isUser
-          ? "bg-qa-purple text-white rounded-tr-none border border-white/10 shadow-[0_5px_15px_rgba(0,0,0,0.2)]"
-          : "bg-[#1a1a2e]/80 text-[#f3f1ff] rounded-tl-none border border-qa-purple/30 backdrop-blur-md shadow-[0_5px_20px_rgba(0,0,0,0.3)]"
-      }`}>
-
-        <div className="break-words font-medium">
-          {isUser
-            ? <div>{content}</div>
-            : <div className="prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content }} />
-          }
-        </div>
-
-        <div className={`flex items-center gap-1 mt-2 text-[9px] font-bold uppercase tracking-tighter ${
-          isUser ? "text-white/60 justify-end" : "text-qa-muted justify-start"
-        }`}>
-          {timestamp}
-          {isUser && <span className="text-[#10b981] ml-1 font-black">✓✓</span>}
-        </div>
-
-        <div className={`absolute top-0 w-3 h-3 ${
+    <div
+      className={`flex w-full ${
+        isUser ? "justify-end" : "justify-start"
+      }`}
+    >
+      <div
+        className={`flex gap-3 ${
           isUser
-            ? "right-[-5px] border-l-[8px] border-l-qa-purple border-b-[8px] border-b-transparent"
-            : "left-[-5px] border-r-[8px] border-r-qa-purple/30 border-b-[8px] border-b-transparent"
-        }`} />
+            ? "max-w-[72%] flex-row-reverse"
+            : "w-full max-w-[94%]"
+        }`}
+      >
+        {!isUser && (
+          <div className="shrink-0 w-8 h-8 rounded-full bg-qa-bot-gradient shadow-[0_0_18px_rgba(142,53,255,0.65)] flex items-center justify-center mt-1">
+            <img
+              src="/QABotIcon.png"
+              alt="QABot"
+              className="w-full h-full object-contain scale-105"
+            />
+          </div>
+        )}
+
+        <div
+          className={`relative rounded-2xl px-4 py-3 border text-[12px] leading-relaxed ${
+            isUser
+              ? "bg-gradient-to-r from-qa-purple to-[#7c3aed] text-white border-qa-purple/40 shadow-[0_0_18px_rgba(142,53,255,0.35)]"
+              : "w-full bg-[#151428]/90 text-white/90 border-qa-purple/40 shadow-[0_0_18px_rgba(142,53,255,0.16)]"
+          }`}
+        >
+          <div
+            className="prose prose-invert max-w-none text-[12px] leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: decorateQaHtml(content) }}
+          />
+
+          {timestamp && (
+            <div
+              className={`mt-2 text-[9px] ${
+                isUser ? "text-white/70 text-right" : "text-white/45"
+              }`}
+            >
+              {timestamp}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
