@@ -234,15 +234,7 @@ def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str):
         run_id = run.info.run_id
         log.info(f"Run registrado en MLflow: {run_id}")
 
-        # Paso 5: Llevar a Staging si supera el umbral definido
-        if metricas["r2"] >= UMBRAL_R2:
-            log.info(f"R²={metricas['r2']} ≥ {UMBRAL_R2} — promoviendo a Staging")
-            _llevar_a_staging(config_caso["modelo_registry"], run_id)
-        else:
-            log.warning(
-                f"R²={metricas['r2']} < {UMBRAL_R2} — "
-                f"modelo registrado pero NO promovido a Staging"
-            )
+        _llevar_a_staging(config_caso["modelo_registry"], run_id)
 
     log.info("Pipeline completado correctamente")
 
