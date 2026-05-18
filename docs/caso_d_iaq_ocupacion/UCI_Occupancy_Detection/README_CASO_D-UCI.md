@@ -2,45 +2,338 @@
 
 ## 1. Objetivo del caso
 
-El objetivo del caso es analizar variables de confort interior y desarrollar modelos capaces de detectar si un aula o sala está ocupada a partir de variables ambientales, sin utilizar cámaras ni sensores explícitos de presencia.
+El objetivo del Caso D es demostrar cómo se puede inferir si una sala o aula está ocupada a partir de variables ambientales, sin utilizar cámaras ni sensores explícitos de presencia.
 
-El problema principal es de **clasificación binaria supervisada**:
+El problema se formula como una **clasificación binaria supervisada**:
 
-- `Occupancy = 0` → sala no ocupada.
-- `Occupancy = 1` → sala ocupada.
+| Clase | Significado |
+|---:|---|
+| `0` | Sala no ocupada |
+| `1` | Sala ocupada |
 
-La idea de fondo es que mantener climatización o iluminación activa en un aula vacía supone un uso ineficiente de energía. Si se puede inferir la ocupación a partir de sensores ambientales, se puede alimentar un sistema de optimización de climatización, iluminación, confort interior o eficiencia energética.
+La motivación operativa es clara: si se puede detectar ocupación a partir de sensores de confort interior, se pueden tomar decisiones de climatización, ventilación, iluminación o eficiencia energética sin invadir la privacidad de las personas.
 
-En este MVP se usa el dataset **UCI Occupancy Detection**, un dataset pequeño, limpio y adecuado para una primera aproximación docente al problema.
+En esta entrega se trabaja el MVP del caso usando el dataset **UCI Occupancy Detection**, disponible en https://archive.ics.uci.edu/dataset/357/occupancy+detection
 
-## 2. Problema de predicción que se resuelve
+---
 
-Se entrena un modelo de Machine Learning para predecir si una sala está ocupada o no a partir de estas variables de entrada:
+## 2. Alcance de esta entrega
 
-| Variable | Unidad | Descripción |
+El enunciado general del Caso D contempla calidad del aire, confort interior, ruido, luminosidad, ocupación, horario lectivo y consumo eléctrico. Esta entrega se limita al dataset UCI, que contiene:
+
+- temperatura interior;
+- humedad relativa interior;
+- luminosidad;
+- concentración de CO₂;
+- ratio de humedad;
+- etiqueta binaria de ocupación.
+
+El dataset **no incluye** ruido interior, consumo eléctrico, calendario escolar real ni estado de climatización. Esos elementos quedan como posibles extensiones del caso.
+
+---
+
+## 3. Estructura del proyecto
+
+La estructura relativa de la entrega es la siguiente:
+
+```text
+.
+├── README_CASO_D-UCI.md
+│
+├── data/
+│   ├── README.md
+│   ├── DATA_DICTIONARY_CASO_D.md
+│   └── occupancy_detection/
+│       ├── datatraining.txt
+│       ├── datatest.txt
+│       └── datatest2.txt
+│
+├── doc/
+│
+├── notebooks/
+│   ├── CASO_D_UCI_occupancy_eda_ml_v2.ipynb
+│   ├── figures/
+│   │   ├── balance_clases_train.png
+│   │   ├── balance_clases_test1.png
+│   │   ├── balance_clases_test2.png
+│   │   ├── comparacion_modelos_accuracy.png
+│   │   ├── comparacion_modelos_precision.png
+│   │   ├── comparacion_modelos_recall.png
+│   │   ├── comparacion_modelos_f1.png
+│   │   ├── comparacion_modelos_auc_roc.png
+│   │   ├── confusion_matrix_best_model.png
+│   │   ├── curvas_roc_test_combinado.png
+│   │   ├── feature_importance_best_model.png
+│   │   ├── matriz_correlacion.png
+│   │   └── otros gráficos de EDA
+│   └── tables/
+│       ├── balance_clases.csv
+│       ├── classification_report_best_model.csv
+│       ├── confusion_matrix_best_model.csv
+│       ├── correlacion_con_occupancy.csv
+│       ├── estadistica_descriptiva.csv
+│       ├── feature_importance_best_model.csv
+│       ├── matriz_correlacion.csv
+│       ├── model_results_sensor_features.csv
+│       └── model_results_test_combined_ranking.csv
+│
+└── src/
+    ├── auto-eda/
+    │   ├── auto_eda_uci_occupancy.py
+    │   └── outputs/
+    │       └── eda_uci_occupancy/
+    │           ├── eda_uci_occupancy_full.html
+    │           ├── eda_uci_occupancy_training.html
+    │           └── uci_occupancy_clean.csv
+    │
+    ├── inference/
+    │   ├── infer_uci_occupancy_json.py
+    │   ├── simulated_cases.json
+    │   ├── best_model_LogisticRegression.joblib
+    │   ├── best_model_metadata.json
+    │   └── inference_results.csv
+    │
+    └── models/
+        ├── Baseline_MostFrequent.joblib
+        ├── best_LogisticRegression.joblib
+        ├── SVM_RBF.joblib
+        ├── RandomForest.joblib
+        ├── GradientBoosting.joblib
+        └── models_metadata.json
+```
+
+
+---
+
+## 4. Datos de entrada
+
+Los datos originales usados por el notebook están en:
+
+```text
+data/occupancy_detection/
+```
+
+| Fichero | Uso en la entrega | Descripción |
+|---|---|---|
+| `data/occupancy_detection/datatraining.txt` | Entrenamiento | Partición usada para ajustar los modelos. |
+| `data/occupancy_detection/datatest.txt` | Test 1 | Primera partición de evaluación. |
+| `data/occupancy_detection/datatest2.txt` | Test 2 | Segunda partición de evaluación. |
+
+Documentación auxiliar:
+
+| Fichero | Descripción |
+|---|---|
+| `data/README.md` | Resumen del dataset, fuente y variables principales. |
+| `data/DATA_DICTIONARY_CASO_D.md` | Diccionario de datos, tipos, rangos observados y formato de inferencia. |
+
+---
+
+## 5. Variables del problema
+
+Variables de entrada usadas por el modelo principal:
+
+| Variable | Unidad aproximada | Descripción |
 |---|---:|---|
-| `Temperature` | °C | Temperatura ambiente interior. |
+| `Temperature` | °C | Temperatura interior. |
 | `Humidity` | % | Humedad relativa interior. |
-| `Light` | lux aprox. | Nivel de luminosidad. Valores altos suelen indicar sala iluminada. |
-| `CO2` | ppm | Concentración de dióxido de carbono. Suele aumentar cuando hay personas respirando en la sala. |
-| `HumidityRatio` | kg/kg | Razón de humedad: kg de vapor de agua por kg de aire seco. |
+| `Light` | lux | Luminosidad medida por sensor. |
+| `CO2` | ppm | Concentración de dióxido de carbono. |
+| `HumidityRatio` | kg/kg | Ratio de humedad del aire. |
 
-La variable objetivo es:
+Variable objetivo:
 
 | Variable | Tipo | Descripción |
 |---|---|---|
-| `Occupancy` | Entero binario | Etiqueta de ocupación: `0` no ocupado, `1` ocupado. |
+| `Occupancy` | Binaria | `0` = no ocupado, `1` = ocupado. |
 
-Aunque el enunciado general del Caso D menciona CO₂, temperatura, humedad, ruido, luminosidad, horario lectivo y consumo eléctrico, este MVP se centra en el dataset UCI, que incluye temperatura, humedad, luz, CO₂ y ratio de humedad. No incluye ruido ni consumo eléctrico.
+El modelo principal **no usa** `date`, `hour`, `day_of_week`, `is_weekend` ni otras variables temporales como features. Esas variables se generan solo para EDA. La razón es evitar que el modelo aprenda reglas de calendario (sesgos en los findes de semana sin clase) en lugar de patrones ambientales.
 
-## 3. Contexto de los datos de entrada
+---
 
-El dataset representa lecturas temporales de sensores ambientales en una sala interior. Cada fila corresponde a una medición en un instante temporal y contiene valores ambientales más la etiqueta real de ocupación.
+## 6. Notebook principal
 
-Ejemplo de entrada para inferencia:
+El notebook principal está en:
+
+```text
+notebooks/CASO_D_UCI_occupancy_eda_ml_v2.ipynb
+```
+
+El notebook realiza el flujo completo:
+
+1. carga de datos;
+2. validación básica de columnas, tipos, nulos y duplicados;
+3. análisis exploratorio;
+4. generación de tablas en `notebooks/tables/`;
+5. generación de gráficos en `notebooks/figures/`;
+6. entrenamiento de modelos;
+7. comparación de métricas sobre test combinado;
+8. selección del mejor modelo por `f1`;
+9. guardado de todos los modelos probados;
+10. generación de metadata y manifest de artefactos.
+
+### 6.1. Ejecución en Google Colab con Drive
+
+La versión actualizada del notebook soporta Google Drive. La estructura recomendada en Drive es:
+
+```text
+MyDrive/simarro-cursoia/caso-d-uci/
+├── data/
+│   └── occupancy_detection/
+│       ├── datatraining.txt
+│       ├── datatest.txt
+│       └── datatest2.txt
+├── notebooks/
+├── src/
+└── README_CASO_D-UCI.md
+```
+
+Al ejecutar el notebook en Colab, los resultados nuevos se guardan en:
+
+```text
+outputs_uci_occupancy/
+├── tables/
+├── figures/
+├── models/
+├── models_metadata.json
+└── artifacts_manifest.json
+```
+
+Siendo la ruta completa esperada de las salidas: 
+
+```text
+/content/drive/MyDrive/simarro-cursoia/caso-d-uci/outputs_uci_occupancy/
+```
+
+### 6.2. Ejecución local
+
+También se puede ejecutar de forma local si se abre el notebook. En ese caso, el notebook busca los datos en rutas relativas como:
+
+```text
+data/occupancy_detection/
+../data/occupancy_detection/
+../../data/occupancy_detection/
+```
+
+---
+
+## 7. Resultados incluidos en la entrega
+
+### 7.1. Tablas generadas
+
+Las tablas principales ya incluidas están en:
+
+```text
+notebooks/tables/
+```
+
+| Fichero | Contenido |
+|---|---|
+| `notebooks/tables/model_results_sensor_features.csv` | Métricas de todos los modelos en cada partición de test. |
+| `notebooks/tables/model_results_test_combined_ranking.csv` | Ranking final sobre `test_combined`, ordenado por `f1`. |
+| `notebooks/tables/classification_report_best_model.csv` | Classification report del mejor modelo. |
+| `notebooks/tables/confusion_matrix_best_model.csv` | Matriz de confusión del mejor modelo. |
+| `notebooks/tables/feature_importance_best_model.csv` | Importancia de variables del mejor modelo, cuando está disponible. |
+| `notebooks/tables/correlacion_con_occupancy.csv` | Correlación de variables con `Occupancy`. |
+| `notebooks/tables/estadistica_descriptiva.csv` | Estadística descriptiva del dataset. |
+
+### 7.2. Figuras generadas
+
+Las figuras principales ya incluidas están en:
+
+```text
+notebooks/figures/
+```
+
+Ejemplos relevantes:
+
+| Fichero | Contenido |
+|---|---|
+| `notebooks/figures/comparacion_modelos_f1.png` | Comparación de modelos por F1. |
+| `notebooks/figures/comparacion_modelos_auc_roc.png` | Comparación de modelos por AUC ROC. |
+| `notebooks/figures/confusion_matrix_best_model.png` | Matriz de confusión del mejor modelo. |
+| `notebooks/figures/curvas_roc_test_combinado.png` | Curvas ROC sobre test combinado. |
+| `notebooks/figures/feature_importance_best_model.png` | Importancia de variables. |
+| `notebooks/figures/matriz_correlacion.png` | Matriz de correlación. |
+
+---
+
+## 8. Modelos entrenados
+
+Los modelos entrenados y entregados están en:
+
+```text
+src/models/
+```
+
+Modelos incluidos:
+
+| Fichero | Modelo | Comentario |
+|---|---|---|
+| `src/models/Baseline_MostFrequent.joblib` | Baseline | Modelo de referencia que predice la clase más frecuente. |
+| `src/models/best_LogisticRegression.joblib` | Logistic Regression | Mejor modelo según `f1` sobre `test_combined`. |
+| `src/models/SVM_RBF.joblib` | SVM con kernel RBF | Modelo no lineal con escalado dentro del pipeline. |
+| `src/models/RandomForest.joblib` | Random Forest | Ensamble de árboles. |
+| `src/models/GradientBoosting.joblib` | Gradient Boosting | Ensamble secuencial basado en boosting. |
+| `src/models/models_metadata.json` | Metadata | Ranking, features, target, métrica de selección y rutas relativas. |
+
+La regla aplicada es:
+
+- todos los modelos probados se guardan en `src/models/`;
+- el mejor modelo recibe el prefijo `best_`;
+- el resto conserva su nombre normal;
+- la metadata se guarda en `src/models/models_metadata.json`.
+
+### 8.1. Ranking final incluido
+
+Según la tabla incluida en:
+
+```text
+notebooks/tables/model_results_test_combined_ranking.csv
+```
+
+el mejor modelo es:
+
+```text
+LogisticRegression
+```
+
+con estas métricas aproximadas sobre `test_combined`:
+
+| Modelo | Accuracy | Precision | Recall | F1 | AUC ROC |
+|---|---:|---:|---:|---:|---:|
+| LogisticRegression | 0.9888 | 0.9601 | 0.9954 | 0.9774 | 0.9952 |
+| SVM_RBF | 0.9619 | 0.8667 | 0.9967 | 0.9272 | 0.9934 |
+| RandomForest | 0.9540 | 0.8995 | 0.9129 | 0.9062 | 0.9907 |
+| GradientBoosting | 0.9482 | 0.9483 | 0.8325 | 0.8867 | 0.9781 |
+| Baseline_MostFrequent | 0.7567 | 0.0000 | 0.0000 | 0.0000 | 0.5000 |
+
+---
+
+## 9. Inferencia
+
+La carpeta de inferencia está en:
+
+```text
+src/inference/
+```
+
+Ficheros incluidos:
+
+| Fichero | Descripción |
+|---|---|
+| `src/inference/infer_uci_occupancy_json.py` | Script de inferencia desde JSON. |
+| `src/inference/simulated_cases.json` | Casos simulados de ejemplo. |
+| `src/inference/best_model_LogisticRegression.joblib` | Copia del mejor modelo para ejecutar inferencia directamente desde esta carpeta. |
+| `src/inference/best_model_metadata.json` | Metadata necesaria para conocer features y target. |
+| `src/inference/inference_results.csv` | Salida generada por el script de inferencia. |
+
+### 9.1. Formato de entrada
+
+Ejemplo de caso de entrada en `src/inference/simulated_cases.json`:
 
 ```json
 {
+  "case_id": "caso_1_sala_apagada_bajo_co2",
   "Temperature": 20.3,
   "Humidity": 27.2,
   "Light": 0.0,
@@ -49,285 +342,97 @@ Ejemplo de entrada para inferencia:
 }
 ```
 
-Interpretación:
-
-| Variable | Valor | Lectura |
-|---|---:|---|
-| `Temperature` | `20.3` | 20.3 °C. |
-| `Humidity` | `27.2` | 27.2 % de humedad relativa. |
-| `Light` | `0.0` | 0 lux aproximadamente, sala apagada u oscura. |
-| `CO2` | `455.0` | 455 ppm, nivel bajo/cercano al aire exterior. |
-| `HumidityRatio` | `0.00475` | kg vapor de agua / kg aire seco. |
-
-En términos intuitivos:
-
-- `Light` alto + `CO2` alto suele ser un patrón compatible con sala ocupada.
-- `Light` bajo + `CO2` bajo suele ser un patrón compatible con sala no ocupada.
-- `HumidityRatio` es una variable derivada de temperatura y humedad, por eso tiene valores pequeños.
-
-## 4. Estructura del proyecto
-
-Estructura relevante de carpetas y ficheros:
-
-```text
-.
-├── data/
-│   ├── README.md
-│   └── occupancy_detection/
-│       ├── datatraining.txt
-│       ├── datatest.txt
-│       └── datatest2.txt
-│
-├── notebooks/
-│   ├── CASO_D_UCI_occupancy_eda_ml.ipynb
-│   ├── best_model_LogisticRegression.joblib
-│   ├── best_model_metadata.json
-│   └── model_results_with_time_comparison.csv
-│
-└── src/
-    ├── auto-eda/
-    │   └── auto_eda_uci_occupancy.py
-    │
-    └── inference/
-        ├── infer_uci_occupancy_json.py
-        ├── simulated_cases.json
-        ├── best_model_LogisticRegression.joblib
-        ├── best_model_metadata.json
-        └── inference_results.csv
-```
-
-## 5. Datos
-
-Los datos están en:
-
-```text
-data/occupancy_detection/
-```
-
-Ficheros principales:
-
-| Fichero | Uso | Descripción |
-|---|---|---|
-| `datatraining.txt` | Entrenamiento | Partición usada para entrenar los modelos. |
-| `datatest.txt` | Test 1 | Primera partición de validación/test. |
-| `datatest2.txt` | Test 2 | Segunda partición de validación/test. |
-
-El notebook carga los tres ficheros, convierte la columna `date` a tipo fecha y añade una columna `split` para identificar el origen de cada registro.
-
-## 6. Notebook de EDA y entrenamiento
-
-El notebook principal está en:
-
-```text
-notebooks/CASO_D_UCI_occupancy_eda_ml.ipynb
-```
-
-Este notebook realiza el flujo completo del caso:
-
-1. Carga de datos de entrenamiento y test.
-2. Limpieza y validación básica.
-3. Revisión inicial de columnas, tipos, nulos, duplicados y rango temporal.
-4. Creación de variables temporales para EDA: hora, día de semana y fin de semana.
-5. Estadística descriptiva.
-6. Análisis del balance de clases.
-7. Distribución de variables ambientales.
-8. Comparación de variables según ocupación.
-9. Evolución temporal de variables.
-10. Matriz de correlación.
-11. Preparación para Machine Learning.
-12. Entrenamiento y comparación de modelos.
-13. Selección y guardado del mejor modelo.
-
-El modelo principal se entrena usando solo variables ambientales:
-
-```python
-SENSOR_FEATURES = [
-    "Temperature",
-    "Humidity",
-    "Light",
-    "CO2",
-    "HumidityRatio",
-]
-```
-
-Se evita usar variables como día de la semana, fin de semana u hora en el modelo principal para que el aprendizaje dependa de los sensores y no memorice patrones de calendario. Esto es importante porque un modelo que aprendiera que los fines de semana siempre está vacío podría fallar si hubiera una clase excepcional un sábado.
-
-## 7. Modelos entrenados
-
-El notebook compara varios clasificadores supervisados:
-
-| Modelo | Descripción |
-|---|---|
-| `DummyClassifier` | Baseline simple para comparar si los modelos reales aportan valor. |
-| `LogisticRegression` | Modelo lineal interpretable. |
-| `SVM_RBF` | Clasificador de margen máximo con kernel RBF. |
-| `RandomForest` | Ensamble de árboles de decisión. |
-| `GradientBoosting` | Ensamble secuencial basado en boosting. |
-
-Las métricas usadas son:
-
-| Métrica | Interpretación |
-|---|---|
-| `accuracy` | Proporción total de aciertos. |
-| `precision` | De los casos predichos como ocupados, cuántos eran realmente ocupados. |
-| `recall` | De los casos realmente ocupados, cuántos detectó el modelo. |
-| `f1` | Media armónica entre precision y recall. |
-| `auc_roc` | Capacidad de separación entre clases a distintos umbrales. |
-
-La selección del mejor modelo se realiza según `F1-score` sobre el test combinado.
-
-## 8. Modelo seleccionado
-
-El modelo seleccionado y guardado es:
-
-```text
-best_model_LogisticRegression.joblib
-```
-
-La metadata asociada está en:
-
-```text
-best_model_metadata.json
-```
-
-Contenido conceptual de la metadata:
-
-```json
-{
-  "best_model_name": "LogisticRegression",
-  "features": [
-    "Temperature",
-    "Humidity",
-    "Light",
-    "CO2",
-    "HumidityRatio"
-  ],
-  "target": "Occupancy",
-  "selection_metric": "f1 on test_combined"
-}
-```
-
-El modelo guardado es un pipeline de scikit-learn. Por eso, en inferencia no hace falta escalar manualmente las variables de entrada si el escalado se guardó dentro del pipeline. El script de inferencia solo debe entregar las columnas correctas, en el orden esperado y con valores numéricos válidos.
-
-## 9. Inferencia
-
-Los ficheros de inferencia están en:
-
-```text
-src/inference/
-```
-
-Ficheros principales:
-
-| Fichero | Descripción |
-|---|---|
-| `infer_uci_occupancy_json.py` | Script Python que carga el modelo, la metadata y los casos a inferir desde JSON. |
-| `simulated_cases.json` | Casos simulados de entrada para probar el modelo. |
-| `best_model_LogisticRegression.joblib` | Modelo entrenado guardado. |
-| `best_model_metadata.json` | Metadata del modelo: features, target y nombre del modelo. |
-| `inference_results.csv` | Salida generada con las predicciones. |
-
-### 9.1. Formato del JSON de entrada
-
-El fichero `simulated_cases.json` contiene una lista de casos:
-
-```json
-[
-  {
-    "case_id": "caso_1_sala_apagada_bajo_co2",
-    "Temperature": 20.3,
-    "Humidity": 27.2,
-    "Light": 0.0,
-    "CO2": 455.0,
-    "HumidityRatio": 0.00475
-  },
-  {
-    "case_id": "caso_2_luz_media_co2_moderado",
-    "Temperature": 21.1,
-    "Humidity": 27.8,
-    "Light": 160.0,
-    "CO2": 690.0,
-    "HumidityRatio": 0.005
-  },
-  {
-    "case_id": "caso_3_sala_iluminada_co2_alto",
-    "Temperature": 22.0,
-    "Humidity": 29.5,
-    "Light": 430.0,
-    "CO2": 1040.0,
-    "HumidityRatio": 0.0057
-  }
-]
-```
+No se debe incluir `Occupancy` en inferencia, porque es la variable que el modelo predice.
 
 ### 9.2. Ejecución en Windows / PowerShell
 
-Desde la carpeta de inferencia:
+Desde la raíz del ZIP descomprimido:
 
 ```powershell
-cd "C:\cursoia\ProyectoFinal\CASOD-Calidad del Aire Ocupación\UCI_Occupancy_Detection\src\inference"
+cd .\src\inference
+python .\infer_uci_occupancy_json.py
+```
 
+También puede ejecutarse indicando el Python concreto instalado:
+
+```powershell
+cd .\src\inference
 & "C:\Program Files\Python31210\python.exe" ".\infer_uci_occupancy_json.py"
 ```
 
-El script busca los ficheros en el directorio actual desde donde se ejecuta el comando:
-
-```python
-BASE_DIR = Path.cwd()
-```
-
-Por eso deben estar juntos en la misma carpeta:
+El script espera encontrar en la carpeta actual:
 
 ```text
-infer_uci_occupancy_json.py
-simulated_cases.json
 best_model_LogisticRegression.joblib
 best_model_metadata.json
+simulated_cases.json
 ```
 
-### 9.3. Tratamiento de la entrada en inferencia
+La salida se guarda en:
 
-El script realiza estas validaciones:
+```text
+src/inference/inference_results.csv
+```
 
-1. Carga el JSON externo.
-2. Convierte la lista de casos a `pandas.DataFrame`.
-3. Verifica que estén todas las columnas requeridas por `best_model_metadata.json`.
-4. Ordena las columnas según el orden usado en entrenamiento.
-5. Convierte los valores a numérico.
-6. Lanza error si hay columnas faltantes, nulos o valores no numéricos.
-7. Ejecuta `model.predict(X)` y, si está disponible, `model.predict_proba(X)`.
-8. Guarda el resultado en `inference_results.csv`.
-
-No se debe incluir la variable objetivo `Occupancy` en los casos nuevos, porque justamente es lo que se quiere predecir.
+---
 
 ## 10. Auto EDA
 
-El script:
+El script de Auto EDA está en:
 
 ```text
 src/auto-eda/auto_eda_uci_occupancy.py
 ```
 
-sirve como apoyo para generar un análisis exploratorio automático del dataset. Es útil para obtener rápidamente una revisión inicial de columnas, distribuciones, nulos, rangos y posibles relaciones entre variables.
+Los resultados generados e incluidos están en:
 
-## 11. Conclusiones del MVP
+```text
+src/auto-eda/outputs/eda_uci_occupancy/
+```
 
-- El dataset es limpio y adecuado para un primer MVP del Caso D.
-- La variable objetivo `Occupancy` permite plantear un problema claro de clasificación binaria.
-- La baseline permite comprobar que los modelos realmente aportan valor.
-- Las variables ambientales, especialmente `Light` y `CO2`, muestran una relación fuerte con la ocupación.
-- El modelo seleccionado puede integrarse posteriormente en una app, dashboard o pipeline para estimar ocupación sin cámaras ni sensores explícitos de presencia.
-- En este MVP se decidió no usar día de semana ni hora como variables de entrenamiento principal para evitar que el modelo dependa demasiado del calendario y no de la sensórica.
+| Fichero | Descripción |
+|---|---|
+| `src/auto-eda/outputs/eda_uci_occupancy/eda_uci_occupancy_full.html` | EDA automático del dataset completo. |
+| `src/auto-eda/outputs/eda_uci_occupancy/eda_uci_occupancy_training.html` | EDA automático del conjunto de entrenamiento. |
+| `src/auto-eda/outputs/eda_uci_occupancy/uci_occupancy_clean.csv` | Dataset consolidado/limpio generado por el proceso de Auto EDA. |
 
-## 12. Posibles extensiones
+---
 
-Como evolución del caso, se podría ampliar el dataset con:
+## 11. Consistencia de la entrega
 
-- Nivel de ruido interior.
-- Consumo eléctrico por aula o zona.
-- Horario lectivo real.
-- Calendario escolar.
-- Estado de climatización e iluminación.
-- Datos por edificio, planta o aula.
+La entrega queda organizada con tres niveles de artefactos:
 
-Esto permitiría pasar de una predicción de ocupación a un sistema más completo de confort interior, eficiencia energética y operación inteligente de espacios docentes.
+| Nivel | Ruta | Propósito |
+|---|---|---|
+| Datos | `data/occupancy_detection/` | Ficheros originales de entrenamiento y test. |
+| Notebook y resultados | `notebooks/` | EDA, entrenamiento, tablas y figuras ya generadas. |
+| Código reutilizable | `src/` | Auto EDA, modelos persistidos e inferencia. |
+
+La versión actualizada del notebook mantiene consistencia con el ZIP porque:
+
+- busca los datos en `data/occupancy_detection/`;
+- guarda todos los modelos entrenados;
+- marca el mejor con prefijo `best_`;
+- actualiza `src/models/models_metadata.json` con rutas relativas;
+- actualiza la copia de inferencia en `src/inference/`;
+- evita usar variables temporales como features principales del modelo.
+
+---
+
+## 12. Conclusión del caso UCI
+
+El MVP demuestra que, para este dataset, la ocupación puede predecirse con alta calidad usando únicamente variables ambientales. El mejor modelo incluido es `LogisticRegression`, guardado como:
+
+```text
+src/models/best_LogisticRegression.joblib
+```
+
+La inferencia operativa queda preparada mediante:
+
+```text
+src/inference/infer_uci_occupancy_json.py
+```
+
+Este caso puede evolucionar hacia un sistema más completo incorporando ruido, consumo energético, calendario lectivo, estado de climatización, información por aula/planta y nuevos datasets de edificios educativos.
+
+El caso está planteado con datos muy limpios y relaciones claras, lo cual genera modelos demasiado precisos y posiblemente sobreajustados a estos caso de UCI.

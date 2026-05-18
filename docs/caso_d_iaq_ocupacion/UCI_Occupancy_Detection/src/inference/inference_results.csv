@@ -1,0 +1,4 @@
+﻿case_id,Temperature,Humidity,Light,CO2,HumidityRatio,Occupancy_pred,pred_label,prob_no_ocupado,prob_ocupado
+caso_1_sala_apagada_bajo_co2,20.3,27.2,0.0,455.0,0.00475,0,No ocupado,0.9992447348926258,0.0007552651073741987
+caso_2_luz_media_co2_moderado,21.1,27.8,360.0,790.0,0.005,1,Ocupado,0.10327262616526267,0.8967273738347373
+caso_3_sala_iluminada_co2_alto,22.0,29.5,430.0,1040.0,0.0057,1,Ocupado,0.015190800636512236,0.9848091993634878
