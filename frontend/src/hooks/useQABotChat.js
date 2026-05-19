@@ -406,6 +406,29 @@ export default function useQABotChat(
     if (!fileToUse) {
       const currentSessionId = await ensureServerSession();
 
+      try {
+        const formData = new FormData();
+        formData.append("user_message", cleanPrompt);
+        if (USER_ID) formData.append("user_id", USER_ID);
+
+        const validationResponse = await fetch("http://localhost:8000/chat", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (validationResponse.ok) {
+          const data = await validationResponse.json();
+
+          if (data.assistant_message?.includes("No he entendido") || 
+              data.intent === "unknown") {
+            await addAssistantMessageProgressively(data.assistant_message);
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn("Error validando intent:", error);
+      }
+
       setPendingPrompt(cleanPrompt);
       setActiveReviewPrompt(cleanPrompt);
       setDownloadEnabled(false);

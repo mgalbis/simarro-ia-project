@@ -38,6 +38,11 @@ class QAAgent:
         df = perception.get("dataset")
         intent = perception.get("intent", {})
         user_message = perception.get("user_message", "")
+        
+        if intent.get("intent") == "unknown":
+            return {
+                "action": "unknown_action",
+            }
 
         if intent.get("intent") == "download_report":
             return {

@@ -92,7 +92,42 @@ def interpret_user_intent(message: str) -> Dict[str, Any]:
             "activity_type": None,
             "requested_tests": [],
         }
+        
+    has_test_keywords = any(
+        keyword in lower
+        for tests in TEST_KEYWORDS.values()
+        for keyword in tests
+    )
 
+    has_action_keywords = any(
+        word in lower
+        for word in [
+            "analiza", "analizar", "revisa", "revisar",
+            "valida", "validar", "comprueba", "comprobar",
+            "ejecuta", "ejecutar", "verifica", "verificar",
+            "prueba", "pruebas", "test", "tests",
+            "dataset", "csv", "datos", "modelo",
+            "umbral", "threshold", "límite", "limite",
+            "punto de corte", "calidad", "quality",
+        ]
+    )
+
+    has_valid_keywords = has_test_keywords or has_action_keywords
+
+    if not has_valid_keywords:
+        return {
+            "intent": "unknown",
+            "activity_type": None,
+            "requested_tests": [],
+            "target_column": None,
+            "prediction_column": None,
+            "split_column": None,
+            "id_column": None,
+            "threshold": None,
+            "critical_columns": [],
+            "excluded_columns": [],
+        }
+        
     activity_type = _detect_activity_type(lower)
     requested_tests = _detect_requested_tests(lower, activity_type)
 

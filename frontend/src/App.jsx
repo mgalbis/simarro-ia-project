@@ -11,6 +11,9 @@ export default function App({ user, onLogout }) {
   const [downloadEnabled, setDownloadEnabled] = useState(false);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [projectFilter, setProjectFilter] = useState("ALL");
+  const [phaseFilter, setPhaseFilter] = useState("ALL");
+  const [searchText, setSearchText] = useState("");
   
   const BG_URL = "/QABotBackground.png";
 
@@ -27,6 +30,9 @@ export default function App({ user, onLogout }) {
     setLastReport(null);
     setHistory([]);
     setDownloadEnabled(false);
+    setSearchText("");
+    setProjectFilter("ALL");
+    setPhaseFilter("ALL");
   };
 
   const handleOpenHistoricalReport = (report) => {
@@ -111,6 +117,12 @@ export default function App({ user, onLogout }) {
           onRestoreSession={chat.restoreSession}
           isCollapsed={leftCollapsed}
           onToggleCollapse={() => setLeftCollapsed((value) => !value)}
+          searchText={searchText}
+          setSearchText={setSearchText}
+          projectFilter={projectFilter}
+          setProjectFilter={setProjectFilter}
+          phaseFilter={phaseFilter}
+          setPhaseFilter={setPhaseFilter}
         />
         
         {/* Panel Central: Chat interactivo */}

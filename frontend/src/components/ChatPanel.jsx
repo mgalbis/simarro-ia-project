@@ -422,6 +422,7 @@ export default function ChatPanel({
                       placeholder="Ej. Demo QABot"
                       value={projectLabel}
                       onChange={(event) => setProjectLabel(event.target.value)}
+                      maxLength={25}
                     />
                   </div>
 
@@ -434,6 +435,7 @@ export default function ChatPanel({
                       placeholder="Ej. Validación calidad dataset abandono"
                       value={reviewLabel}
                       onChange={(event) => setReviewLabel(event.target.value)}
+                      maxLength={40}
                     />
                   </div>
 

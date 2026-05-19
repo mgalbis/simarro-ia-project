@@ -8,11 +8,14 @@ export default function LeftPanel({
   onUpdateCycleMetadata = null,
   isCollapsed = false,
   onToggleCollapse = null,
+  searchText,
+  setSearchText,
+  projectFilter,
+  setProjectFilter,
+  phaseFilter,
+  setPhaseFilter,
 }) {
   const [sessionToRestore, setSessionToRestore] = useState("");
-  const [projectFilter, setProjectFilter] = useState("ALL");
-  const [phaseFilter, setPhaseFilter] = useState("ALL");
-  const [searchText, setSearchText] = useState("");
 
   const activeSession = sessions.find(
     (session) => session.session_id === sessionId
