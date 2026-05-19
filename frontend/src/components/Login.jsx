@@ -23,33 +23,33 @@ export default function Login({ onLoginSuccess }) {
   };
 
   const handleLogin = async (e) => {
-  e.preventDefault();
-  if (!username.trim() || !password.trim()) {
-    setError("Por favor, rellena todos los campos.");
-    return;
-  }
-  setIsLoading(true);
-  setError("");
-
-  try {
-    const res = await fetch("http://localhost:8000/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
-
-    if (data.ok) {
-      onLoginSuccess({ username: data.username });
-    } else {
-      setError(data.error || "Credenciales incorrectas.");
+    e.preventDefault();
+    if (!username.trim() || !password.trim()) {
+      setError("Por favor, rellena todos los campos.");
+      return;
     }
-    } catch {
-      setError("Error al conectar con el servidor.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("http://localhost:8000/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        onLoginSuccess({ id: data.id, username: data.username });
+      } else {
+        setError(data.error || "Credenciales incorrectas.");
+      }
+      } catch {
+        setError("Error al conectar con el servidor.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -78,7 +78,7 @@ export default function Login({ onLoginSuccess }) {
 
       if (data.ok) {
         setSuccess("Cuenta creada correctamente. Iniciando sesión...");
-        setTimeout(() => onLoginSuccess({ username: data.username }), 1500);
+        setTimeout(() => onLoginSuccess({ id: data.id, username: data.username }), 1500);
       } else {
         setError(data.error || "Error al crear la cuenta.");
       }

@@ -80,7 +80,7 @@ def register_user(username: str, password: str) -> Dict[str, Any]:
 
     try:
         with _connect() as conn:
-            conn.execute(
+            cursor = conn.execute(
                 """
                 INSERT INTO users (username, password_hash, salt, created_at)
                 VALUES (?, ?, ?, ?)
@@ -89,7 +89,13 @@ def register_user(username: str, password: str) -> Dict[str, Any]:
             )
             conn.commit()
 
-        return {"ok": True, "username": username}
+            user_id = cursor.lastrowid
+
+        return {
+            "ok": True,
+            "id": user_id,
+            "username": username
+        }
 
     except sqlite3.IntegrityError:
         return {"ok": False, "error": "El nombre de usuario ya está en uso."}
@@ -125,4 +131,8 @@ def login_user(username: str, password: str) -> Dict[str, Any]:
     if password_hash != row["password_hash"]:
         return {"ok": False, "error": "Credenciales incorrectas."}
 
-    return {"ok": True, "username": row["username"]}
+    return {
+        "ok": True,
+        "id": row["id"],
+        "username": row["username"]
+    }

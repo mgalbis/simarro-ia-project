@@ -5,11 +5,13 @@ export default function useQABotChat(
   onReportGenerated,
   setSelectedFile,
   setDownloadEnabled,
-  onSessionReportsRestored = null
+  onSessionReportsRestored = null,
+  user
 ) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const USER_ID = user?.id;
 
   const [sessionId, setSessionId] = useState(
     localStorage.getItem("qabot_session_id")
@@ -44,7 +46,7 @@ export default function useQABotChat(
   const ensureServerSession = async () => {
     if (sessionId) return sessionId;
 
-    const response = await fetch("http://localhost:8000/sessions", {
+    const response = await fetch(`http://localhost:8000/sessions?user_id=${USER_ID}`, {
       method: "POST",
     });
 
@@ -63,7 +65,7 @@ export default function useQABotChat(
 
   const loadAvailableSessions = async () => {
     try {
-      const response = await fetch("http://localhost:8000/sessions");
+      const response = await fetch(`http://localhost:8000/sessions?user_id=${USER_ID}`);
 
       if (!response.ok) {
         console.warn("No se pudieron cargar los ciclos de pruebas.");
@@ -92,7 +94,7 @@ export default function useQABotChat(
 
     try {
       const response = await fetch(
-        `http://localhost:8000/sessions/${cleanSessionId}`
+        `http://localhost:8000/sessions/${cleanSessionId}?user_id=${USER_ID}`
       );
 
       if (!response.ok) {
@@ -171,6 +173,7 @@ export default function useQABotChat(
   };
 
   useEffect(() => {
+    if (!USER_ID) return;
     const initialize = async () => {
       await loadAvailableSessions();
 
@@ -184,7 +187,7 @@ export default function useQABotChat(
     initialize();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [USER_ID]);
 
   const inferTestPhaseFromPrompt = (prompt) => {
     const text = (prompt || "").toLowerCase();
@@ -283,6 +286,10 @@ export default function useQABotChat(
   };
 
   const updateCycleMetadata = async (metadata) => {
+    if (!USER_ID) {
+      console.warn("Falta el USER_ID, abortando actualización de metadatos.");
+      return;
+    }
     const currentSessionId = await ensureServerSession();
 
     const normalizedMetadata = {
@@ -298,6 +305,7 @@ export default function useQABotChat(
       },
       body: JSON.stringify({
         session_id: currentSessionId,
+        user_id: USER_ID,
         ...normalizedMetadata,
       }),
     });
@@ -427,6 +435,7 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
         },
         body: JSON.stringify({
           session_id: currentSessionId,
+          user_id: USER_ID,
           active_review_prompt: cleanPrompt,
           pending_prompt: cleanPrompt,
           last_processed_file_name: lastProcessedFileName,
@@ -493,6 +502,7 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
       const formData = new FormData();
       formData.append("user_message", cleanPrompt);
       formData.append("session_id", currentSessionId);
+      formData.append("user_id", USER_ID);
       formData.append("file", fileToUse);
 
       await addProgressMessages();

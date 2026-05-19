@@ -28,6 +28,7 @@ def init_db():
             """
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT PRIMARY KEY,
+                user_id TEXT,
 
                 project_label TEXT,
                 test_phase TEXT,
@@ -91,6 +92,7 @@ def create_session(
     project_label: Optional[str] = None,
     test_phase: Optional[str] = None,
     review_label: Optional[str] = None,
+    user_id: str = "",
 ) -> Dict[str, Any]:
     init_db()
 
@@ -102,6 +104,7 @@ def create_session(
             """
             INSERT INTO sessions (
                 session_id,
+                user_id,
                 project_label,
                 test_phase,
                 review_label,
@@ -111,10 +114,11 @@ def create_session(
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
+            VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
             """,
             (
                 session_id,
+                user_id,
                 project_label,
                 test_phase,
                 review_label,
@@ -124,10 +128,10 @@ def create_session(
         )
         conn.commit()
 
-    return get_session(session_id)
+    return get_session(session_id, user_id)
 
 
-def get_session(session_id: str) -> Optional[Dict[str, Any]]:
+def get_session(session_id: str, user_id: str) -> Optional[Dict[str, Any]]:
     init_db()
 
     with _connect() as conn:
@@ -135,9 +139,9 @@ def get_session(session_id: str) -> Optional[Dict[str, Any]]:
             """
             SELECT *
             FROM sessions
-            WHERE session_id = ?
+            WHERE session_id = ? AND user_id = ?
             """,
-            (session_id,),
+            (session_id, user_id),
         ).fetchone()
 
         if not session:
@@ -185,7 +189,7 @@ def get_session(session_id: str) -> Optional[Dict[str, Any]]:
     }
 
 
-def list_sessions() -> List[Dict[str, Any]]:
+def list_sessions(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
     init_db()
 
     with _connect() as conn:
@@ -193,8 +197,10 @@ def list_sessions() -> List[Dict[str, Any]]:
             """
             SELECT *
             FROM sessions
+            WHERE user_id = ?
             ORDER BY updated_at DESC
-            """
+            """,
+            (user_id,)
         ).fetchall()
 
         rows = []
@@ -251,6 +257,7 @@ def list_sessions() -> List[Dict[str, Any]]:
 
 def update_session_state(
     session_id: str,
+    user_id: str,
     active_review_prompt: Optional[str] = None,
     pending_prompt: Optional[str] = None,
     last_processed_file_name: Optional[str] = None,
@@ -266,7 +273,7 @@ def update_session_state(
                 pending_prompt = ?,
                 last_processed_file_name = ?,
                 updated_at = ?
-            WHERE session_id = ?
+            WHERE session_id = ? AND user_id = ?
             """,
             (
                 active_review_prompt,
@@ -274,6 +281,7 @@ def update_session_state(
                 last_processed_file_name,
                 now,
                 session_id,
+                user_id,
             ),
         )
         conn.commit()
@@ -281,6 +289,7 @@ def update_session_state(
 
 def update_session_metadata(
     session_id: str,
+    user_id: str,
     project_label: Optional[str] = None,
     test_phase: Optional[str] = None,
     review_label: Optional[str] = None,
@@ -296,7 +305,7 @@ def update_session_metadata(
                 test_phase = ?,
                 review_label = ?,
                 updated_at = ?
-            WHERE session_id = ?
+            WHERE session_id = ? AND user_id = ?
             """,
             (
                 _clean_optional(project_label),
@@ -304,6 +313,7 @@ def update_session_metadata(
                 _clean_optional(review_label),
                 now,
                 session_id,
+                user_id,
             ),
         )
         conn.commit()
@@ -374,17 +384,20 @@ def add_report(session_id: str, report: Dict[str, Any]):
         conn.commit()
 
 
-def get_report(execution_id: str) -> Optional[Dict[str, Any]]:
+def get_report(execution_id: str, user_id: str) -> Optional[Dict[str, Any]]:
     init_db()
 
     with _connect() as conn:
         row = conn.execute(
             """
-            SELECT report_json
-            FROM reports
-            WHERE execution_id = ?
+            SELECT r.report_json
+            FROM reports r
+            JOIN sessions s
+                ON r.session_id = s.session_id
+            WHERE r.execution_id = ?
+              AND s.user_id = ?
             """,
-            (execution_id,),
+            (execution_id, user_id),
         ).fetchone()
 
     if not row:
@@ -393,14 +406,27 @@ def get_report(execution_id: str) -> Optional[Dict[str, Any]]:
     return json.loads(row["report_json"])
 
 
-def clear_session(session_id: str):
+def clear_session(session_id: str, user_id: str):
     init_db()
 
     with _connect() as conn:
+        valid = conn.execute(
+            """
+            SELECT session_id
+            FROM sessions
+            WHERE session_id = ? AND user_id = ?
+            """,
+            (session_id, user_id),
+        ).fetchone()
+        
+        if not valid:
+            return False
+        
         conn.execute("DELETE FROM reports WHERE session_id = ?", (session_id,))
         conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
         conn.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
         conn.commit()
+    return True
 
 
 def _parse_reports(report_rows) -> List[Dict[str, Any]]:

@@ -30,11 +30,9 @@ router = APIRouter()
 # Instanciamos el agente fuera para que mantenga su configuración
 agent = QAAgent()
 
-last_report_cache: dict = {}
-reports_history: list[dict] = []
-
 class SessionStatePayload(BaseModel):
     session_id: str
+    user_id: str
     active_review_prompt: Optional[str] = None
     pending_prompt: Optional[str] = None
     last_processed_file_name: Optional[str] = None
@@ -51,6 +49,7 @@ class ReportStorePayload(BaseModel):
     
 class SessionMetadataPayload(BaseModel):
     session_id: str
+    user_id: str
     project_label: Optional[str] = None
     test_phase: Optional[str] = None
     review_label: Optional[str] = None
@@ -62,18 +61,18 @@ class PhaseFeedbackPayload(BaseModel):
     comment: Optional[str] = None
 
 @router.post("/sessions")
-async def create_qabot_session():
-    return create_session()
+async def create_qabot_session(user_id: str):
+    return create_session(user_id=user_id)
 
 @router.get("/sessions")
-async def list_qabot_sessions():
+async def list_qabot_sessions(user_id: str):
     return {
-        "sessions": list_sessions()
+        "sessions": list_sessions(user_id=user_id)
     }
 
 @router.get("/sessions/{session_id}")
-async def get_qabot_session(session_id: str):
-    session = get_session(session_id)
+async def get_qabot_session(session_id: str, user_id: str):
+    session = get_session(session_id, user_id)
 
     if not session:
         return {
@@ -90,6 +89,7 @@ async def get_qabot_session(session_id: str):
 async def update_qabot_session_state(payload: SessionStatePayload):
     update_session_state(
         session_id=payload.session_id,
+        user_id=payload.user_id,
         active_review_prompt=payload.active_review_prompt,
         pending_prompt=payload.pending_prompt,
         last_processed_file_name=payload.last_processed_file_name,
@@ -124,8 +124,8 @@ async def store_qabot_report(payload: ReportStorePayload):
     }
 
 @router.delete("/sessions/{session_id}")
-async def delete_qabot_session(session_id: str):
-    clear_session(session_id)
+async def delete_qabot_session(session_id: str, user_id: str):
+    clear_session(session_id, user_id)
 
     return {
         "ok": True
@@ -136,8 +136,8 @@ async def chat(
     user_message: str = Form(...),
     file: Optional[UploadFile] = File(None),
     session_id: Optional[str] = Form(None),
+    user_id: Optional[str] = Form(None),
 ):
-    global last_report_cache, reports_history
     df = None
 
     if file:
@@ -152,19 +152,30 @@ async def chat(
     is_download_request = intent.get("intent") == "download_report"
 
     if is_download_request:
-        if not last_report_cache:
+        if not session_id or not user_id:
             return {
-                "assistant_message": "Todavía no hay ningún análisis realizado. Carga un CSV y ejecuta una validación primero.",
+                "assistant_message": "No se ha encontrado la sesión.",
                 "hasReport": False,
                 "report": None,
                 "execution_id": None
             }
-        cached_id = last_report_cache.get("execution_id")
+        session = get_session(session_id, user_id)
+
+        if not session or not session.get("last_report"):
+            return {
+                "assistant_message": "Todavía no hay ningún análisis realizado.",
+                "hasReport": False,
+                "report": None,
+                "execution_id": None
+            }
+
+        last_report = session["last_report"]
+
         return {
             "assistant_message": "Aquí tienes el informe del último análisis.",
             "hasReport": True,
-            "report": last_report_cache,
-            "execution_id": cached_id,
+            "report": last_report,
+            "execution_id": last_report.get("execution_id"),
             "addToHistory": False
         }
 
@@ -173,10 +184,10 @@ async def chat(
     response = agent.act(decision_data, execution_id, intent=intent)
 
     if response.get("report") and response.get("addToHistory", False):
-        previous_report = last_report_cache
+        previous_report = None
 
         if session_id:
-            stored_session = get_session(session_id)
+            stored_session = get_session(session_id, user_id)
             if stored_session and stored_session.get("last_report"):
                 previous_report = stored_session.get("last_report")
 
@@ -198,9 +209,6 @@ async def chat(
                     "<br/><br/><b>Comparación con ejecución anterior:</b> "
                     + comparison.get("reason", "No comparable.")
                 )
-
-        reports_history.append(response["report"])
-        last_report_cache = response["report"]
 
         if session_id:
             response["report"]["session_id"] = session_id
@@ -233,6 +241,7 @@ async def chat(
 
             update_session_state(
                 session_id=session_id,
+                user_id=user_id,
                 active_review_prompt=user_message,
                 pending_prompt=None,
                 last_processed_file_name=file.filename if file else None,
@@ -244,6 +253,7 @@ async def chat(
 async def update_qabot_session_metadata(payload: SessionMetadataPayload):
     update_session_metadata(
         session_id=payload.session_id,
+        user_id=payload.user_id,
         project_label=payload.project_label,
         test_phase=payload.test_phase,
         review_label=payload.review_label,
@@ -342,17 +352,8 @@ def _html_escape(value) -> str:
     return html.escape(str(value or ""))
 
 @router.get("/download/{execution_id}")
-async def download_report(execution_id: str):
-    report = None
-
-    if execution_id == "latest":
-        report = last_report_cache
-
-    if not report and last_report_cache and last_report_cache.get("execution_id") == execution_id:
-        report = last_report_cache
-
-    if not report:
-        report = get_report(execution_id)
+async def download_report(execution_id: str, user_id: str):
+    report = get_report(execution_id, user_id)
 
     if not report:
         return {
@@ -373,7 +374,14 @@ async def download_report(execution_id: str):
     )
 
 @router.get("/download/artifacts/{session_id}/{execution_id}")
-async def download_artifacts(session_id: str, execution_id: str):
+async def download_artifacts(session_id: str, execution_id: str, user_id: str):
+    session = get_session(session_id, user_id)
+
+    if not session:
+        return {
+            "error": "Sesión no encontrada."
+        }
+        
     zip_path = build_artifacts_zip(session_id, execution_id)
 
     if not zip_path:

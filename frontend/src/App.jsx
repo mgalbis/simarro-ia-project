@@ -81,7 +81,8 @@ export default function App({ user, onLogout }) {
     },
     setSelectedFile,
     setDownloadEnabled,
-    handleSessionReportsRestored
+    handleSessionReportsRestored,
+    user
   );
 
   const gridTemplateColumns = `${leftCollapsed ? "64px" : "320px"} minmax(620px, 1fr) ${
