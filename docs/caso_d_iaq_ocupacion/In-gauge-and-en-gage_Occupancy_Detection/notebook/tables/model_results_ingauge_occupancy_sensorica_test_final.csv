@@ -1,0 +1,7 @@
+model,feature_set,split,accuracy,precision,recall,f1,auc_roc,selected_validation_f1,selected_validation_auc_roc,best_params
+LogisticRegression,sensorica_ambiental,test_final,0.8848196329813977,0.5737016724219649,0.8911442995372318,0.6980269390781398,0.9396652697263937,0.691280100298301,0.9396916034189946,"{'model__C': 10.0, 'model__class_weight': 'balanced'}"
+RandomForest,sensorica_ambiental,test_final,0.8688254147812972,0.5383952825813291,0.8546487168700042,0.6606235518881346,0.9362437046772116,0.6832958495195257,0.9421741150932963,"{'model__max_depth': None, 'model__min_samples_leaf': 20, 'model__n_estimators': 200}"
+HistGradientBoosting,sensorica_ambiental,test_final,0.8966346153846154,0.6646800854604745,0.6216870004206984,0.6424650834193794,0.9410456745619228,0.6773833444965394,0.9464582575367443,"{'model__l2_regularization': 0.0, 'model__learning_rate': 0.03, 'model__max_iter': 100, 'model__max_leaf_nodes': 31}"
+GaussianNB,sensorica_ambiental,test_final,0.8913241578682756,0.6196324683719642,0.705721497686159,0.6598810050646605,0.9338211739022796,0.6623853211009174,0.9351442632222647,{'model__var_smoothing': 1e-09}
+DecisionTree,sensorica_ambiental,test_final,0.8543866264454499,0.5067446043165468,0.9482541018090029,0.6605128205128206,0.938257621291906,0.6528088213381016,0.937810965409163,"{'model__max_depth': 4, 'model__min_samples_leaf': 20}"
+Baseline_MostFrequent,sensorica_ambiental,test_final,0.8506158873805932,0.0,0.0,0.0,0.5,0.0,0.5,{}

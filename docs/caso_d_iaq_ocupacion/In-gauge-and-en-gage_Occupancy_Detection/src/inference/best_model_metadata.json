@@ -1,0 +1,25 @@
+{
+  "case": "CASO D - CLASSROOM",
+  "dataset": "In-Gauge and En-Gage classrooms",
+  "best_model_name": "REEMPLAZAR_CON_MODELO_REAL",
+  "model_filename": "best_sensorica_ambiental_REEMPLAZAR_CON_MODELO_REAL.joblib",
+  "features": [
+    "IndoorTemperature",
+    "IndoorHumidity",
+    "IndoorCO2",
+    "IndoorNoise"
+  ],
+  "target": "Occupied",
+  "feature_set": "sensorica_ambiental",
+  "selection_metric": "f1 on validation",
+  "final_evaluation": "test_final",
+  "split_strategy": {
+    "type": "temporal_by_classroom",
+    "train": "first 60% of days per classroom",
+    "validation": "next 20% of days per classroom",
+    "test_final": "last 20% of days per classroom"
+  },
+  "notes": {
+    "usage": "Copiar en esta carpeta el modelo best_*.joblib generado por el notebook. Si existe models_metadata.json, el script puede usarlo automáticamente."
+  }
+}

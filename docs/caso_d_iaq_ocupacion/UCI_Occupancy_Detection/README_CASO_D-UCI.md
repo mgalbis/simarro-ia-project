@@ -398,7 +398,7 @@ src/auto-eda/outputs/eda_uci_occupancy/
 
 ---
 
-## 11. Consistencia de la entrega
+## 11. Entrega
 
 La entrega queda organizada con tres niveles de artefactos:
 
