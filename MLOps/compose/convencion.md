@@ -47,15 +47,15 @@ Si se requiere un experimento nuevo, comunicadlo a G4 para que lo podamos crear.
 (Fuente: Anexo_I_Casos_de_Uso.pdf: CASO 6)
 
 ### Formato
-[algoritmo][fecha][descripcion_corta]
+`[algoritmo]_[YYYYMMDDHHmmSS]_[descripcion_corta]`
 
 ### Ejemplos de Runs válidos
-XGBoost_20260510_baseline
-RandomForest_20260512_feature_engineering_v2
-IsolationForest_20260515_threshold_0.05
+XGBoost_20260510143015_baseline
+RandomForest_20260512091542_feature_engineering_v2
+IsolationForest_20260515180503_threshold_0.05
 
 ### Reglas
-- La **fecha** es obligatoria en formato `YYYYMMDD`.
+- La **marca temporal** es obligatoria en formato `YYYYMMDDHHmmSS` para evitar colisiones cuando hay varios runs el mismo día.
 - La **descripción corta** se indica usando guiones bajos y sin espacios.
 - El **algoritmo** usa el nombre exacto de la clase de scikit-learn o del framework (XGBoost, RandomForest, etc).
 
@@ -210,7 +210,7 @@ def get_lakefs_commit(repo: str, branch: str = 'main') -> str:
 # Entrenamiento
 mlflow.set_experiment(EXPERIMENT_NAME)
 
-with mlflow.start_run(run_name=f"XGBoost_{date.today():%Y%m%d}_baseline"):
+with mlflow.start_run(run_name=f"XGBoost_{datetime.now():%Y%m%d%H%M%S}_baseline"):
     
     # Tags obligatorios
     mlflow.set_tags({

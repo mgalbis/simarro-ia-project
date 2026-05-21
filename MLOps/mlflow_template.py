@@ -17,7 +17,7 @@ import mlflow
 import mlflow.sklearn
 import numpy as np
 import pandas as pd
-from datetime import date
+from datetime import datetime
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -82,8 +82,8 @@ def train_registry(params: dict) -> str:
     # Seleccionamos el experimento donde se registrará la ejecución
     mlflow.set_experiment(EXPERIMENT_NAME)
 
-    # El nombre del run incluye fecha
-    run_name = f"RF_{date.today().strftime('%Y%m%d')}"
+    # El nombre del run sigue la convención algoritmo_YYYYMMDDHHmmSS_descripcion
+    run_name = f"RandomForestRegressor_{datetime.now().strftime('%Y%m%d%H%M%S')}_baseline"
 
     # Iniciamos la ejecución, y todo lo que se registre en este bloque quedará registrado
     with mlflow.start_run(run_name=run_name) as run:
