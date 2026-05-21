@@ -2,19 +2,23 @@ services:
   mlflow:
     image: ghcr.io/mlflow/mlflow:latest
     container_name: simarro-mlflow
+    user: "0:0"
     ports:
       - "5000:5000"
 
     # Comando de inicialización del servidor MLflow.
-    # Se configura para usar SQLite, pero sería interesante utilizar PostgreSQL cuando integremos con la infra de ITI.
     command: >
+      sh -c "mkdir -p /mlflow/artifacts &&
+      chmod -R 775 /mlflow &&
       mlflow server
       --backend-store-uri sqlite:///mlflow/mlflow.db
-      --default-artifact-root /mlflow/artifacts
+      --serve-artifacts
+      --artifacts-destination /mlflow/artifacts
       --host 0.0.0.0
       --port 5000
       --dev
-      --allowed-hosts mlflow,localhost,127.0.0.1,172.18.0.0/16
+      --allowed-hosts '*' 
+      --cors-allowed-origins 'http://10.151.18.176:5000,http://localhost:5000,http://127.0.0.1:5000'"
 
     volumes:
       - mlflow-data:/mlflow
