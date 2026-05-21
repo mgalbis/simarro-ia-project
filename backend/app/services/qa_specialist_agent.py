@@ -13,6 +13,7 @@ from app.services.rules.qa_model_performance import check_model_performance
 from app.services.rules.qa_nulls import check_nulls
 from app.services.rules.qa_outliers import check_outliers_iqr
 from app.services.rules.qa_split_validation import check_dataset_split
+from app.services.rules.qa_skewness import check_skewness
 
 
 class QASpecialistAgent:
@@ -29,6 +30,7 @@ class QASpecialistAgent:
         "data_types": check_data_types,
         "outliers": check_outliers_iqr,
         "balance": check_balance,
+        "skewness": check_skewness,
         "model_performance": check_model_performance,
         "dataset_split": check_dataset_split,
     }
@@ -58,6 +60,11 @@ class QASpecialistAgent:
             "QA-DATA-005",
             "Balanceo de clases",
             "Revisa la distribución de la variable objetivo si está disponible.",
+        ),
+        "skewness": (
+            "QA-DATA-006",
+            "Análisis de asimetria",
+            "Evalúa la simetría de las distribuciones de las columnas numéricas.",
         ),
         "model_performance": (
             "QA-MODEL-001",
@@ -315,6 +322,10 @@ class QASpecialistAgent:
                 .get("majority_class_ratio", 0)
             )
             return f"Clase mayoritaria: {round(ratio * 100, 2)}%"
+        
+        if test_name == "skewness":
+            skewed_columns = result.get("metrics", {}).get("skewness_by_column", {})
+            return f"{len(skewed_columns)} columnas con asimetria detectada"
 
         if test_name == "model_performance":
             metrics = result.get("metrics", {})
@@ -446,6 +457,18 @@ class QASpecialistAgent:
                 f"Balanceo: la clase mayoritaria en '{target}' representa "
                 f"el {round(ratio * 100, 2)}% de los registros."
             )
+        
+        if test_name == "skewness":
+            skewed_columns = metrics.get("metrics", {}).get("skewness_by_column", {})
+            affected_text = ", ".join(
+                f"{col} (skewness={skew:.4f})"
+                for col, skew in skewed_columns.items()
+            )
+
+            return (
+                f"Asimetria: se han detectado {len(skewed_columns)} columnas con asimetria: "
+                f"{affected_text}."
+            )
 
         if test_name == "model_performance":
             inner = metrics.get("metrics", {})
@@ -486,6 +509,9 @@ class QASpecialistAgent:
             ),
             "balance": (
                 "Un desbalanceo acusado puede afectar a la interpretación de métricas y al comportamiento del modelo."
+            ),
+            "skewness": (
+                "Una asimetria significativa puede afectar la interpretación de las distribuciones y el rendimiento del modelo."
             ),
             "model_performance": (
                 "Un desempeño insuficiente puede comprometer la utilidad del modelo en el caso de uso previsto."

@@ -13,8 +13,12 @@ export default function useQABotChat(
   const [isLoading, setIsLoading] = useState(false);
   const USER_ID = user?.id;
 
+  const sessionStorageKey = USER_ID
+    ? `qabot_session_id_${USER_ID}`
+    : "qabot_session_id";
+
   const [sessionId, setSessionId] = useState(
-    localStorage.getItem("qabot_session_id")
+    localStorage.getItem(sessionStorageKey)
   );
 
   const [availableSessions, setAvailableSessions] = useState([]);
@@ -44,6 +48,10 @@ export default function useQABotChat(
   };
 
   const ensureServerSession = async () => {
+    if (!USER_ID) {
+      throw new Error("No hay usuario autenticado para crear el ciclo de pruebas.");
+    }
+
     if (sessionId) return sessionId;
 
     const response = await fetch(`http://localhost:8000/sessions?user_id=${USER_ID}`, {
@@ -58,12 +66,14 @@ export default function useQABotChat(
     const newSessionId = data.session_id;
 
     setSessionId(newSessionId);
-    localStorage.setItem("qabot_session_id", newSessionId);
+    localStorage.setItem(sessionStorageKey, newSessionId);
 
     return newSessionId;
   };
 
   const loadAvailableSessions = async () => {
+    if (!USER_ID) return;
+
     try {
       const response = await fetch(`http://localhost:8000/sessions?user_id=${USER_ID}`);
 
@@ -82,6 +92,8 @@ export default function useQABotChat(
 
   const restoreSession = async (idToRestore, options = {}) => {
     const { silent = false } = options;
+
+    if (!USER_ID) return;
     const cleanSessionId = (idToRestore || "").trim();
 
     if (!cleanSessionId) {
@@ -108,7 +120,7 @@ export default function useQABotChat(
       const data = await response.json();
 
       if (!data.found) {
-        localStorage.removeItem("qabot_session_id");
+        localStorage.removeItem(sessionStorageKey);
         setSessionId(null);
 
         if (!silent) {
@@ -121,7 +133,7 @@ export default function useQABotChat(
       const session = data.session;
 
       setSessionId(session.session_id);
-      localStorage.setItem("qabot_session_id", session.session_id);
+      localStorage.setItem(sessionStorageKey, session.session_id);
 
       setMessages(session.messages ?? []);
       setActiveReviewPrompt(session.active_review_prompt ?? null);
@@ -174,10 +186,11 @@ export default function useQABotChat(
 
   useEffect(() => {
     if (!USER_ID) return;
+
     const initialize = async () => {
       await loadAvailableSessions();
 
-      const storedSessionId = localStorage.getItem("qabot_session_id");
+      const storedSessionId = localStorage.getItem(sessionStorageKey);
 
       if (storedSessionId) {
         await restoreSession(storedSessionId, { silent: true });
@@ -286,10 +299,6 @@ export default function useQABotChat(
   };
 
   const updateCycleMetadata = async (metadata) => {
-    if (!USER_ID) {
-      console.warn("Falta el USER_ID, abortando actualización de metadatos.");
-      return;
-    }
     const currentSessionId = await ensureServerSession();
 
     const normalizedMetadata = {
@@ -361,6 +370,7 @@ export default function useQABotChat(
         },
         body: JSON.stringify({
           session_id: currentSessionId,
+          user_id: USER_ID,
           prompt,
           detected_phase,
           comment,
@@ -385,6 +395,7 @@ export default function useQABotChat(
       },
       body: JSON.stringify({
         session_id: currentSessionId,
+        user_id: USER_ID,
         role: "assistant",
         content: assistantContent,
         timestamp: timestamp(),
@@ -402,11 +413,7 @@ export default function useQABotChat(
 
     if (!cleanPrompt) return;
 
-    // Caso 1: no hay artefacto. Guardamos el criterio de pruebas activo.
-    if (!fileToUse) {
-      const currentSessionId = await ensureServerSession();
-
-      try {
+    try {
         const formData = new FormData();
         formData.append("user_message", cleanPrompt);
         if (USER_ID) formData.append("user_id", USER_ID);
@@ -428,6 +435,10 @@ export default function useQABotChat(
       } catch (error) {
         console.warn("Error validando intent:", error);
       }
+
+    // Caso 1: no hay artefacto. Guardamos el criterio de pruebas activo.
+    if (!fileToUse) {
+      const currentSessionId = await ensureServerSession();
 
       setPendingPrompt(cleanPrompt);
       setActiveReviewPrompt(cleanPrompt);
@@ -472,6 +483,7 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
         },
         body: JSON.stringify({
           session_id: currentSessionId,
+          user_id: USER_ID,
           role: "user",
           content: cleanPrompt,
           timestamp: timestamp(),
@@ -485,6 +497,7 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
         },
         body: JSON.stringify({
           session_id: currentSessionId,
+          user_id: USER_ID,
           role: "assistant",
           content: assistantContent,
           timestamp: timestamp(),
@@ -808,7 +821,7 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
       setDownloadEnabled(false);
     }
 
-    localStorage.removeItem("qabot_session_id");
+    localStorage.removeItem(sessionStorageKey);
     setSessionId(null);
   };
 

@@ -10,6 +10,7 @@ VALID_TESTS = {
     "data_types",
     "outliers",
     "balance",
+    "skewness",
     "model_performance",
     "dataset_split",
 }
@@ -49,6 +50,11 @@ TEST_KEYWORDS = {
         "clases",
         "target",
         "objetivo",
+    ],
+    "skewness": [
+        "asimetría",
+        "inclinación",
+        "skewness",
     ],
     "model_performance": [
         "modelo",
@@ -127,7 +133,7 @@ def interpret_user_intent(message: str) -> Dict[str, Any]:
             "critical_columns": [],
             "excluded_columns": [],
         }
-        
+
     activity_type = _detect_activity_type(lower)
     requested_tests = _detect_requested_tests(lower, activity_type)
 
@@ -248,6 +254,7 @@ def _detect_requested_tests(lower: str, activity_type: str) -> List[str]:
             "data_types",
             "outliers",
             "balance",
+            "skewness",
         ]
 
     return requested_tests

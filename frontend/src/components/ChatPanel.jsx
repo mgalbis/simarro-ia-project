@@ -87,7 +87,7 @@ export default function ChatPanel({
       return;
     }
 
-    window.open(`http://localhost:8000/download/${executionId}`, "_blank");
+    window.open(`http://localhost:8000/download/${executionId}?user_id=${user?.id}`, "_blank");
   };
 
   const hasReport = Boolean(lastReport?.execution_id);

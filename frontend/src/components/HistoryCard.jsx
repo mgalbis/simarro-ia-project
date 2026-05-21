@@ -5,6 +5,7 @@ export default function HistoryCard({
   onOpenHistoricalReport,
   onDownloadArtifacts,
   hideTitle = false,
+  user = null,
 }) {
   const getStatusClass = (status) => {
     switch (status?.toUpperCase()) {
@@ -46,7 +47,7 @@ export default function HistoryCard({
       return;
     }
 
-    window.open(`http://localhost:8000/download/${executionId}`, "_blank");
+    window.open(`http://localhost:8000/download/${executionId}?user_id=${user?.id}`, "_blank");
   };
 
   const handleDownloadArtifacts = (event, item) => {
@@ -66,7 +67,7 @@ export default function HistoryCard({
     }
 
     window.open(
-      `http://localhost:8000/download/artifacts/${sessionId}/${executionId}`,
+      `http://localhost:8000/download/artifacts/${sessionId}/${executionId}?user_id=${user?.id}`,
       "_blank"
     );
   };

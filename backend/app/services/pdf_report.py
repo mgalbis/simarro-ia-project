@@ -31,6 +31,7 @@ TEST_LABELS = {
     "data_types": "Tipos de dato",
     "outliers": "Outliers",
     "balance": "Balanceo",
+    "skewness": "Asimetria",
     "model_performance": "Evaluacion de modelo",
     "dataset_split": "Validacion de particiones",
 }
@@ -271,6 +272,15 @@ def _add_metric_block(elements, styles, name, metrics, inner):
         if len(rows) > 1:
             elements.append(_table(rows, [8 * cm, 5 * cm]))
 
+    elif name == "skewness":
+        rows = [["Columna", "Skewness"]]
+
+        for col, skew in inner.get("skewness_by_column", {}).items():
+            rows.append([col, f"{skew:.4f}"])
+
+        if len(rows) > 1:
+            elements.append(_table(rows, [8 * cm, 5 * cm]))
+
     elif name == "model_performance":
         rows = [
             ["Accuracy", inner.get("accuracy", "N/A")],
@@ -335,6 +345,27 @@ def _add_evidence_block(elements, styles, name, metrics):
 
         elements.append(_table(table_rows, [2 * cm, 6 * cm, 4 * cm, 5 * cm, 5 * cm]))
 
+    elif name == "skewness":
+        table_rows = [["Columna", "Skewness", "Asimetria"]]
+
+        for row in rows:
+            skew = row.get("skewness", 0)
+            if skew > 1 or skew < -1:
+                level = "Alto"
+            elif skew > 0.5 or skew < -0.5:
+                level = "Moderado"
+            else:
+                level = "Bajo"
+
+            table_rows.append(
+                [
+                    row.get("column", ""),
+                    f"{skew:.4f}",
+                    level,
+                ]
+            )
+
+        elements.append(_table(table_rows, [8 * cm, 4 * cm, 4 * cm]))
 
 def _add_recommendations(elements, styles, result):
     recommendations = result.get("recommendations", [])

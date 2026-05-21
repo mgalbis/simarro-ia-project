@@ -22,6 +22,11 @@ def _connect():
     return conn
 
 
+def _table_columns(conn, table_name: str) -> set[str]:
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return {row["name"] for row in rows}
+
+
 def init_db():
     with _connect() as conn:
         conn.execute(
@@ -43,6 +48,11 @@ def init_db():
             )
             """
         )
+
+        # Defensive migration from the previous monouser/demo schema.
+        session_columns = _table_columns(conn, "sessions")
+        if "user_id" not in session_columns:
+            conn.execute("ALTER TABLE sessions ADD COLUMN user_id TEXT")
 
         conn.execute(
             """
@@ -88,13 +98,21 @@ def init_db():
         conn.commit()
 
 
+def _require_user_id(user_id: Optional[str]) -> str:
+    clean = str(user_id or "").strip()
+    if not clean:
+        raise ValueError("user_id es obligatorio para operaciones de sesión autenticadas.")
+    return clean
+
+
 def create_session(
     project_label: Optional[str] = None,
     test_phase: Optional[str] = None,
     review_label: Optional[str] = None,
-    user_id: str = "",
+    user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     init_db()
+    clean_user_id = _require_user_id(user_id)
 
     session_id = f"CQA-{uuid.uuid4().hex[:8].upper()}"
     now = _now()
@@ -118,21 +136,22 @@ def create_session(
             """,
             (
                 session_id,
-                user_id,
-                project_label,
-                test_phase,
-                review_label,
+                clean_user_id,
+                _clean_optional(project_label),
+                _clean_optional(test_phase),
+                _clean_optional(review_label),
                 now,
                 now,
             ),
         )
         conn.commit()
 
-    return get_session(session_id, user_id)
+    return get_session(session_id, clean_user_id)
 
 
-def get_session(session_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+def get_session(session_id: str, user_id: Optional[str]) -> Optional[Dict[str, Any]]:
     init_db()
+    clean_user_id = _require_user_id(user_id)
 
     with _connect() as conn:
         session = conn.execute(
@@ -141,7 +160,7 @@ def get_session(session_id: str, user_id: str) -> Optional[Dict[str, Any]]:
             FROM sessions
             WHERE session_id = ? AND user_id = ?
             """,
-            (session_id, user_id),
+            (session_id, clean_user_id),
         ).fetchone()
 
         if not session:
@@ -171,6 +190,7 @@ def get_session(session_id: str, user_id: str) -> Optional[Dict[str, Any]]:
 
     return {
         "session_id": session["session_id"],
+        "user_id": session["user_id"],
 
         "project_label": session["project_label"],
         "test_phase": session["test_phase"],
@@ -189,8 +209,9 @@ def get_session(session_id: str, user_id: str) -> Optional[Dict[str, Any]]:
     }
 
 
-def list_sessions(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+def list_sessions(user_id: Optional[str]) -> List[Dict[str, Any]]:
     init_db()
+    clean_user_id = _require_user_id(user_id)
 
     with _connect() as conn:
         sessions = conn.execute(
@@ -200,7 +221,7 @@ def list_sessions(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
             WHERE user_id = ?
             ORDER BY updated_at DESC
             """,
-            (user_id,)
+            (clean_user_id,),
         ).fetchall()
 
         rows = []
@@ -222,6 +243,7 @@ def list_sessions(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
             rows.append(
                 {
                     "session_id": session["session_id"],
+                    "user_id": session["user_id"],
 
                     "project_label": session["project_label"],
                     "test_phase": session["test_phase"],
@@ -236,19 +258,12 @@ def list_sessions(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
 
                     "iteration_count": len(parsed_reports),
                     "last_status": (
-                        last_report.get("global_status")
-                        if last_report
-                        else None
+                        last_report.get("global_status") if last_report else None
                     ),
                     "last_execution_id": (
-                        last_report.get("execution_id")
-                        if last_report
-                        else None
+                        last_report.get("execution_id") if last_report else None
                     ),
-                    "title": (
-                        session["review_label"]
-                        or _build_session_title(session, parsed_reports)
-                    ),
+                    "title": session["review_label"] or _build_session_title(session, parsed_reports),
                 }
             )
 
@@ -257,13 +272,13 @@ def list_sessions(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
 
 def update_session_state(
     session_id: str,
-    user_id: str,
+    user_id: Optional[str],
     active_review_prompt: Optional[str] = None,
     pending_prompt: Optional[str] = None,
     last_processed_file_name: Optional[str] = None,
 ):
     init_db()
-    now = _now()
+    clean_user_id = _require_user_id(user_id)
 
     with _connect() as conn:
         conn.execute(
@@ -279,9 +294,9 @@ def update_session_state(
                 active_review_prompt,
                 pending_prompt,
                 last_processed_file_name,
-                now,
+                _now(),
                 session_id,
-                user_id,
+                clean_user_id,
             ),
         )
         conn.commit()
@@ -289,13 +304,13 @@ def update_session_state(
 
 def update_session_metadata(
     session_id: str,
-    user_id: str,
+    user_id: Optional[str],
     project_label: Optional[str] = None,
     test_phase: Optional[str] = None,
     review_label: Optional[str] = None,
 ):
     init_db()
-    now = _now()
+    clean_user_id = _require_user_id(user_id)
 
     with _connect() as conn:
         conn.execute(
@@ -311,9 +326,9 @@ def update_session_metadata(
                 _clean_optional(project_label),
                 _clean_optional(test_phase),
                 _clean_optional(review_label),
-                now,
+                _now(),
                 session_id,
-                user_id,
+                clean_user_id,
             ),
         )
         conn.commit()
@@ -330,22 +345,18 @@ def add_message(
     with _connect() as conn:
         conn.execute(
             """
-            INSERT INTO messages (
-                session_id,
-                role,
-                content,
-                timestamp,
-                created_at
-            )
+            INSERT INTO messages (session_id, role, content, timestamp, created_at)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (
-                session_id,
-                role,
-                content,
-                timestamp,
-                _now(),
-            ),
+            (session_id, role, content, timestamp, _now()),
+        )
+        conn.execute(
+            """
+            UPDATE sessions
+            SET updated_at = ?
+            WHERE session_id = ?
+            """,
+            (_now(), session_id),
         )
         conn.commit()
 
@@ -358,46 +369,43 @@ def add_report(session_id: str, report: Dict[str, Any]):
     if not execution_id:
         return
 
-    report_with_session = {
-        **report,
-        "session_id": session_id,
-    }
-
     with _connect() as conn:
         conn.execute(
             """
-            INSERT OR REPLACE INTO reports (
-                execution_id,
-                session_id,
-                report_json,
-                created_at
-            )
+            INSERT OR REPLACE INTO reports (execution_id, session_id, report_json, created_at)
             VALUES (?, ?, ?, ?)
             """,
             (
                 execution_id,
                 session_id,
-                json.dumps(report_with_session, ensure_ascii=False),
+                json.dumps(report, ensure_ascii=False),
                 _now(),
             ),
+        )
+        conn.execute(
+            """
+            UPDATE sessions
+            SET updated_at = ?
+            WHERE session_id = ?
+            """,
+            (_now(), session_id),
         )
         conn.commit()
 
 
-def get_report(execution_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+def get_report(execution_id: str, user_id: Optional[str]) -> Optional[Dict[str, Any]]:
     init_db()
+    clean_user_id = _require_user_id(user_id)
 
     with _connect() as conn:
         row = conn.execute(
             """
-            SELECT r.report_json
-            FROM reports r
-            JOIN sessions s
-                ON r.session_id = s.session_id
-            WHERE r.execution_id = ?
-              AND s.user_id = ?
+            SELECT reports.report_json
+            FROM reports
+            INNER JOIN sessions ON sessions.session_id = reports.session_id
+            WHERE reports.execution_id = ? AND sessions.user_id = ?
             """,
-            (execution_id, user_id),
+            (execution_id, clean_user_id),
         ).fetchone()
 
     if not row:
@@ -406,8 +414,9 @@ def get_report(execution_id: str, user_id: str) -> Optional[Dict[str, Any]]:
     return json.loads(row["report_json"])
 
 
-def clear_session(session_id: str, user_id: str):
+def clear_session(session_id: str, user_id: Optional[str]) -> bool:
     init_db()
+    clean_user_id = _require_user_id(user_id)
 
     with _connect() as conn:
         valid = conn.execute(
@@ -416,16 +425,17 @@ def clear_session(session_id: str, user_id: str):
             FROM sessions
             WHERE session_id = ? AND user_id = ?
             """,
-            (session_id, user_id),
+            (session_id, clean_user_id),
         ).fetchone()
-        
+
         if not valid:
             return False
-        
+
         conn.execute("DELETE FROM reports WHERE session_id = ?", (session_id,))
         conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
         conn.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
         conn.commit()
+
     return True
 
 

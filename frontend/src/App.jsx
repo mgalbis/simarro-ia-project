@@ -156,6 +156,7 @@ export default function App({ user, onLogout }) {
           onOpenHistoricalReport={handleOpenHistoricalReport}
           isCollapsed={rightCollapsed}
           onToggleCollapse={() => setRightCollapsed((value) => !value)}
+          user={user}
         />
       </div>
     </div>

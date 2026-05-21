@@ -18,6 +18,7 @@ export default function RightPanel({
   onOpenHistoricalReport = null,
   isCollapsed = false,
   onToggleCollapse = null,
+  user = null,
 }) {
   const [collapsedSections, setCollapsedSections] = useState({
     iterations: false,
@@ -203,6 +204,7 @@ export default function RightPanel({
             history={history}
             onOpenHistoricalReport={onOpenHistoricalReport}
             hideTitle={true}
+            user={user}
           />
         </div>
       </CollapsibleSection>

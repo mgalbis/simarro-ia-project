@@ -8,9 +8,16 @@ DEFAULT_TESTS_BY_ACTIVITY = {
         "data_types",
         "outliers",
         "balance",
+        "skewness",
     ],
     ActivityType.DATASET_SPLIT_VALIDATION: [
         "dataset_split",
+    ],
+    ActivityType.DATASET_SPLIT_VALIDATION_3DS: [
+        "dataset_train",
+        "dataset_validation",
+        "dataset_test",
+        "minable_dataset",
     ],
     ActivityType.MODEL_PERFORMANCE_EVALUATION: [
         "model_performance",
@@ -28,6 +35,12 @@ REQUIRED_ARTIFACTS_BY_ACTIVITY = {
     ActivityType.DATASET_SPLIT_VALIDATION: [
         "dataset_with_split_column",
         "split_column",
+    ],
+    ActivityType.DATASET_SPLIT_VALIDATION_3DS: [
+        "dataset_train",
+        "dataset_validation",
+        "dataset_test",
+        "minable_dataset",
     ],
     ActivityType.MODEL_PERFORMANCE_EVALUATION: [
         "test_dataset",
