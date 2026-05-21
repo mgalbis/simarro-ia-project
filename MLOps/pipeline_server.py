@@ -1,8 +1,6 @@
 # Servidor webhook que recibe eventos de lakeFS y dispara el pipeline de reentrenamiento automático.
 #
 # LakeFS llama a este servidor vía HTTP POST cuando ocurre un merge a la rama main de cualquier repositorio de datasets.
-#
-# TODO: Utilizamos el puerto 8080 o lo hacemos configurable?───
 
 import os
 import json
@@ -12,7 +10,6 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime
 
 # Configuración
-# TODO: utilizamos el puerto 8080?
 PORT = int(os.environ.get("PIPELINE_PORT", 8080))
 
 RAMA_PRODUCCION = "main"
@@ -74,8 +71,8 @@ class WebhookHandler(BaseHTTPRequestHandler):
         #   "commit_message": "mensaje del commit",
         # }
         tipo_evento = evento.get("event_type", "")
-        repositorio = evento.get("repository", "")
-        rama_destino = evento.get("branch", "")
+        repositorio = evento.get("repository") or evento.get("repository_id", "")
+        rama_destino = evento.get("branch") or evento.get("branch_id", "")
         commit_hash = evento.get("commit_id", "")
 
         # 3. Filtrar: solo se procesarán los post-merge a main
