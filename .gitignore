@@ -16,7 +16,6 @@ models/*
 artifacts/*
 mlruns/
 *.parquet
-*.csv
 *.zip
 *.pkl
 *.joblib

@@ -1,0 +1,6 @@
+cliente_id,edad,importe,abandono,canal
+1,45,300.5,0,web
+2,29,50.0,0,tienda
+3,52,1200.0,1,web
+4,61,9999.0,1,telefono
+5,38,80.0,0,telefono
