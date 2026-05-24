@@ -1,0 +1,488 @@
+{
+  "schema_id": "project_cases_configuration",
+  "version": "1.0",
+  "fecha": "2026-05-14",
+  "project": "simarro-centinela-plus",
+  "description": "Configuración operativa de casos de uso, datasets, repositorios lakeFS, mapeos a variables CAPTIA, modelos, métricas y trazabilidad.",
+  "variables": {
+    "co2": {
+      "metric_kind": "analog_gauge",
+      "unit": "ppm",
+      "data_type": "float"
+    },
+    "temperature_01": {
+      "metric_kind": "analog_gauge",
+      "unit": "°C",
+      "data_type": "float"
+    },
+    "temperature_outdoor": {
+      "metric_kind": "analog_gauge",
+      "unit": "°C",
+      "data_type": "float"
+    },
+    "relative_humidity": {
+      "metric_kind": "analog_gauge",
+      "unit": "%",
+      "data_type": "float"
+    },
+    "humidity_ratio": {
+      "metric_kind": "analog_gauge",
+      "unit": "ratio",
+      "data_type": "float"
+    },
+    "luminosity": {
+      "metric_kind": "analog_gauge",
+      "unit": "lux",
+      "data_type": "float"
+    },
+    "avg_sound_level": {
+      "metric_kind": "analog_gauge",
+      "unit": "dB",
+      "data_type": "float"
+    },
+    "occupancy": {
+      "metric_kind": "bool_presence",
+      "unit": "bool",
+      "data_type": "integer",
+      "allowed_values": [
+        0,
+        1
+      ]
+    },
+    "people_count": {
+      "metric_kind": "analog_gauge",
+      "unit": "people",
+      "data_type": "float"
+    },
+    "power_01": {
+      "metric_kind": "counter",
+      "unit": "Wh",
+      "data_type": "float"
+    },
+    "light_consumption": {
+      "metric_kind": "counter",
+      "unit": "Wh",
+      "data_type": "float"
+    },
+    "ac_state": {
+      "metric_kind": "bool_state",
+      "unit": "bool",
+      "data_type": "integer",
+      "allowed_values": [
+        0,
+        1
+      ]
+    },
+    "heat_state": {
+      "metric_kind": "bool_state",
+      "unit": "bool",
+      "data_type": "integer",
+      "allowed_values": [
+        0,
+        1
+      ]
+    },
+    "fan_speed_01_state": {
+      "metric_kind": "bool_state",
+      "unit": "bool",
+      "data_type": "integer",
+      "allowed_values": [
+        0,
+        1
+      ]
+    },
+    "valve_control": {
+      "metric_kind": "setpoint_step",
+      "unit": "%",
+      "data_type": "float"
+    },
+    "temperature_supply": {
+      "metric_kind": "analog_gauge",
+      "unit": "°C",
+      "data_type": "float"
+    },
+    "temperature_return": {
+      "metric_kind": "analog_gauge",
+      "unit": "°C",
+      "data_type": "float"
+    },
+    "fault_label": {
+      "metric_kind": "bool_state",
+      "unit": "bool",
+      "data_type": "integer",
+      "allowed_values": [
+        0,
+        1
+      ]
+    },
+    "solar_irradiance": {
+      "metric_kind": "analog_gauge",
+      "unit": "W/m2",
+      "data_type": "float"
+    },
+    "precipitation": {
+      "metric_kind": "counter",
+      "unit": "mm",
+      "data_type": "float"
+    },
+    "pressure": {
+      "metric_kind": "analog_gauge",
+      "unit": "hPa",
+      "data_type": "float"
+    },
+    "wind_speed": {
+      "metric_kind": "analog_gauge",
+      "unit": "m/s",
+      "data_type": "float"
+    }
+  },
+  "repository_schema": {
+    "description": "Estructura Medallion esperada para cada repositorio lakeFS asociado a un dataset principal.",
+    "layers": {
+      "bronze": {
+        "path": "bronze/",
+        "content": "datasets originales sin modificar"
+      },
+      "silver": {
+        "path": "silver/",
+        "content": "datos normalizados según schema_captia.json"
+      },
+      "gold": {
+        "path": "gold/",
+        "content": "datasets de entrenamiento, test, features e informes por caso de uso"
+      },
+      "metadata": {
+        "path": "metadata/",
+        "content": "lineage, informes de calidad y metadatos del procesamiento"
+      }
+    },
+    "recommended_files": {
+      "silver": [
+        "silver/captia_points.parquet"
+      ],
+      "metadata": [
+        "metadata/lineage.json",
+        "metadata/quality_report.json"
+      ]
+    }
+  },
+  "lakefs_conventions": {
+    "tag_patterns": "{dataset}_v{version}",
+    "branch_pattern": "transform/v{version}"
+  },
+  "mlflow_conventions": {
+    "experiment_pattern": "Caso{case}_{description}",
+    "run_pattern": "{algorithm}_{timestamp}_{description}",
+    "required_tags": [
+      "lakefs_tag",
+      "schema_captia_version"
+    ]
+  },
+  "cases": {
+    "B": {
+      "name": "Prediccion_consumo_electrico",
+      "description": "Predicción de Consumo Eléctrico",
+      "problem_type": "forecasting_regression",
+      "functional_model_name": "EnergyConsumptionForecaster",
+      "purpose": "Predecir el consumo eléctrico futuro de aulas, edificios o instalaciones a partir del histórico de consumo y variables contextuales.",
+      "datasets": [
+        "bdg2",
+        "uci-appliances"
+      ],
+      "target_variable": "power_01",
+      "models": [
+        "sarima",
+        "xgboost",
+        "lstm"
+      ],
+      "metrics": [
+        "mae",
+        "rmse",
+        "mape",
+        "r2"
+      ]
+    },
+    "C": {
+      "name": "Deteccion_anomalias_HVAC",
+      "description": "Detección de Anomalías en Sistemas HVAC",
+      "problem_type": "anomaly_detection",
+      "functional_model_name": "HVACAnomalyDetector",
+      "purpose": "Detectar fallos o comportamientos anómalos en sistemas de climatización a partir de señales HVAC.",
+      "datasets": [
+        "lbnl-fdd"
+      ],
+      "models": [
+        "isolation_forest",
+        "autoencoder",
+        "one_class_svm"
+      ],
+      "metrics": [
+        "precision",
+        "recall",
+        "f1_score"
+      ]
+    },
+    "D": {
+      "name": "Prediccion_ocupacion_espacios",
+      "description": "Calidad del Aire, Confort Interior y Ocupación",
+      "problem_type": "binary_classification",
+      "functional_model_name": "OccupancyClassifier",
+      "purpose": "Inferir si un aula está ocupada a partir de variables ambientales, sin usar cámaras ni sensores explícitos de presencia como entrada del modelo.",
+      "datasets": [
+        "uci-occupancy",
+        "ingauge"
+      ],
+      "target_variable": "occupancy",
+      "models": [
+        "logistic_regression",
+        "random_forest",
+        "svm",
+        "xgboost"
+      ],
+      "metrics": [
+        "accuracy",
+        "precision",
+        "recall",
+        "f1_score",
+        "auc_roc",
+        "precision_class_0",
+        "precision_class_1",
+        "recall_class_0",
+        "recall_class_1",
+        "f1_class_0",
+        "f1_class_1"
+      ],
+      "quality_reports": [
+        "class_balance_report",
+        "feature_importance_report"
+      ]
+    },
+    "E": {
+      "name": "Meteorologia_integracion",
+      "description": "Datos Meteorológicos e Integración Exterior-Interior",
+      "problem_type": "regression_and_correlation",
+      "functional_model_name": "WeatherContextModel",
+      "purpose": "Procesar variables meteorológicas exteriores y generar información útil para modelos de consumo, confort, generación solar o análisis exterior-interior.",
+      "datasets": [
+        "era5"
+      ],
+      "metrics": [
+        "mae",
+        "rmse",
+        "r2",
+        "pearson",
+        "spearman"
+      ]
+    }
+  },
+  "datasets": {
+    "uci_occupancy": {
+      "case": "D",
+      "source": "https://archive.ics.uci.edu/dataset/357",
+      "lakefs_repo": "uci-occupancy",
+      "fixed_tags": {
+        "captia_env": "prod",
+        "domain_id": "bms_classrooms",
+        "site_id": "uci_occupancy"
+      },
+      "column_mappings": {
+        "Temperature": {
+          "variable": "temperature_01",
+          "role": "feature"
+        },
+        "Humidity": {
+          "variable": "relative_humidity",
+          "role": "feature"
+        },
+        "Light": {
+          "variable": "luminosity",
+          "role": "feature"
+        },
+        "CO2": {
+          "variable": "co2",
+          "role": "feature"
+        },
+        "HumidityRatio": {
+          "variable": "humidity_ratio",
+          "role": "feature"
+        },
+        "Occupancy": {
+          "variable": "occupancy",
+          "role": "target"
+        }
+      }
+    },
+    "ingauge": {
+      "case": "D",
+      "source": "https://physionet.org/content/in-gauge-and-en-gage/1.0.0/",
+      "lakefs_repo": "ingauge",
+      "fixed_tags": {
+        "captia_env": "prod",
+        "domain_id": "bms_classrooms",
+        "site_id": "ies_simarro"
+      },
+      "column_mappings": {
+        "IndoorTemperature": {
+          "variable": "temperature_01",
+          "role": "feature"
+        },
+        "IndoorRelativeHumidity": {
+          "variable": "relative_humidity",
+          "role": "feature"
+        },
+        "IndoorCO2": {
+          "variable": "co2",
+          "role": "feature"
+        },
+        "AvgSoundLevel": {
+          "variable": "avg_sound_level",
+          "role": "feature"
+        },
+        "Luminosity": {
+          "variable": "luminosity",
+          "role": "feature"
+        },
+        "Occupancy": {
+          "variable": "occupancy",
+          "role": "target"
+        },
+        "CoolingState": {
+          "variable": "ac_state",
+          "role": "context"
+        },
+        "HeatingState": {
+          "variable": "heat_state",
+          "role": "context"
+        }
+      },
+      "advanced_time_windows": [
+        "school_hours",
+        "non_school_hours",
+        "morning",
+        "afternoon"
+      ]
+    },
+    "uci_appliances": {
+      "case": "B",
+      "source": "https://archive.ics.uci.edu/dataset/374",
+      "lakefs_repo": "uci-appliances",
+      "fixed_tags": {
+        "captia_env": "prod",
+        "domain_id": "bms_buildings",
+        "site_id": "uci_appliances"
+      },
+      "column_mappings": {
+        "Appliances": {
+          "variable": "power_01",
+          "role": "target"
+        },
+        "lights": {
+          "variable": "light_consumption",
+          "role": "feature"
+        },
+        "T_out": {
+          "variable": "temperature_outdoor",
+          "role": "feature"
+        },
+        "T1": {
+          "variable": "temperature_01",
+          "role": "feature"
+        }
+      }
+    },
+    "bdg2": {
+      "case": "B",
+      "source": "https://github.com/buds-lab/building-data-genome-project-2",
+      "lakefs_repo": "bdg2",
+      "fixed_tags": {
+        "captia_env": "prod",
+        "domain_id": "bms_buildings",
+        "site_id": "bdg2_education"
+      },
+      "column_mappings": {
+        "electricity": {
+          "variable": "power_01",
+          "role": "target"
+        },
+        "airTemperature": {
+          "variable": "temperature_outdoor",
+          "role": "feature"
+        },
+        "precipDepth1HR": {
+          "variable": "precipitation",
+          "role": "feature"
+        }
+      }
+    },
+    "lbnl_fdd": {
+      "case": "C",
+      "source": "https://faultdetection.lbl.gov/",
+      "lakefs_repo": "lbnl_fdd",
+      "fixed_tags": {
+        "captia_env": "prod",
+        "domain_id": "hvac_system",
+        "site_id": "lbnl_building59"
+      },
+      "column_mappings": {
+        "column_mappings": {
+          "SA_TEMP": {
+            "variable": "temperature_supply",
+            "role": "feature"
+          },
+          "RA_TEMP": {
+            "variable": "temperature_return",
+            "role": "feature"
+          },
+          "OA_TEMP": {
+            "variable": "temperature_outdoor",
+            "role": "feature"
+          },
+          "CCV": {
+            "variable": "valve_control",
+            "role": "feature"
+          },
+          "FAN_STATE": {
+            "variable": "fan_speed_01_state",
+            "role": "feature"
+          },
+          "FAULT_STATE": {
+            "variable": "fault_label",
+            "role": "target"
+          }
+        }
+      },
+      "era5": {
+        "case": "E",
+        "source": "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels",
+        "lakefs_repo": "era5",
+        "fixed_tags": {
+          "captia_env": "prod",
+          "domain_id": "weather_station",
+          "site_id": "xativa"
+        },
+        "column_mappings": {
+          "2m_temperature": {
+            "variable": "temperature_outdoor",
+            "role": "feature",
+            "conversion": "K - 273.15"
+          },
+          "surface_solar_radiation_downwards": {
+            "variable": "solar_irradiance",
+            "role": "feature",
+            "conversion": "J/m2 / 3600"
+          },
+          "total_precipitation": {
+            "variable": "precipitation",
+            "role": "feature",
+            "conversion": "m * 1000"
+          },
+          "surface_pressure": {
+            "variable": "pressure",
+            "role": "feature",
+            "conversion": "Pa / 100"
+          }
+        }
+      }
+    }
+  }
+}
