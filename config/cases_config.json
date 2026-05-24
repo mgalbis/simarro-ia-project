@@ -279,7 +279,6 @@
     "uci-occupancy": {
       "case": "D",
       "source": "https://archive.ics.uci.edu/dataset/357",
-      "lakefs_repo": "uci-occupancy",
       "fixed_tags": {
         "captia_env": "prod",
         "domain_id": "bms_classrooms",
@@ -315,7 +314,6 @@
     "ingauge": {
       "case": "D",
       "source": "https://physionet.org/content/in-gauge-and-en-gage/1.0.0/",
-      "lakefs_repo": "ingauge",
       "fixed_tags": {
         "captia_env": "prod",
         "domain_id": "bms_classrooms",
@@ -365,7 +363,6 @@
     "uci-appliances": {
       "case": "B",
       "source": "https://archive.ics.uci.edu/dataset/374",
-      "lakefs_repo": "uci-appliances",
       "fixed_tags": {
         "captia_env": "prod",
         "domain_id": "bms_buildings",
@@ -393,7 +390,6 @@
     "bdg2": {
       "case": "B",
       "source": "https://github.com/buds-lab/building-data-genome-project-2",
-      "lakefs_repo": "bdg2",
       "fixed_tags": {
         "captia_env": "prod",
         "domain_id": "bms_buildings",
@@ -417,45 +413,41 @@
     "lbnl-fdd": {
       "case": "C",
       "source": "https://faultdetection.lbl.gov/",
-      "lakefs_repo": "lbnl_fdd",
       "fixed_tags": {
         "captia_env": "prod",
         "domain_id": "hvac_system",
         "site_id": "lbnl_building59"
       },
       "column_mappings": {
-        "column_mappings": {
-          "SA_TEMP": {
-            "variable": "temperature_supply",
-            "role": "feature"
-          },
-          "RA_TEMP": {
-            "variable": "temperature_return",
-            "role": "feature"
-          },
-          "OA_TEMP": {
-            "variable": "temperature_outdoor",
-            "role": "feature"
-          },
-          "CCV": {
-            "variable": "valve_control",
-            "role": "feature"
-          },
-          "FAN_STATE": {
-            "variable": "fan_speed_01_state",
-            "role": "feature"
-          },
-          "FAULT_STATE": {
-            "variable": "fault_label",
-            "role": "target"
-          }
+        "SA_TEMP": {
+          "variable": "temperature_supply",
+          "role": "feature"
+        },
+        "RA_TEMP": {
+          "variable": "temperature_return",
+          "role": "feature"
+        },
+        "OA_TEMP": {
+          "variable": "temperature_outdoor",
+          "role": "feature"
+        },
+        "CCV": {
+          "variable": "valve_control",
+          "role": "feature"
+        },
+        "FAN_STATE": {
+          "variable": "fan_speed_01_state",
+          "role": "feature"
+        },
+        "FAULT_STATE": {
+          "variable": "fault_label",
+          "role": "target"
         }
       }
     },
     "era5": {
       "case": "E",
       "source": "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels",
-      "lakefs_repo": "era5",
       "fixed_tags": {
         "captia_env": "prod",
         "domain_id": "weather_station",
