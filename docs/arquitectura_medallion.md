@@ -110,6 +110,7 @@ ingauge:
 uci-occupancy:
   datatraining.txt
   datatest.txt
+  datatest2.txt
 
 era5:
   ficheros NetCDF originales
@@ -120,12 +121,14 @@ lbnl-fdd:
 
 ### 4.3 Estructura en lakeFS
 
-Ejemplo para `uci-appliances`:
+Ejemplo para `uci-occupancy`:
 
 ```text
-lakefs://uci-appliances/
+lakefs://uci-occupancy/
 └── bronze/
-    └── energydata_complete.csv
+    ├── datatraining.txt
+    ├── datatest.txt
+    └── datatest2.txt
 ```
 
 ### 4.4 Versionado
@@ -139,10 +142,10 @@ Ejemplo:
 
 ```text
 Commit:
-  "Ingest raw UCI Appliances dataset into bronze"
+  "Ingest raw UCI Occupancy Detection dataset into bronze"
 
 Tag:
-  uci-appliances_bronze_v1
+  uci-occupancy_bronze_v1
 ```
 
 ### 4.5 Metadatos mínimos
@@ -151,9 +154,13 @@ Cada commit o fichero de metadata asociado debe incluir:
 
 ```json
 {
-  "dataset": "uci-appliances",
+  "dataset": "uci-occupancy",
   "layer": "bronze",
-  "source_file": "energydata_complete.csv",
+  "source_files": [
+    "datatraining.txt",
+    "datatest.txt",
+    "datatest2.txt"
+  ],
   "source_format": "csv",
   "schema_captia_version": "1.0",
   "created_by": "G4-CasoF-MLOps"
@@ -204,7 +211,7 @@ InfluxDB sin cambiar la lógica de transformación.
 Ejemplo:
 
 ```text
-lakefs://uci-appliances/
+lakefs://uci-occupancy/
 └── silver/
     └── captia_points.parquet
 ```
@@ -228,28 +235,46 @@ unit
 Ejemplo:
 
 ```text
-timestamp              captia_env  domain_id      site_id         asset_id  variable             value  metric_kind
-2016-01-11T17:00:00Z   prod        bms_buildings  uci_appliances  HOUSE01   power_01             60.0   counter
-2016-01-11T17:00:00Z   prod        bms_buildings  uci_appliances  HOUSE01   temperature_outdoor  6.6    analog_gauge
+timestamp              captia_env  domain_id       site_id        asset_id  variable           value   metric_kind
+2015-02-04T17:51:00Z   prod        bms_classrooms  uci_occupancy  ROOM01    temperature_01     23.18   analog_gauge
+2015-02-04T17:51:00Z   prod        bms_classrooms  uci_occupancy  ROOM01    relative-humidity  27.27   analog_gauge
+2015-02-04T17:51:00Z   prod        bms_classrooms  uci_occupancy  ROOM01    luminosity         426.0   analog_gauge
+2015-02-04T17:51:00Z   prod        bms_classrooms  uci_occupancy  ROOM01    co2                721.25  analog_gauge
+2015-02-04T17:51:00Z   prod        bms_classrooms  uci_occupancy  ROOM01    occupancy          1       bool_presence
 ```
 
 ### 5.5 Transformación desde Bronze
 
 La transformación Bronze → Silver aplica el mapeo definido en `schema_captia.json`.
 
-Ejemplo para `uci-appliances`:
+Ejemplo para `uci-occupancy`:
 
 ```json
 {
-  "Appliances": {
-    "variable_captia": "power_01",
-    "metric_kind": "counter",
-    "unidad": "Wh"
-  },
-  "T_out": {
-    "variable_captia": "temperature_outdoor",
+  "Temperature": {
+    "variable_captia": "temperature_01",
     "metric_kind": "analog_gauge",
     "unidad": "°C"
+  },
+  "Humidity": {
+    "variable_captia": "relative-humidity",
+    "metric_kind": "analog_gauge",
+    "unidad": "%"
+  },
+  "Light": {
+    "variable_captia": "luminosity",
+    "metric_kind": "analog_gauge",
+    "unidad": "lux"
+  },
+  "CO2": {
+    "variable_captia": "co2",
+    "metric_kind": "analog_gauge",
+    "unidad": "ppm"
+  },
+  "Occupancy": {
+    "variable_captia": "occupancy",
+    "metric_kind": "bool_presence",
+    "unidad": "bool"
   }
 }
 ```
@@ -257,16 +282,19 @@ Ejemplo para `uci-appliances`:
 Entrada Bronze:
 
 ```text
-date,Appliances,T_out,lights,T1
-2016-01-11 17:00:00,60,6.6,30,19.89
+date,Temperature,Humidity,Light,CO2,HumidityRatio,Occupancy
+2015-02-04 17:51:00,23.18,27.27,426.0,721.25,0.00479,1
 ```
 
 Salida Silver:
 
 ```text
 timestamp,captia_env,domain_id,site_id,asset_id,variable,value,metric_kind,unit
-2016-01-11T17:00:00Z,prod,bms_buildings,uci_appliances,HOUSE01,power_01,60,counter,Wh
-2016-01-11T17:00:00Z,prod,bms_buildings,uci_appliances,HOUSE01,temperature_outdoor,6.6,analog_gauge,°C
+2015-02-04T17:51:00Z,prod,bms_classrooms,uci_occupancy,ROOM01,temperature_01,23.18,analog_gauge,°C
+2015-02-04T17:51:00Z,prod,bms_classrooms,uci_occupancy,ROOM01,relative-humidity,27.27,analog_gauge,%
+2015-02-04T17:51:00Z,prod,bms_classrooms,uci_occupancy,ROOM01,luminosity,426.0,analog_gauge,lux
+2015-02-04T17:51:00Z,prod,bms_classrooms,uci_occupancy,ROOM01,co2,721.25,analog_gauge,ppm
+2015-02-04T17:51:00Z,prod,bms_classrooms,uci_occupancy,ROOM01,occupancy,1,bool_presence,bool
 ```
 
 ### 5.6 Versionado Silver
@@ -275,20 +303,20 @@ Cada transformación Silver debe generar:
 
 ```text
 Commit:
-  "Create CAPTIA-normalized silver dataset for uci-appliances"
+  "Create CAPTIA-normalized silver dataset for uci-occupancy"
 
 Tag:
-  uci-appliances_silver_v1
+  uci-occupancy_silver_v1
 ```
 
 Metadatos recomendados:
 
 ```json
 {
-  "dataset": "uci-appliances",
+  "dataset": "uci-occupancy",
   "layer": "silver",
   "source_layer": "bronze",
-  "source_tag": "uci-appliances_bronze_v1",
+  "source_tag": "uci-occupancy_bronze_v1",
   "schema_captia_version": "1.0",
   "target_path": "silver/captia_points.parquet"
 }
@@ -316,34 +344,33 @@ En el caso MLOps, Gold contiene principalmente:
 
 ### 6.2 Estructura Gold
 
-Ejemplo para predicción de consumo:
+Ejemplo para detección de ocupación:
 
 ```text
-lakefs://uci-appliances/
+lakefs://uci-occupancy/
 └── gold/
     ├── train.parquet
     ├── test.parquet
     ├── features_schema.json
+    ├── class_balance_report.json
     ├── dataset_metadata.json
     └── quality_report.json
 ```
 
 ### 6.3 Ejemplo de columnas Gold
 
-Para el Caso B, el dataset Gold puede contener:
+Para el Caso D, el dataset Gold puede contener:
 
 ```text
 timestamp
-power_01
-temperature_outdoor
-light_consumption
+temperature_01
+relative_humidity
+luminosity
+co2
+humidity_ratio
 hour
 day_of_week
-month
-lag_1h
-lag_24h
-rolling_mean_24h
-target_power_01
+occupancy
 ```
 
 ### 6.4 Versionado Gold
@@ -354,10 +381,10 @@ Ejemplo:
 
 ```text
 Commit:
-  "Create gold training dataset for CasoB consumption prediction"
+  "Create gold training dataset for CasoD occupancy detection"
 
 Tag:
-  uci-appliances_gold_casoB_v1
+  uci-occupancy_gold_v1
 ```
 
 Este tag debe registrarse obligatoriamente en MLflow.
@@ -371,20 +398,26 @@ Ejemplo de lineage:
 
 ```json
 {
-  "dataset": "uci-appliances",
+  "dataset": "uci-occupancy",
+  "case": "D",
   "schema_captia_version": "1.0",
   "bronze": {
-    "tag": "uci-appliances_bronze_v1",
-    "path": "bronze/energydata_complete.csv"
+    "tag": "uci-occupancy_bronze_v1",
+    "paths": [
+      "bronze/datatraining.txt",
+      "bronze/datatest.txt",
+      "bronze/datatest2.txt"
+    ]
   },
   "silver": {
-    "tag": "uci-appliances_silver_v1",
+    "tag": "uci-occupancy_silver_v1",
     "path": "silver/captia_points.parquet"
   },
   "gold": {
-    "tag": "uci-appliances_gold_casoB_v1",
+    "tag": "uci-occupancy_gold_v1",
     "path_train": "gold/train.parquet",
-    "path_test": "gold/test.parquet"
+    "path_test1": "gold/test.parquet",
+    "target": "occupancy"
   }
 }
 ```
@@ -442,10 +475,11 @@ Formato recomendado:
 Ejemplos:
 
 ```text
-BaselineMean_20260510123456_baseline
+BaselineMajority_20260510123456_baseline
+LogisticRegression_20260510123456_gold_v1
+RandomForest_20260510123456_gold_v1
+SVM_20260510123456_gold_v1
 XGBoost_20260510123456_gold_v1
-RandomForest_20260510123456_features_temporales
-IsolationForest_20260510123456_hvac_v1
 ```
 
 ### 8.3 Tags MLflow obligatorios
@@ -454,16 +488,17 @@ Ejemplo:
 
 ```python
 mlflow.set_tags({
-    "caso": "B",
-    "dataset": "uci-appliances",
+    "caso": "D",
+    "dataset": "uci-occupancy",
     "schema": "captia",
     "schema_captia_version": "1.0",
-    "lakefs_bronze_tag": "uci-appliances_bronze_v1",
-    "lakefs_silver_tag": "uci-appliances_silver_v1",
-    "lakefs_gold_tag": "uci-appliances_gold_casoB_v1",
+    "lakefs_bronze_tag": "uci-occupancy_bronze_v1",
+    "lakefs_silver_tag": "uci-occupancy_silver_v1",
+    "lakefs_gold_tag": "uci-occupancy_gold_v1",
     "gold_train_path": "gold/train.parquet",
     "gold_test_path": "gold/test.parquet",
-    "target_variable": "power_01"
+    "problem_type": "binary_classification",
+    "target_variable": "occupancy"
 })
 ```
 
@@ -491,6 +526,12 @@ mlflow.log_metric("precision", precision)
 mlflow.log_metric("recall", recall)
 mlflow.log_metric("f1_score", f1)
 mlflow.log_metric("auc_roc", auc_roc)
+mlflow.log_metric("precision_class_0", precision_class_0)
+mlflow.log_metric("precision_class_1", precision_class_1)
+mlflow.log_metric("recall_class_0", recall_class_0)
+mlflow.log_metric("recall_class_1", recall_class_1)
+mlflow.log_metric("f1_class_0", f1_class_0)
+mlflow.log_metric("f1_class_1", f1_class_1)
 ```
 
 
@@ -544,9 +585,9 @@ lakeFS
 Ejemplos:
 
 ```text
-uci-appliances_bronze_v1
-bdg2_bronze_v1
+uci-occupancy_bronze_v1
 ingauge_bronze_v1
+bdg2_bronze_v1
 ```
 
 ### 10.2 Silver
@@ -558,9 +599,9 @@ ingauge_bronze_v1
 Ejemplos:
 
 ```text
-uci-appliances_silver_v1
-bdg2_silver_v1
+uci-occupancy_silver_v1
 ingauge_silver_v1
+bdg2_silver_v1
 ```
 
 ### 10.3 Gold
@@ -572,9 +613,10 @@ ingauge_silver_v1
 Ejemplos:
 
 ```text
-uci-appliances_gold_casoB_v1
+uci-occupancy_gold_casoD_v1
+ingauge_gold_casoD_school_hours_v1
+ingauge_gold_casoD_non_school_hours_v1
 bdg2_gold_casoB_v1
-ingauge_gold_casoD_v1
 lbnl-fdd_gold_casoC_v1
 era5_gold_casoE_v1
 ```
@@ -595,10 +637,10 @@ experiment/[caso]/[dataset]/[fecha]
 Ejemplos:
 
 ```text
-ingest/uci-appliances/20260510
-transform/silver/uci-appliances/20260510
-transform/gold/uci-appliances/casoB/20260510
-experiment/casoB/uci-appliances/20260510
+ingest/uci-occupancy/20260510
+transform/silver/uci-occupancy/20260510
+transform/gold/uci-occupancy/casoD/20260510
+experiment/casoD/uci-occupancy/20260510
 ```
 
 Cada rama se mergea a `main` cuando la validación correspondiente es correcta.
@@ -634,12 +676,13 @@ Comprobaciones mínimas:
 Comprobaciones mínimas:
 
 * No hay leakage temporal.
-* Train/test están separados correctamente.
-* La variable objetivo existe.
+* Las particiones `train`, `test1` y `test2` están separadas correctamente.
+* La variable objetivo `occupancy` existe.
 * Las features esperadas existen.
 * No hay nulos críticos.
 * El número de filas es suficiente.
 * El split está documentado.
+* El balance de clases está documentado para `occupancy`.
 
 Los informes pueden guardarse en:
 
