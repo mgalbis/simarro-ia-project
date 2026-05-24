@@ -11,6 +11,7 @@ import os
 import sys
 import argparse
 import logging
+import tempfile
 from io import BytesIO
 import mlflow
 import mlflow.sklearn
@@ -271,6 +272,66 @@ def entrenar_modelo(df, caso: str, config_caso: dict):
     return modelo, params, metricas, X_train, X_test, y_test, predicciones
 
 
+def registrar_report_evidently(
+    X_train: pd.DataFrame,
+    X_test: pd.DataFrame,
+    caso: str,
+    dataset: str,
+    commit: str,
+) -> None:
+    """
+    Genera un informe básico de drift con Evidently y lo adjunta como artefacto en MLflow
+    """
+    try:
+        from evidently import Report
+        from evidently.presets import DataDriftPreset, DataSummaryPreset
+    except Exception as exc:
+        log.warning(f"Evidently no se encuentra disponible: {exc}")
+        mlflow.set_tag("evidently_status", "unavailable")
+        return
+
+    try:
+        current = X_test.copy()
+        reference = X_train.copy()
+
+        # Evita errores y problemas con columnas no serializables
+        for col in reference.columns:
+            if str(reference[col].dtype).startswith("datetime"):
+                reference[col] = reference[col].astype(str)
+                if col in current.columns:
+                    current[col] = current[col].astype(str)
+
+        report = Report(metrics=[DataSummaryPreset(), DataDriftPreset()])
+        report.run(reference_data=reference, current_data=current)
+
+        with tempfile.TemporaryDirectory(prefix="evidently_") as tmp_dir:
+            html_path = os.path.join(tmp_dir, "evidently_report.html")
+            json_path = os.path.join(tmp_dir, "evidently_report.json")
+
+            report.save_html(html_path)
+            report.save_json(json_path)
+
+            mlflow.log_artifact(html_path, artifact_path="monitoring/evidently")
+            mlflow.log_artifact(json_path, artifact_path="monitoring/evidently")
+
+        mlflow.set_tags(
+            {
+                "evidently_status": "ok",
+                "evidently_reference_rows": str(len(reference)),
+                "evidently_current_rows": str(len(current)),
+                "evidently_case": caso,
+                "evidently_dataset": dataset,
+                "evidently_dataset_version": commit,
+            }
+        )
+        log.info("Reporte Evidently registrado en MLflow")
+
+    except Exception as exc:
+        log.warning(f"No se pudo generar report Evidently: {exc}")
+        mlflow.set_tag("evidently_status", "error")
+        mlflow.set_tag("evidently_error", str(exc)[:250])
+
+
 def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str):
     """
     Ejecuta el pipeline completo de reentrenamiento siguiendo los pasos:
@@ -336,6 +397,15 @@ def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str):
         # Registrar parámetros y métricas
         mlflow.log_params(params)
         mlflow.log_metrics(metricas)
+
+        # Informe de drift de datos
+        registrar_report_evidently(
+            X_train=X_train,
+            X_test=X_test,
+            caso=caso,
+            dataset=dataset,
+            commit=commit,
+        )
 
         # Registrar el modelo
         mlflow.sklearn.log_model(

@@ -55,7 +55,7 @@ RandomForest_20260512091542_feature_engineering_v2
 IsolationForest_20260515180503_threshold_0.05
 
 ### Reglas
-- La **marca temporal** es obligatoria en formato `YYYYMMDDHHmmSS` para evitar colisiones cuando hay varios runs el mismo día.
+- La **fecha - hora** es obligatoria en formato `YYYYMMDDHHmmSS` para evitar colisiones cuando hay varios runs el mismo día.
 - La **descripción corta** se indica usando guiones bajos y sin espacios.
 - El **algoritmo** usa el nombre exacto de la clase de scikit-learn o del framework (XGBoost, RandomForest, etc).
 
