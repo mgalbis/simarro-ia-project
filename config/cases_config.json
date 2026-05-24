@@ -276,7 +276,7 @@
     }
   },
   "datasets": {
-    "uci_occupancy": {
+    "uci-occupancy": {
       "case": "D",
       "source": "https://archive.ics.uci.edu/dataset/357",
       "lakefs_repo": "uci-occupancy",
@@ -362,7 +362,7 @@
         "afternoon"
       ]
     },
-    "uci_appliances": {
+    "uci-appliances": {
       "case": "B",
       "source": "https://archive.ics.uci.edu/dataset/374",
       "lakefs_repo": "uci-appliances",
@@ -414,7 +414,7 @@
         }
       }
     },
-    "lbnl_fdd": {
+    "lbnl-fdd": {
       "case": "C",
       "source": "https://faultdetection.lbl.gov/",
       "lakefs_repo": "lbnl_fdd",
@@ -450,37 +450,37 @@
             "role": "target"
           }
         }
+      }
+    },
+    "era5": {
+      "case": "E",
+      "source": "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels",
+      "lakefs_repo": "era5",
+      "fixed_tags": {
+        "captia_env": "prod",
+        "domain_id": "weather_station",
+        "site_id": "xativa"
       },
-      "era5": {
-        "case": "E",
-        "source": "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels",
-        "lakefs_repo": "era5",
-        "fixed_tags": {
-          "captia_env": "prod",
-          "domain_id": "weather_station",
-          "site_id": "xativa"
+      "column_mappings": {
+        "2m_temperature": {
+          "variable": "temperature_outdoor",
+          "role": "feature",
+          "conversion": "K - 273.15"
         },
-        "column_mappings": {
-          "2m_temperature": {
-            "variable": "temperature_outdoor",
-            "role": "feature",
-            "conversion": "K - 273.15"
-          },
-          "surface_solar_radiation_downwards": {
-            "variable": "solar_irradiance",
-            "role": "feature",
-            "conversion": "J/m2 / 3600"
-          },
-          "total_precipitation": {
-            "variable": "precipitation",
-            "role": "feature",
-            "conversion": "m * 1000"
-          },
-          "surface_pressure": {
-            "variable": "pressure",
-            "role": "feature",
-            "conversion": "Pa / 100"
-          }
+        "surface_solar_radiation_downwards": {
+          "variable": "solar_irradiance",
+          "role": "feature",
+          "conversion": "J/m2 / 3600"
+        },
+        "total_precipitation": {
+          "variable": "precipitation",
+          "role": "feature",
+          "conversion": "m * 1000"
+        },
+        "surface_pressure": {
+          "variable": "pressure",
+          "role": "feature",
+          "conversion": "Pa / 100"
         }
       }
     }
