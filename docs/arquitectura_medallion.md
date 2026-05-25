@@ -8,7 +8,7 @@ integrando:
 - **lakeFS** para el versionado de datasets.
 - **MLflow** para el registro de experimentos, métricas, modelos y artefactos.
 - **JupyterHub** como entorno colaborativo de ejecución de notebooks.
-- **schema_captia.json** como contrato común de variables, tags y nomenclatura.
+- **captia_schema.json** como contrato común de variables, tags y nomenclatura.
 - Una capa Medallion simplificada y reproducible basada en lakeFS.
 
 El objetivo principal es garantizar que cada modelo entrenado pueda responder a las siguientes preguntas:
@@ -172,7 +172,7 @@ Cada commit o fichero de metadata asociado debe incluir:
 
 ### 5.1 Propósito
 
-La capa **Silver** contiene los datos normalizados siguiendo el contrato definido en `schema_captia.json`.
+La capa **Silver** contiene los datos normalizados siguiendo el contrato definido en `captia_schema.json`.
 
 En una infraestructura CAPTIA real, esta capa podría representarse en InfluxDB mediante:
 
@@ -237,7 +237,7 @@ Ejemplo:
 ```text
 timestamp              captia_env  domain_id       site_id        asset_id  variable           value   metric_kind
 2015-02-04T17:51:00Z   prod        bms_classrooms  uci_occupancy  ROOM01    temperature_01     23.18   analog_gauge
-2015-02-04T17:51:00Z   prod        bms_classrooms  uci_occupancy  ROOM01    relative-humidity  27.27   analog_gauge
+2015-02-04T17:51:00Z   prod        bms_classrooms  uci_occupancy  ROOM01    relative_humidity  27.27   analog_gauge
 2015-02-04T17:51:00Z   prod        bms_classrooms  uci_occupancy  ROOM01    luminosity         426.0   analog_gauge
 2015-02-04T17:51:00Z   prod        bms_classrooms  uci_occupancy  ROOM01    co2                721.25  analog_gauge
 2015-02-04T17:51:00Z   prod        bms_classrooms  uci_occupancy  ROOM01    occupancy          1       bool_presence
@@ -245,7 +245,7 @@ timestamp              captia_env  domain_id       site_id        asset_id  vari
 
 ### 5.5 Transformación desde Bronze
 
-La transformación Bronze → Silver aplica el mapeo definido en `schema_captia.json`.
+La transformación Bronze → Silver aplica el mapeo definido en `captia_schema.json`.
 
 Ejemplo para `uci-occupancy`:
 
@@ -257,7 +257,7 @@ Ejemplo para `uci-occupancy`:
     "unidad": "°C"
   },
   "Humidity": {
-    "variable_captia": "relative-humidity",
+    "variable_captia": "relative_humidity",
     "metric_kind": "analog_gauge",
     "unidad": "%"
   },
@@ -291,7 +291,7 @@ Salida Silver:
 ```text
 timestamp,captia_env,domain_id,site_id,asset_id,variable,value,metric_kind,unit
 2015-02-04T17:51:00Z,prod,bms_classrooms,uci_occupancy,ROOM01,temperature_01,23.18,analog_gauge,°C
-2015-02-04T17:51:00Z,prod,bms_classrooms,uci_occupancy,ROOM01,relative-humidity,27.27,analog_gauge,%
+2015-02-04T17:51:00Z,prod,bms_classrooms,uci_occupancy,ROOM01,relative_humidity,27.27,analog_gauge,%
 2015-02-04T17:51:00Z,prod,bms_classrooms,uci_occupancy,ROOM01,luminosity,426.0,analog_gauge,lux
 2015-02-04T17:51:00Z,prod,bms_classrooms,uci_occupancy,ROOM01,co2,721.25,analog_gauge,ppm
 2015-02-04T17:51:00Z,prod,bms_classrooms,uci_occupancy,ROOM01,occupancy,1,bool_presence,bool
@@ -402,7 +402,6 @@ Ejemplo de lineage:
   "case": "D",
   "schema_captia_version": "1.0",
   "bronze": {
-    "tag": "uci-occupancy_bronze_v1",
     "paths": [
       "bronze/datatraining.txt",
       "bronze/datatest.txt",
@@ -410,11 +409,10 @@ Ejemplo de lineage:
     ]
   },
   "silver": {
-    "tag": "uci-occupancy_silver_v1",
     "path": "silver/captia_points.parquet"
   },
   "gold": {
-    "tag": "uci-occupancy_gold_v1",
+    "tag": "uci-occupancy_v1",
     "path_train": "gold/train.parquet",
     "path_test1": "gold/test.parquet",
     "target": "occupancy"
@@ -439,15 +437,13 @@ Cada notebook de entrenamiento debe registrar en MLflow:
 * Métricas de evaluación.
 * Artefactos.
 * Modelo entrenado.
-* Tag Bronze de lakeFS.
-* Tag Silver de lakeFS.
 * Tag Gold de lakeFS.
 * Versión del schema CAPTIA.
 * Commit de código, si está disponible.
 
 ### 8.1 Experimentos MLflow
 
-Según `schema_captia.json`, los experimentos son contenedores permanentes por problema.
+Según `captia_schema.json`, los experimentos son contenedores permanentes por problema.
 
 Formato:
 
@@ -476,10 +472,10 @@ Ejemplos:
 
 ```text
 BaselineMajority_20260510123456_baseline
-LogisticRegression_20260510123456_gold_v1
-RandomForest_20260510123456_gold_v1
-SVM_20260510123456_gold_v1
-XGBoost_20260510123456_gold_v1
+LogisticRegression_20260510123456_v1
+RandomForest_20260510123456_v1
+SVM_20260510123456_v1
+XGBoost_20260510123456_v1
 ```
 
 ### 8.3 Tags MLflow obligatorios
@@ -492,9 +488,7 @@ mlflow.set_tags({
     "dataset": "uci-occupancy",
     "schema": "captia",
     "schema_captia_version": "1.0",
-    "lakefs_bronze_tag": "uci-occupancy_bronze_v1",
-    "lakefs_silver_tag": "uci-occupancy_silver_v1",
-    "lakefs_gold_tag": "uci-occupancy_gold_v1",
+    "lakefs_tag": "uci-occupancy_v1",
     "gold_train_path": "gold/train.parquet",
     "gold_test_path": "gold/test.parquet",
     "problem_type": "binary_classification",
@@ -576,49 +570,20 @@ lakeFS
 
 ## 10. Convención de tags lakeFS
 
-### 10.1 Bronze
 
 ```text
-[dataset]_bronze_v[num]
+[dataset]_v[num]
 ```
 
 Ejemplos:
 
 ```text
-uci-occupancy_bronze_v1
-ingauge_bronze_v1
-bdg2_bronze_v1
-```
-
-### 10.2 Silver
-
-```text
-[dataset]_silver_v[num]
-```
-
-Ejemplos:
-
-```text
-uci-occupancy_silver_v1
-ingauge_silver_v1
-bdg2_silver_v1
-```
-
-### 10.3 Gold
-
-```text
-[dataset]_gold_caso[letra]_v[num]
-```
-
-Ejemplos:
-
-```text
-uci-occupancy_gold_casoD_v1
-ingauge_gold_casoD_school_hours_v1
-ingauge_gold_casoD_non_school_hours_v1
-bdg2_gold_casoB_v1
-lbnl-fdd_gold_casoC_v1
-era5_gold_casoE_v1
+uci-occupancy_v1
+ingauge_school_hours_v1
+ingauge_non_school_hours_v1
+bdg2_v1
+lbnl-fdd_v1
+era5_v1
 ```
 
 
@@ -628,19 +593,13 @@ Para evitar trabajar directamente sobre `main`, se usan ramas temporales por fas
 
 ```text
 main
-ingest/[dataset]/[fecha]
-transform/silver/[dataset]/[fecha]
-transform/gold/[dataset]/[caso]/[fecha]
-experiment/[caso]/[dataset]/[fecha]
+transform/[new_version]
 ```
 
 Ejemplos:
 
 ```text
-ingest/uci-occupancy/20260510
-transform/silver/uci-occupancy/20260510
-transform/gold/uci-occupancy/casoD/20260510
-experiment/casoD/uci-occupancy/20260510
+transform/v4
 ```
 
 Cada rama se mergea a `main` cuando la validación correspondiente es correcta.
@@ -666,7 +625,7 @@ Comprobaciones mínimas:
 
 * Todos los puntos tienen `timestamp`.
 * Todos los puntos tienen los 5 tags CAPTIA.
-* Todas las variables existen en `schema_captia.json`.
+* Todas las variables existen en `captia_schema.json`.
 * El campo `value` es numérico.
 * Las unidades son coherentes.
 * No hay timestamps inválidos.
@@ -765,7 +724,7 @@ La firma de entrenamiento puede calcularse como:
 
 ```text
 training_signature = hash(
-  lakefs_gold_tag
+  lakefs_tag
   hyperparameters
   algorithm
   code_commit
@@ -850,12 +809,12 @@ infraestructura CAPTIA posterior.
 CAPA BRONZE
   Sistema: lakeFS
   Contenido: datasets originales sin modificar
-  Evidencia: commit + tag bronze
+  Evidencia: commit
 
 CAPA SILVER
   Sistema: lakeFS
   Contenido: datos normalizados al schema CAPTIA
-  Evidencia: commit + tag silver + quality report
+  Evidencia: commit + quality report
 
 CAPA GOLD
   Sistema: lakeFS
@@ -890,7 +849,7 @@ La decisión principal es representar las tres capas en lakeFS:
 donde:
 
 * **Bronze** conserva los datos originales.
-* **Silver** normaliza los datos según `schema_captia.json`.
+* **Silver** normaliza los datos según `captia_schema.json`.
 * **Gold** produce datasets de entrenamiento y evaluación.
 * **MLflow** registra los experimentos y modelos generados a partir de los tags Gold.
 * **JupyterHub** proporciona el entorno colaborativo de ejecución.
