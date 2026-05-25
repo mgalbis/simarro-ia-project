@@ -167,6 +167,7 @@
     }
   },
   "lakefs_conventions": {
+    "repo_name_pattern": "caso{case}--{dataset}",
     "tag_patterns": "{dataset}_v{version}",
     "branch_pattern": "transform/v{version}"
   },

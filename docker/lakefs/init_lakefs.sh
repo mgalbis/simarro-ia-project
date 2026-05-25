@@ -243,11 +243,14 @@ wait_admin_auth() {
 # 4) Parseo de casos y repos desde config/cases_config.json
 # -----------------------------------------------------------------------------
 extract_case_repo_pairs() {
-  # Salida: "CASE|repo-base" (únicos, normalizados).
+  # Salida: "CASE|repo-base" (únicos, normalizados), donde repo-base es la
+  # key del dataset en cases_config.json.datasets.
   jq -r '
-    .. | objects
-    | select(has("case") and has("lakefs_repo"))
-    | [.case, .lakefs_repo]
+    .datasets
+    | to_entries[]
+    | select(.value | type == "object")
+    | select(.value | has("case"))
+    | [.value.case, .key]
     | @tsv
   ' "$CASES_CONFIG_PATH" \
     | awk -F '\t' '
