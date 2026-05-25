@@ -80,5 +80,7 @@ done < "$ALL_USERS_FILE"
 
 rm -f "$CASE_USERS_FILE" "$ALL_USERS_FILE"
 
+# TODO: Arrancar pipeline server aqui
+
 echo "Arrancando JupyterHub..."
 exec jupyterhub -f /app/jupyterhub_config.py

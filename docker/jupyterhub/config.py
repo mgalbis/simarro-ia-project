@@ -25,6 +25,10 @@ c.Authenticator.delete_invalid_users = True
 # usuarios permitidos (dinámicos desde cases_config.json)
 CASES_CONFIG_PATH = os.environ.get("CASES_CONFIG_PATH", "/init/cases_config.json")
 ADMIN_USER = os.environ.get("JUPYTERHUB_ADMIN", "admin")
+ALLOWED_ORIGIN_PAT = os.environ.get(
+    "JUPYTERHUB_ALLOWED_ORIGIN_PAT",
+    r"^https://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
+)
 
 
 def _load_case_users(config_path: str):
@@ -56,6 +60,10 @@ c.Spawner.default_url = "/lab"
 c.Spawner.start_timeout = (
     60  # TODO: 60 es el valor por defecto, hay comprobar que sea suficiente
 )
+# Evita bloqueos de WebSocket por origen cruzado cuando JupyterHub va detrás de nginx
+# y el Host interno difiere del Origin público (p.ej. jupyterhub:8000
+# vs https://localhost).
+c.Spawner.args = [f"--ServerApp.allow_origin_pat={ALLOWED_ORIGIN_PAT}"]
 
 # configuracion de entorno para los notebooks (para todos los usuarios)
 c.Spawner.environment = {
