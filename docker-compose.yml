@@ -2,15 +2,16 @@ name: simarro-ia-project
 
 services:
 
-  aclserver-postgres:
+  aclserver-db:
     image: postgres:16-alpine
-    container_name: simarro-aclserver-postgres
+    container_name: simarro-aclserver-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: lakefs_acl
       POSTGRES_USER: lakefs_acl
       POSTGRES_PASSWORD: lakefs_acl
     volumes:
-      - aclserver-postgres-data:/var/lib/postgresql/data
+      - aclserver-db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U lakefs_acl -d lakefs_acl"]
       interval: 10s
@@ -24,13 +25,14 @@ services:
       context: .
       dockerfile: docker/aclserver/Dockerfile
     container_name: simarro-aclserver
+    restart: unless-stopped
     environment:
       ACLSERVER_LISTEN_ADDRESS: 0.0.0.0:8001
       ACLSERVER_DATABASE_TYPE: postgres
-      ACLSERVER_DATABASE_POSTGRES_CONNECTION_STRING: postgres://lakefs_acl:lakefs_acl@aclserver-postgres:5432/lakefs_acl?sslmode=disable
+      ACLSERVER_DATABASE_POSTGRES_CONNECTION_STRING: postgres://lakefs_acl:lakefs_acl@aclserver-db:5432/lakefs_acl?sslmode=disable
       ACLSERVER_ENCRYPT_SECRET_KEY: ${LAKEFS_SECRET_KEY}
     depends_on:
-      aclserver-postgres:
+      aclserver-db:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8001/_health"]
@@ -45,6 +47,7 @@ services:
       context: .
       dockerfile: docker/lakefs/Dockerfile
     container_name: simarro-lakefs
+    restart: unless-stopped
     user: root
     environment:
       LAKEFS_DATABASE_TYPE: local
@@ -77,6 +80,7 @@ services:
       context: .
       dockerfile: docker/mlflow/Dockerfile
     container_name: simarro-mlflow
+    restart: unless-stopped
     volumes:
       - mlflow-data:/mlflow
     depends_on:
@@ -103,6 +107,7 @@ services:
         JUPYTERHUB_IMAGE: ${JUPYTERHUB_IMAGE}
         PIP_TOOLS_VERSION: ${PIP_TOOLS_VERSION}
     container_name: simarro-jupyterhub
+    restart: unless-stopped
     volumes:
       - jupyterhub-data:/srv/jupyterhub
     environment:
@@ -118,8 +123,6 @@ services:
         condition: service_healthy
       lakefs:
         condition: service_healthy
-    profiles:
-      - prod
     healthcheck:
       test: [
         "CMD",
@@ -135,6 +138,7 @@ services:
   nginx:
     image: nginx:1.27-alpine
     container_name: simarro-nginx
+    restart: unless-stopped
     ports:
       - "80:80"
     volumes:
@@ -147,11 +151,9 @@ services:
         condition: service_healthy
       jupyterhub:
         condition: service_healthy
-    profiles:
-      - prod
 
 volumes:
   mlflow-data:
   lakefs-data:
   jupyterhub-data:
-  aclserver-postgres-data:
+  aclserver-db-data:
