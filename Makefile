@@ -31,13 +31,13 @@ requeriments:
 	docker run --rm -v "$(CURDIR)/docker/$(SERVICE_NAME):/work" -w /work $(JUPYTERHUB_IMAGE) sh -c "pip install --no-cache-dir pip-tools==$(PIP_TOOLS_VERSION) && pip-compile requirements.in"
 
 build:
-    docker compose build
+	docker compose build
 
 start:
-    docker compose up --wait
+	docker compose up --wait
 
 stop:
-    docker compose down
+	docker compose down
 
 destroy:
-    docker compose down --volumes
+	docker compose down --volumes
