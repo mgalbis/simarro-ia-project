@@ -30,3 +30,4 @@ mlruns/
 .idea/
 .DS_Store
 Thumbs.db
+.test_outputs/
