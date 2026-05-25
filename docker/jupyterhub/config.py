@@ -27,7 +27,14 @@ CASES_CONFIG_PATH = os.environ.get("CASES_CONFIG_PATH", "/init/cases_config.json
 ADMIN_USER = os.environ.get("JUPYTERHUB_ADMIN", "admin")
 ALLOWED_ORIGIN_PAT = os.environ.get(
     "JUPYTERHUB_ALLOWED_ORIGIN_PAT",
-    r"^https://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
+    (
+        r"^https?://("
+        r"localhost|127\.0\.0\.1|"
+        r"10(?:\.\d{1,3}){3}|"
+        r"172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2}|"
+        r"192\.168(?:\.\d{1,3}){2}"
+        r")(?::[0-9]+)?$"
+    ),
 )
 
 
