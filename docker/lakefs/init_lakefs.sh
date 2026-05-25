@@ -22,7 +22,7 @@ set -eu
 # -----------------------------------------------------------------------------
 CASES_CONFIG_PATH="${CASES_CONFIG_PATH:-/init/cases_config.json}"
 HOOK_FILE_PATH="${HOOK_FILE_PATH:-/init/hook-retrain.yml}"
-HOOK_TARGET_PATH="${HOOK_TARGET_PATH:-_lakefs_actions/hook-retrain.yml}"
+HOOK_TARGET_PATH="_lakefs_actions/hook-retrain.yml"
 
 LAKEFS_ENDPOINT="${LAKEFS_ENDPOINT:-http://127.0.0.1:8000}"
 LAKEFS_AUTHZ_ENDPOINT="${LAKEFS_AUTH_API_ENDPOINT:-$LAKEFS_ENDPOINT/api/v1}"
@@ -30,15 +30,9 @@ LAKEFS_AUTHZ_ENDPOINT="${LAKEFS_AUTH_API_ENDPOINT:-$LAKEFS_ENDPOINT/api/v1}"
 LAKEFS_INSTALLATION_USER_NAME="${LAKEFS_INSTALLATION_USER_NAME:-admin}"
 LAKEFS_INSTALLATION_ACCESS_KEY_ID="${LAKEFS_INSTALLATION_ACCESS_KEY_ID:-${LAKEFS_ACCESS_KEY_ID:-}}"
 LAKEFS_INSTALLATION_SECRET_ACCESS_KEY="${LAKEFS_INSTALLATION_SECRET_ACCESS_KEY:-${LAKEFS_SECRET_ACCESS_KEY:-}}"
-LAKEFS_BOOTSTRAP_CREDS_FILE="${LAKEFS_BOOTSTRAP_CREDS_FILE:-/data/.lakefs_bootstrap_credentials}"
 
-LAKEFS_SETUP_COMM_PREFS_SKIP="${LAKEFS_SETUP_COMM_PREFS_SKIP:-false}"
 LAKEFS_SETUP_COMM_PREFS_EMAIL="${LAKEFS_SETUP_COMM_PREFS_EMAIL:-}"
-LAKEFS_SETUP_COMM_PREFS_FEATURE_UPDATES="${LAKEFS_SETUP_COMM_PREFS_FEATURE_UPDATES:-false}"
-LAKEFS_SETUP_COMM_PREFS_SECURITY_UPDATES="${LAKEFS_SETUP_COMM_PREFS_SECURITY_UPDATES:-false}"
 
-LAKEFS_CASE_USERS_ENABLE="${LAKEFS_CASE_USERS_ENABLE:-true}"
-LAKEFS_CASE_USERS_STRICT="${LAKEFS_CASE_USERS_STRICT:-false}"
 LAKEFS_CASE_USERS_SECRET_KEY="${LAKEFS_CASE_USERS_SECRET_KEY:-${DEFAULT_USER_PASSWORD:-}}"
 
 # Credenciales admin usadas por lakectl/curl en este script.
@@ -57,15 +51,6 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || { echo "Comando requerido no disponible: $1" >&2; exit 1; }
 }
 
-warn_or_fail() {
-  msg="$1"
-  if [ "$LAKEFS_CASE_USERS_STRICT" = "true" ]; then
-    echo "$msg" >&2
-    exit 1
-  fi
-  echo "[WARN] $msg"
-}
-
 already_exists() {
   file_path="$1"
   grep -Eqi "already exists|not unique|409 conflict" "$file_path"
@@ -78,14 +63,14 @@ normalize_name() {
       | tr '[:upper:]' '[:lower:]' \
       | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g'
   )"
-  [ -n "$norm" ] || norm="repo"
+  [ -n "$norm" ] || { echo "Nombre inválido tras normalizar: '$value'" >&2; exit 1; }
   printf '%s' "$norm"
 }
 
 repo_prefix_for_user() {
   user_id="$1"
   prefix="$(normalize_name "$user_id" | cut -c1-30)"
-  [ -n "$prefix" ] || prefix="user"
+  [ -n "$prefix" ] || { echo "Prefijo de usuario inválido: '$user_id'" >&2; exit 1; }
   printf '%s' "$prefix"
 }
 
@@ -98,7 +83,7 @@ owned_repo_name() {
 
   # lakeFS: nombre repo max 63 chars -> "<prefix>--<base>"
   max_base_len=$((63 - ${#prefix} - 2))
-  [ "$max_base_len" -ge 1 ] || max_base_len=1
+  [ "$max_base_len" -ge 1 ] || { echo "Prefijo demasiado largo para nombre de repo: '$prefix'" >&2; exit 1; }
   base="$(printf '%s' "$base" | cut -c1-"$max_base_len")"
 
   printf '%s--%s' "$prefix" "$base"
@@ -108,31 +93,10 @@ api_get_auth() {
   curl -fsS -u "${LAKECTL_CREDENTIALS_ACCESS_KEY_ID}:${LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY}" "$1"
 }
 
-api_delete_auth() {
-  curl -fsS -X DELETE -u "${LAKECTL_CREDENTIALS_ACCESS_KEY_ID}:${LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY}" "$1" >/dev/null
-}
-
 api_current_user_id() {
-  api_get_auth "$LAKEFS_ENDPOINT/api/v1/user" | jq -r '.user.id // empty'
-}
-
-save_admin_credentials() {
-  [ -n "${LAKECTL_CREDENTIALS_ACCESS_KEY_ID:-}" ] || return 0
-  [ -n "${LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY:-}" ] || return 0
-  cat > "$LAKEFS_BOOTSTRAP_CREDS_FILE" <<EOF
-LAKECTL_CREDENTIALS_ACCESS_KEY_ID=${LAKECTL_CREDENTIALS_ACCESS_KEY_ID}
-LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY=${LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY}
-EOF
-  chmod 600 "$LAKEFS_BOOTSTRAP_CREDS_FILE" 2>/dev/null || true
-}
-
-load_admin_credentials() {
-  [ -f "$LAKEFS_BOOTSTRAP_CREDS_FILE" ] || return 1
-  # shellcheck disable=SC1090
-  . "$LAKEFS_BOOTSTRAP_CREDS_FILE"
-  export LAKECTL_CREDENTIALS_ACCESS_KEY_ID
-  export LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY
-  return 0
+  user_id="$(api_get_auth "$LAKEFS_ENDPOINT/api/v1/user" | jq -er '.user.id')"
+  [ -n "$user_id" ] || { echo "No se pudo resolver user.id desde /api/v1/user" >&2; exit 1; }
+  printf '%s' "$user_id"
 }
 
 # -----------------------------------------------------------------------------
@@ -149,59 +113,34 @@ wait_lakefs_http() {
 }
 
 setup_state_json() {
-  curl -fsS "$LAKEFS_ENDPOINT/api/v1/setup_lakefs" 2>/dev/null || true
+  curl -fsS "$LAKEFS_ENDPOINT/api/v1/setup_lakefs"
 }
 
 setup_is_initialized() {
   state_json="$1"
   [ -n "$state_json" ] || return 1
-  state="$(echo "$state_json" | jq -r '.state // empty' 2>/dev/null || true)"
+  state="$(printf '%s' "$state_json" | jq -er '.state' 2>/dev/null)" || return 1
   [ "$state" = "initialized" ]
 }
 
 ensure_lakefs_setup() {
-  # Si ya está inicializado, reutilizamos credenciales guardadas (si existen).
+  # Si ya está inicializado, no hacemos nada (credenciales vienen por entorno).
   current="$(setup_state_json)"
   if setup_is_initialized "$current"; then
     echo "[OK] setup_lakefs ya estaba completado."
-    load_admin_credentials || true
     return 0
   fi
 
   [ -n "$LAKEFS_INSTALLATION_USER_NAME" ] || { echo "Falta LAKEFS_INSTALLATION_USER_NAME." >&2; exit 1; }
+  [ -n "$LAKEFS_INSTALLATION_ACCESS_KEY_ID" ] || { echo "Falta LAKEFS_INSTALLATION_ACCESS_KEY_ID." >&2; exit 1; }
+  [ -n "$LAKEFS_INSTALLATION_SECRET_ACCESS_KEY" ] || { echo "Falta LAKEFS_INSTALLATION_SECRET_ACCESS_KEY." >&2; exit 1; }
 
-  # Primer intento: usar credenciales predefinidas (si vienen por env).
-  # Segundo intento: dejar que lakeFS genere credenciales.
-  setup_response="$(mktemp)"
-  setup_ok=false
-
-  if [ -n "$LAKEFS_INSTALLATION_ACCESS_KEY_ID" ] && [ -n "$LAKEFS_INSTALLATION_SECRET_ACCESS_KEY" ]; then
-    body="{\"username\":\"$LAKEFS_INSTALLATION_USER_NAME\",\"key\":{\"access_key_id\":\"$LAKEFS_INSTALLATION_ACCESS_KEY_ID\",\"secret_access_key\":\"$LAKEFS_INSTALLATION_SECRET_ACCESS_KEY\"}}"
-    if curl -fsS -X POST -H "Content-Type: application/json" -H "Accept: application/json" -d "$body" "$LAKEFS_ENDPOINT/api/v1/setup_lakefs" >"$setup_response" 2>/dev/null; then
-      setup_ok=true
-    fi
+  body="{\"username\":\"$LAKEFS_INSTALLATION_USER_NAME\",\"key\":{\"access_key_id\":\"$LAKEFS_INSTALLATION_ACCESS_KEY_ID\",\"secret_access_key\":\"$LAKEFS_INSTALLATION_SECRET_ACCESS_KEY\"}}"
+  if ! curl -fsS -X POST -H "Content-Type: application/json" -H "Accept: application/json" -d "$body" "$LAKEFS_ENDPOINT/api/v1/setup_lakefs" >/dev/null 2>&1; then
+    # Puede fallar por carrera si otro proceso hizo setup en paralelo.
+    current="$(setup_state_json)"
+    setup_is_initialized "$current" || { echo "No se pudo completar setup_lakefs automaticamente." >&2; exit 1; }
   fi
-
-  if [ "$setup_ok" = "false" ]; then
-    body="{\"username\":\"$LAKEFS_INSTALLATION_USER_NAME\"}"
-    if curl -fsS -X POST -H "Content-Type: application/json" -H "Accept: application/json" -d "$body" "$LAKEFS_ENDPOINT/api/v1/setup_lakefs" >"$setup_response" 2>/dev/null; then
-      setup_ok=true
-      echo "[WARN] setup_lakefs con credenciales predefinidas no aplicado; se usaron credenciales generadas."
-    fi
-  fi
-
-  if [ "$setup_ok" = "true" ]; then
-    # Si lakeFS devolvió credenciales, las persistimos para próximos reinicios.
-    setup_access_key="$(jq -r '.access_key_id // .key.access_key_id // empty' "$setup_response" 2>/dev/null || true)"
-    setup_secret_key="$(jq -r '.secret_access_key // .key.secret_access_key // empty' "$setup_response" 2>/dev/null || true)"
-    if [ -n "$setup_access_key" ] && [ -n "$setup_secret_key" ]; then
-      export LAKECTL_CREDENTIALS_ACCESS_KEY_ID="$setup_access_key"
-      export LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY="$setup_secret_key"
-      save_admin_credentials
-      echo "[OK] Credenciales admin recibidas desde setup_lakefs."
-    fi
-  fi
-  rm -f "$setup_response"
 
   # Validación final del estado.
   final_state="$(setup_state_json)"
@@ -210,18 +149,18 @@ ensure_lakefs_setup() {
 }
 
 ensure_comm_prefs() {
-  [ "$LAKEFS_SETUP_COMM_PREFS_SKIP" = "true" ] && { echo "[INFO] Se omite setup_comm_prefs por configuracion."; return 0; }
   [ -n "$LAKEFS_SETUP_COMM_PREFS_EMAIL" ] || { echo "[WARN] LAKEFS_SETUP_COMM_PREFS_EMAIL vacio; se omite comm_prefs."; return 0; }
 
   state="$(setup_state_json)"
-  [ -n "$state" ] || { echo "[WARN] No se pudo consultar setup_lakefs."; return 0; }
+  [ -n "$state" ] || { echo "No se pudo consultar setup_lakefs." >&2; exit 1; }
   echo "$state" | grep -q '"comm_prefs_missing"[[:space:]]*:[[:space:]]*true' || { echo "[OK] setup_comm_prefs ya estaba completado."; return 0; }
 
-  body="{\"email\":\"$LAKEFS_SETUP_COMM_PREFS_EMAIL\",\"featureUpdates\":$LAKEFS_SETUP_COMM_PREFS_FEATURE_UPDATES,\"securityUpdates\":$LAKEFS_SETUP_COMM_PREFS_SECURITY_UPDATES}"
+  body="{\"email\":\"$LAKEFS_SETUP_COMM_PREFS_EMAIL\",\"featureUpdates\":false,\"securityUpdates\":false}"
   if curl -fsS -X POST -H "Content-Type: application/json" -H "Accept: application/json" -d "$body" "$LAKEFS_ENDPOINT/api/v1/setup_comm_prefs" >/dev/null 2>&1; then
     echo "[OK] setup_comm_prefs completado."
   else
-    echo "[WARN] No se pudo completar setup_comm_prefs con $LAKEFS_SETUP_COMM_PREFS_EMAIL."
+    echo "No se pudo completar setup_comm_prefs con $LAKEFS_SETUP_COMM_PREFS_EMAIL." >&2
+    exit 1
   fi
 }
 
@@ -230,9 +169,6 @@ wait_admin_auth() {
   tries=0
   until lakectl --no-color repo list --amount 1 >/dev/null 2>&1; do
     tries=$((tries + 1))
-    if [ "$tries" -eq 30 ]; then
-      load_admin_credentials && echo "[INFO] Reintentando con credenciales guardadas."
-    fi
     [ "$tries" -lt 60 ] || return 1
     sleep 2
   done
@@ -245,19 +181,42 @@ wait_admin_auth() {
 extract_case_repo_pairs() {
   # Salida: "CASE|repo-base" (únicos, normalizados), donde repo-base es la
   # key del dataset en cases_config.json.datasets.
-  jq -r '
-    .datasets
-    | to_entries[]
-    | select(.value | type == "object")
-    | select(.value | has("case"))
-    | [.value.case, .key]
-    | @tsv
-  ' "$CASES_CONFIG_PATH" \
+  raw_pairs="$(
+    jq -er '
+      .datasets as $datasets
+      | if ($datasets | type) != "object" then
+          error("cases_config.json: datasets debe ser un objeto")
+        else
+          $datasets
+        end
+      | to_entries[]
+      | if (.value | type) != "object" then
+          error("cases_config.json: dataset " + .key + " debe ser un objeto")
+        else
+          .
+        end
+      | if (.value | has("case")) then . else
+          error("cases_config.json: dataset " + .key + " no define case")
+        end
+      | [.value.case, .key]
+      | @tsv
+    ' "$CASES_CONFIG_PATH"
+  )"
+
+  printf '%s\n' "$raw_pairs" \
     | awk -F '\t' '
-        NF == 2 {
+        NF != 2 {
+          print "Formato inválido de par case/dataset: " $0 > "/dev/stderr"
+          exit 1
+        }
+        {
           c = toupper($1); gsub(/^[[:space:]]+|[[:space:]]+$/, "", c)
           r = tolower($2); gsub(/^[[:space:]]+|[[:space:]]+$/, "", r); gsub(/_/, "-", r)
-          if (c != "" && r != "") print c "|" r
+          if (c == "" || r == "") {
+            print "Par case/dataset vacío tras normalizar: " $0 > "/dev/stderr"
+            exit 1
+          }
+          print c "|" r
         }
       ' \
     | sort -u
@@ -294,6 +253,12 @@ ensure_repo() {
   cat "$out" >&2
   rm -f "$out"
   return 1
+}
+
+repo_exists() {
+  repo="$1"
+  lakectl --no-color repo list --prefix "$repo" --amount 100 \
+    | awk -v target="$repo" 'NR > 2 && $1 == target { found = 1 } END { exit(found ? 0 : 1) }'
 }
 
 ensure_main_branch() {
@@ -343,26 +308,6 @@ create_user_credential() {
   enc_secret="$(printf '%s' "$secret_key" | jq -sRr @uri)"
   url="$LAKEFS_AUTHZ_ENDPOINT/auth/users/$user_id/credentials?access_key=$enc_key&secret_key=$enc_secret"
   curl -fsS -X POST -u "${LAKECTL_CREDENTIALS_ACCESS_KEY_ID}:${LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY}" "$url" >/dev/null
-}
-
-list_user_access_keys() {
-  user_id="$1"
-  api_get_auth "$LAKEFS_AUTHZ_ENDPOINT/auth/users/$user_id/credentials" | jq -r '.results[]?.access_key_id'
-}
-
-reset_user_credentials() {
-  user_id="$1"
-  desired_access_key_id="$2"
-  desired_secret_key="$3"
-
-  keys="$(list_user_access_keys "$user_id" || true)"
-  if [ -n "$keys" ]; then
-    for key in $keys; do
-      [ -n "$key" ] && api_delete_auth "$LAKEFS_AUTHZ_ENDPOINT/auth/users/$user_id/credentials/$key" || true
-    done
-  fi
-
-  create_user_credential "$user_id" "$desired_access_key_id" "$desired_secret_key"
 }
 
 build_case_policy_document() {
@@ -473,18 +418,22 @@ bootstrap_case_repos_as_user() {
   export LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY="$LAKEFS_CASE_USERS_SECRET_KEY"
 
   # Verificación explícita: evitar crear repos con otra identidad por error.
-  current_user="$(api_current_user_id 2>/dev/null || true)"
+  current_user="$(api_current_user_id)"
   if [ "$current_user" != "$user_id" ]; then
     export LAKECTL_CREDENTIALS_ACCESS_KEY_ID="$admin_key"
     export LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY="$admin_secret"
-    echo "Credenciales inesperadas al bootstrap. Esperado=$user_id, recibido=${current_user:-<vacio>}" >&2
+    echo "Credenciales inesperadas al bootstrap. Esperado=$user_id, recibido=$current_user" >&2
     return 1
   fi
   echo "[OK] Autenticado como $current_user para crear repos del caso."
 
   while IFS= read -r repo_base; do
-    [ -n "$repo_base" ] || continue
+    [ -n "$repo_base" ] || { echo "Repo base vacío para usuario $user_id" >&2; return 1; }
     repo="$(owned_repo_name "$user_id" "$repo_base")"
+    if repo_exists "$repo"; then
+      echo "[OK] Repositorio ya existe: $repo (no se actualiza)"
+      continue
+    fi
     echo "Procesando repo como $user_id: $repo (base: $repo_base)"
     ensure_repo "$repo" || { export LAKECTL_CREDENTIALS_ACCESS_KEY_ID="$admin_key"; export LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY="$admin_secret"; return 1; }
     ensure_main_branch "$repo" || { export LAKECTL_CREDENTIALS_ACCESS_KEY_ID="$admin_key"; export LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY="$admin_secret"; return 1; }
@@ -498,58 +447,62 @@ bootstrap_case_repos_as_user() {
 
 ensure_case_users_and_repos() {
   pairs="$1"
-  [ "$LAKEFS_CASE_USERS_ENABLE" = "true" ] || { echo "[INFO] Bootstrap de usuarios por caso desactivado."; return 0; }
 
   cases="$(printf '%s\n' "$pairs" | cut -d '|' -f 1 | sort -u)"
   for case_id in $cases; do
-    [ -n "$case_id" ] || continue
+    [ -n "$case_id" ] || { echo "Case ID vacío en pares case/dataset" >&2; exit 1; }
     user_id="caso$case_id"
 
     repos_file="$(mktemp)"
     printf '%s\n' "$pairs" | awk -F '|' -v c="$case_id" '$1 == c {print $2}' | sort -u > "$repos_file"
     if [ ! -s "$repos_file" ]; then
       rm -f "$repos_file"
-      continue
+      echo "No se encontraron repos para case $case_id" >&2
+      exit 1
     fi
 
     # 1) Crear usuario (o reutilizar si ya existe).
+    user_created="false"
     out="$(mktemp)"
     if lakectl --no-color auth users create --id "$user_id" >"$out" 2>&1; then
       echo "[OK] Usuario creado: $user_id"
+      user_created="true"
     elif already_exists "$out"; then
-      echo "[OK] Usuario ya existe: $user_id"
+      echo "[OK] Usuario ya existe: $user_id (no se actualiza)"
     else
       cat "$out" >&2
       rm -f "$out" "$repos_file"
-      warn_or_fail "No se pudo crear usuario $user_id."
-      continue
+      echo "No se pudo crear usuario $user_id." >&2
+      exit 1
     fi
     rm -f "$out"
 
-    # 2) Fijar credenciales del caso: access_key=user_id, secret=DEFAULT_USER_PASSWORD.
-    out="$(mktemp)"
-    if reset_user_credentials "$user_id" "$user_id" "$LAKEFS_CASE_USERS_SECRET_KEY" >"$out" 2>&1; then
-      echo "[OK] Credenciales actualizadas para $user_id"
-    else
-      cat "$out" >&2
-      rm -f "$out" "$repos_file"
-      warn_or_fail "No se pudo fijar credenciales para $user_id."
-      continue
-    fi
-    rm -f "$out"
+    if [ "$user_created" = "true" ]; then
+      # 2) Fijar credenciales del caso solo en alta inicial.
+      out="$(mktemp)"
+      if create_user_credential "$user_id" "$user_id" "$LAKEFS_CASE_USERS_SECRET_KEY" >"$out" 2>&1; then
+        echo "[OK] Credencial creada para $user_id"
+      else
+        cat "$out" >&2
+        rm -f "$out" "$repos_file"
+        echo "No se pudo fijar credenciales para $user_id." >&2
+        exit 1
+      fi
+      rm -f "$out"
 
-    # 3) Aplicar permisos del caso (lectura global + escritura en prefijo propio).
-    if ! ensure_case_permissions "$case_id" "$user_id"; then
-      rm -f "$repos_file"
-      warn_or_fail "No se pudieron aplicar permisos para $user_id."
-      continue
+      # 3) Aplicar permisos del caso solo en alta inicial.
+      if ! ensure_case_permissions "$case_id" "$user_id"; then
+        rm -f "$repos_file"
+        echo "No se pudieron aplicar permisos para $user_id." >&2
+        exit 1
+      fi
     fi
 
-    # 4) Crear/asegurar repos del caso con credenciales del propio usuario.
+    # 4) Crear solo los repos faltantes con credenciales del propio usuario.
     if ! bootstrap_case_repos_as_user "$user_id" "$repos_file"; then
       rm -f "$repos_file"
-      warn_or_fail "No se pudieron crear/configurar repos de $user_id con sus credenciales."
-      continue
+      echo "No se pudieron crear/configurar repos de $user_id con sus credenciales." >&2
+      exit 1
     fi
 
     repos_log="$(tr '\n' ' ' < "$repos_file")"
@@ -570,22 +523,21 @@ require_cmd lakectl
 
 [ -n "${LAKECTL_CREDENTIALS_ACCESS_KEY_ID}" ] || { echo "Faltan credenciales admin (access key)." >&2; exit 1; }
 [ -n "${LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY}" ] || { echo "Faltan credenciales admin (secret key)." >&2; exit 1; }
-[ "$LAKEFS_CASE_USERS_ENABLE" = "false" ] || [ -n "$LAKEFS_CASE_USERS_SECRET_KEY" ] || { echo "Falta contraseña de usuarios de caso. Configura DEFAULT_USER_PASSWORD (o LAKEFS_CASE_USERS_SECRET_KEY)." >&2; exit 1; }
+[ -n "$LAKEFS_CASE_USERS_SECRET_KEY" ] || { echo "Falta contraseña de usuarios de caso. Configura DEFAULT_USER_PASSWORD (o LAKEFS_CASE_USERS_SECRET_KEY)." >&2; exit 1; }
 
 # Arranque/setup base de lakeFS.
 wait_lakefs_http
 ensure_lakefs_setup
 ensure_comm_prefs
 
-# Si no hay auth admin, dejamos el servicio vivo pero omitimos bootstrap.
 if ! wait_admin_auth; then
-  warn_or_fail "No se pudo autenticar con credenciales admin. Se omite bootstrap de repos/usuarios."
-  exit 0
+  echo "No se pudo autenticar con credenciales admin." >&2
+  exit 1
 fi
 
 # Parseo de casos/repos.
 pairs="$(extract_case_repo_pairs)"
-[ -n "$pairs" ] || { echo "No se han encontrado pares case/lakefs_repo en $CASES_CONFIG_PATH" >&2; exit 1; }
+[ -n "$pairs" ] || { echo "No se han encontrado pares case/dataset-key en $CASES_CONFIG_PATH" >&2; exit 1; }
 repos="$(printf '%s\n' "$pairs" | cut -d '|' -f 2 | sort -u)"
 [ -n "$repos" ] || { echo "No se han encontrado repositorios en $CASES_CONFIG_PATH" >&2; exit 1; }
 echo "Repos base detectados: $(echo "$repos" | tr '\n' ' ')"
