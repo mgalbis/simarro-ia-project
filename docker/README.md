@@ -14,7 +14,7 @@ Flujo principal:
 3. `lakefs` arranca y ejecuta `init_lakefs.sh` para bootstrap inicial.
 4. `mlflow` arranca servidor y ejecuta `init_mlflow.py` para bootstrap inicial.
 5. `jupyterhub` crea usuarios locales y arranca el hub.
-6. `nginx` publica todo por `http://localhost/` y enruta por prefijos.
+6. `nginx` publica todo por `https://localhost/` y enruta por prefijos.
 
 ## Servicios (qué hace cada uno y por qué)
 
@@ -61,6 +61,8 @@ Flujo principal:
   - `/lakefs/` -> lakeFS
   - `/` -> landing + fallback hacia UI/API de lakeFS según configuración.
 - **Config:** `docker/nginx/nginx.conf`, `docker/nginx/index.html`.
+- **TLS:** requiere `docker/nginx/certs/tls.crt` y `docker/nginx/certs/tls.key`.
+  Para desarrollo local puedes generarlos con `make tls-cert` o `make.bat tls-cert`.
 
 ## Ficheros de inicialización relevantes
 
