@@ -1,9 +1,9 @@
-# Justificación conjunta de `schema_captia.json` y `cases_config.json`
+# Justificación conjunta de `captia_schema.json` y `cases_config.json`
 
 El proyecto separa la información en dos ficheros porque hay dos niveles distintos de configuración:
 
 ```text
-schema_captia.json
+captia_schema.json
   Define el contrato común de la capa Silver.
 
 cases_config.json
@@ -15,11 +15,11 @@ métricas.
 
 
 
-## `schema_captia.json`
+## `captia_schema.json`
 
 ### Propósito
 
-`schema_captia.json` define el contrato estructural común de la capa Silver compatible con CAPTIA.
+`captia_schema.json` define el contrato estructural común de la capa Silver compatible con CAPTIA.
 
 El fichero contiene únicamente información común a todos los casos de uso. Su objetivo es fijar la forma que debe tener
 cualquier observación normalizada, sin depender del dataset original, del caso de uso, del modelo entrenado ni del
@@ -77,10 +77,10 @@ común a todos los casos de uso porque forma parte del contrato de datos normali
 
 `cases_config.json` define la configuración operativa del proyecto por caso de uso y por dataset.
 
-Su función es conectar el contrato común definido en `schema_captia.json` con los datasets reales usados en el proyecto,
+Su función es conectar el contrato común definido en `captia_schema.json` con los datasets reales usados en el proyecto,
 indicando cómo debe procesarse cada fuente de datos para producir capas Bronze, Silver y Gold trazables.
 
-Mientras `schema_captia.json` describe la estructura común que debe cumplir cualquier dato normalizado en la capa
+Mientras `captia_schema.json` describe la estructura común que debe cumplir cualquier dato normalizado en la capa
 Silver, `cases_config.json` describe cómo se aplica ese contrato a cada caso de uso concreto.
 
 
@@ -114,7 +114,7 @@ Ejemplo:
 }
 ```
 
-Esta información no está en `schema_captia.json` porque no describe la estructura común del punto Silver, sino el
+Esta información no está en `captia_schema.json` porque no describe la estructura común del punto Silver, sino el
 vocabulario semántico usado por el proyecto.
 
 Debe estar aquí porque los datasets concretos necesitan mapear sus columnas originales a estas variables.
@@ -152,7 +152,7 @@ weather.csv
 
 #### `silver`
 
-Contiene los datos normalizados conforme a `schema_captia.json`.
+Contiene los datos normalizados conforme a `captia_schema.json`.
 
 En este proyecto, la capa Silver puede materializarse como fichero Parquet o CSV en lakeFS, simulando la estructura que
 tendría en InfluxDB.
@@ -179,7 +179,7 @@ Ejemplos:
 ```text
 lineage.json
 quality_report.json
-schema_captia.json
+captia_schema.json
 cases_config.json
 ```
 
@@ -288,7 +288,7 @@ Ejemplo:
 }
 ```
 
-Estos valores son necesarios para generar Silver, porque `schema_captia.json` exige los cinco tags CAPTIA:
+Estos valores son necesarios para generar Silver, porque `captia_schema.json` exige los cinco tags CAPTIA:
 
 ```text
 captia_env
@@ -371,7 +371,7 @@ Ejemplo para UCI Occupancy:
 }
 ```
 
-Esta sección no pertenece a `schema_captia.json` porque cada dataset usa nombres de columnas distintos.
+Esta sección no pertenece a `captia_schema.json` porque cada dataset usa nombres de columnas distintos.
 
 El mapping permite transformar datasets heterogéneos a una representación común:
 
@@ -431,7 +431,7 @@ No debe contener:
 - tipos estructurales de la capa Silver;
 - reglas estructurales generales de validación.
 
-Esa información pertenece a `schema_captia.json`.
+Esa información pertenece a `captia_schema.json`.
 
 ---
 
@@ -455,7 +455,7 @@ qué trazabilidad debe registrarse
 El fichero actúa como puente entre:
 
 ```text
-schema_captia.json
+captia_schema.json
   contrato común Silver
 
 notebooks/scripts
@@ -472,11 +472,11 @@ lakeFS/MLflow
 La frontera correcta es:
 
 ```text
-schema_captia.json
+captia_schema.json
   Qué forma tiene un dato Silver.
 
 cases_config.json
   Cómo se genera ese dato Silver desde cada dataset y cómo se usa en cada caso.
 ```
 
-Por eso `schema_captia.json` es estable y común, mientras que `cases_config.json` puede crecer o cambiar a medida que se añadan datasets, casos, modelos, métricas o repositorios.
+Por eso `captia_schema.json` es estable y común, mientras que `cases_config.json` puede crecer o cambiar a medida que se añadan datasets, casos, modelos, métricas o repositorios.

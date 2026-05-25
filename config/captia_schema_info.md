@@ -1,8 +1,8 @@
-# Contenido de `schema_captia.json`
+# Contenido de `captia_schema.json`
 
 ## Propósito
 
-`schema_captia.json` define el contrato estructural común de la capa Silver compatible con CAPTIA.
+`captia_schema.json` define el contrato estructural común de la capa Silver compatible con CAPTIA.
 
 El fichero contiene únicamente información común a todos los casos de uso. Su objetivo es fijar la forma que debe tener
 cualquier observación normalizada, sin depender del dataset original, del caso de uso, del modelo entrenado ni del
