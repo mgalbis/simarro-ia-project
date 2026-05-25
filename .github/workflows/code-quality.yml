@@ -44,8 +44,8 @@ jobs:
 
       - name: Run unit tests with coverage
         run: |
-          python -m pytest "test/mlops/" \
-            --cov=src/simarro/mlops \
+          python -m pytest "test/unit" \
+            --cov=src \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-report=html \
@@ -112,7 +112,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          python -m pytest test/integration/mlops -m integration
+          python -m pytest test/integration -m integration
 
       - name: Stop Docker stack
         if: always()
