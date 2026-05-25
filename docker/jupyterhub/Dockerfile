@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt \
 COPY config/ /app/config
 COPY docker/jupyterhub/config.py /app/jupyterhub_config.py
 COPY docker/jupyterhub/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 8080
 
