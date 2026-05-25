@@ -6,7 +6,7 @@ set -eu
 # -----------------------------------------------------------------------------
 # Objetivo:
 #   1) Esperar a que lakeFS arranque y completar setup inicial (si falta).
-#   2) Crear usuarios "casoX" con credenciales fijas si no existen.
+#   2) Crear usuarios "casox" con credenciales fijas si no existen.
 #   3) Aplicar permisos:
 #      - Lectura global (pueden ver todos los repos).
 #      - Escritura solo en repos con prefijo propio: "<user>--*".
@@ -179,7 +179,7 @@ wait_admin_auth() {
 # 4) Parseo de casos y repos desde config/cases_config.json
 # -----------------------------------------------------------------------------
 extract_case_repo_pairs() {
-  # Salida: "CASE|repo-base" (únicos, normalizados), donde repo-base es la
+  # Salida: "case|repo-base" (únicos, normalizados), donde repo-base es la
   # key del dataset en cases_config.json.datasets.
   raw_pairs="$(
     jq -er '
@@ -210,7 +210,7 @@ extract_case_repo_pairs() {
           exit 1
         }
         {
-          c = toupper($1); gsub(/^[[:space:]]+|[[:space:]]+$/, "", c)
+          c = tolower($1); gsub(/^[[:space:]]+|[[:space:]]+$/, "", c)
           r = tolower($2); gsub(/^[[:space:]]+|[[:space:]]+$/, "", r); gsub(/_/, "-", r)
           if (c == "" || r == "") {
             print "Par case/dataset vacío tras normalizar: " $0 > "/dev/stderr"

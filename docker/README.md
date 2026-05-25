@@ -25,7 +25,7 @@ Flujo principal:
 
 ### `aclserver`
 - **Qué hace:** servicio ACL de lakeFS (`/api/v1`) para usuarios, grupos y políticas.
-- **Por qué existe:** permite gestión de permisos por caso (`casoX`) y control fino de acceso.
+- **Por qué existe:** permite gestión de permisos por caso (`casox`) y control fino de acceso.
 - **Build:** `docker/aclserver/Dockerfile` compila el binario `acl` desde el repo de lakeFS.
 
 ### `lakefs`
@@ -48,7 +48,7 @@ Flujo principal:
 ### `jupyterhub`
 - **Qué hace:** portal multiusuario de notebooks/JupyterLab.
 - **Por qué existe:** entorno operativo para desarrollo y ejecución de notebooks MLOps.
-- **Bootstrap:** `docker/jupyterhub/entrypoint.sh` crea usuarios locales (`admin`, `casoX`)
+- **Bootstrap:** `docker/jupyterhub/entrypoint.sh` crea usuarios locales (`admin`, `casox`)
   y arranca JupyterHub con `docker/jupyterhub/config.py`.
 - **Integración:** inyecta `MLFLOW_TRACKING_URI` y credenciales/endpoint de lakeFS en el entorno.
 - **Persistencia:** volumen `jupyterhub-data`.

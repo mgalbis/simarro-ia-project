@@ -30,7 +30,7 @@ if [ -z "$PYTHON_BIN" ] || [ ! -f "$CASES_CONFIG_PATH" ]; then
     [ -f "$CASES_CONFIG_PATH" ] || echo "[WARN] No existe $CASES_CONFIG_PATH. Solo se creará el usuario admin."
     CASE_USERS_FILE="$(mktemp)"
 else
-    # Extraemos "casoX" a partir de las claves de "cases" en el JSON.
+    # Extraemos "casox" a partir de las claves de "cases" en el JSON.
     # Si hay error de parseo, no abortamos el arranque de JupyterHub.
     CASE_USERS_FILE="$(mktemp)"
     "$PYTHON_BIN" - "$CASES_CONFIG_PATH" > "$CASE_USERS_FILE" <<'PY'
@@ -46,7 +46,7 @@ try:
     cases = data.get("cases", {})
     if isinstance(cases, dict):
         for key in cases.keys():
-            case_id = str(key).strip().upper()
+            case_id = str(key).strip().lower()
             if case_id:
                 users.add(f"caso{case_id}")
     else:

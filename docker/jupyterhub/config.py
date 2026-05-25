@@ -36,7 +36,7 @@ def _load_case_users(config_path: str):
         cases = data.get("cases", {})
         if isinstance(cases, dict):
             for case_id in cases.keys():
-                case_text = str(case_id).strip().upper()
+                case_text = str(case_id).strip().lower()
                 if case_text:
                     users.add(f"caso{case_text}")
         else:
