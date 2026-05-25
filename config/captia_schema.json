@@ -1,0 +1,142 @@
+{
+    "schema_id": "captia_silver_schema",
+    "version": "1.0",
+    "fecha": "2026-05-14",
+    "project": "simarro-centinela-plus",
+    "description": "Contrato estructural común de la capa Silver compatible con CAPTIA.",
+    "silver_layer": {
+        "logical_schema": {
+            "measurement": {
+                "name": "captia_point",
+                "required": true,
+                "description": "Measurement común de la telemetría normalizada."
+            },
+            "field": {
+                "name": "value",
+                "type": "float",
+                "required": true,
+                "description": "Valor numérico de la observación."
+            },
+            "tags": {
+                "captia_env": {
+                    "type": "string",
+                    "required": true,
+                    "allowed_values": [
+                        "prod",
+                        "dev"
+                    ],
+                    "description": "Entorno de ejecución o procedencia del dato."
+                },
+                "domain_id": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Dominio funcional o sistema al que pertenece la observación."
+                },
+                "site_id": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Centro, edificio, instalación o dataset de referencia."
+                },
+                "asset_id": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Activo físico o lógico al que pertenece la observación."
+                },
+                "variable": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Variable medida."
+                }
+            }
+        },
+        "file_schema": {
+            "description": "Representación equivalente de la capa Silver cuando se materializa como fichero Parquet o CSV.",
+            "required_columns": {
+                "timestamp": {
+                    "type": "datetime",
+                    "required": true,
+                    "description": "Instante temporal de la observación."
+                },
+                "captia_env": {
+                    "type": "string",
+                    "required": true
+                },
+                "domain_id": {
+                    "type": "string",
+                    "required": true
+                },
+                "site_id": {
+                    "type": "string",
+                    "required": true
+                },
+                "asset_id": {
+                    "type": "string",
+                    "required": true
+                },
+                "variable": {
+                    "type": "string",
+                    "required": true
+                },
+                "value": {
+                    "type": "float",
+                    "required": true
+                },
+                "metric_kind": {
+                    "type": "string",
+                    "required": true
+                },
+                "unit": {
+                    "type": "string",
+                    "required": true
+                }
+            }
+        }
+    },
+    "metric_kinds": {
+        "analog_gauge": {
+            "description": "Variable continua numérica.",
+            "stats": [
+                "mean",
+                "min",
+                "max"
+            ],
+            "default_bucket": "telemetry"
+        },
+        "bool_presence": {
+            "description": "Señal binaria continua de presencia u ocupación.",
+            "stats": [
+                "duty",
+                "count_rise",
+                "last"
+            ],
+            "default_bucket": "telemetry"
+        },
+        "counter": {
+            "description": "Contador acumulado.",
+            "stats": [
+                "sum"
+            ],
+            "default_bucket": "telemetry"
+        },
+        "bool_state": {
+            "description": "Estado discreto registrado por cambios.",
+            "stats": [
+                "last",
+                "count_rise"
+            ],
+            "default_bucket": "state_events"
+        },
+        "setpoint_step": {
+            "description": "Setpoint discreto registrado por cambios.",
+            "stats": [
+                "last"
+            ],
+            "default_bucket": "state_events"
+        },
+        "skip": {
+            "description": "Señal continua sin rollup.",
+            "stats": [],
+            "default_bucket": "telemetry"
+        }
+    }
+}
