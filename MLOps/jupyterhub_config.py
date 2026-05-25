@@ -1,5 +1,15 @@
 import os
 
+
+class _ConfigNode:
+    def __getattr__(self, name):
+        node = _ConfigNode()
+        setattr(self, name, node)
+        return node
+
+
+c = globals().get("c") or _ConfigNode()
+
 # configuración de Red
 c.JupyterHub.ip = "0.0.0.0"  # para que sea accesible desde fuera del contenedor
 c.JupyterHub.port = 8000  # puerto de JupyterHub
@@ -49,14 +59,10 @@ c.Spawner.environment = {
 }
 
 # configuración de los recursos
-# TODO: aunque en esta primera aproximación no indiquemos límites, cuando nos integremos con la infraestructura de ITI sí que tendremos que configurar
-# límites para evitar que un usuario consuma todos los recursos del sistema.
+# Límites para evitar que un usuario consuma todos los recursos del sistema.
 # en este ejemplo limitamos a 2GB de RAM por usuario y 2 núcleos de CPU
 # c.Spawner.mem_limit = '2G'
 # c.Spawner.cpu_limit = 2.0
 
 # configuración de almacenamiento
 c.Spawner.notebook_dir = "/home/{username}"
-
-# configuraciones adicionales
-c.JupyterHub.hub_name = "IES Simarro | Centinela+"

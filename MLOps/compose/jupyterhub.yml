@@ -2,6 +2,7 @@ services:
   jupyterhub:
     image: jupyterhub/jupyterhub:latest
     container_name: simarro-jupyterhub
+    restart: unless-stopped
     ports:
       - "8000:8000"
 

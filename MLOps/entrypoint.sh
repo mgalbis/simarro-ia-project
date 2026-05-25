@@ -1,8 +1,10 @@
 # Script de inicialización del contenedor JupyterHub.
 # Se ejecuta cada vez que arranca el contenedor y añadimos los usuarios y dependencias.
 
+set -e
+
 echo "Instalando dependencias Python..."
-/srv/venv/bin/pip install --quiet jupyterlab mlflow lakefs-sdk scikit-learn pandas numpy xgboost evidently
+python -m pip install --quiet jupyterlab mlflow lakefs-sdk scikit-learn pandas numpy xgboost evidently
 
 echo "Creando usuarios del proyecto..."
 for user in casoA casoB casoC casoD casoE casoF casoG casoH casoI casoJ casoK admin; do
@@ -11,4 +13,4 @@ for user in casoA casoB casoC casoD casoE casoF casoG casoH casoI casoJ casoK ad
 done
 
 echo "Arrancando JupyterHub..."
-jupyterhub
+exec jupyterhub -f /srv/jupyterhub/jupyterhub_config.py

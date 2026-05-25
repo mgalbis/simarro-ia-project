@@ -13,8 +13,9 @@ services:
     working_dir: /app
 
     # Instalación de dependencias y arrancamos el servidor
-    command: bash -c "apt-get update -qq && apt-get install -y -qq curl && pip install --quiet -r requirements.txt && python pipeline_server.py"
+    command: bash -c "apt-get update -qq && apt-get install -y -qq curl && python -m pip install --upgrade pip && python -m pip install --quiet -r requirements.txt && python pipeline_server.py"
     environment:
+      DEBIAN_FRONTEND: noninteractive
       PIPELINE_PORT: 8080
       MLFLOW_TRACKING_URI: http://mlflow:5000
       LAKEFS_ENDPOINT: http://lakefs:8000
