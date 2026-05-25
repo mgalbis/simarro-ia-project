@@ -4,7 +4,7 @@ services:
 
   aclserver-db:
     image: postgres:16-alpine
-    container_name: simarro-aclserver-db
+    container_name: aclserver-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: lakefs_acl
@@ -24,7 +24,7 @@ services:
     build:
       context: .
       dockerfile: docker/aclserver/Dockerfile
-    container_name: simarro-aclserver
+    container_name: aclserver
     restart: unless-stopped
     environment:
       ACLSERVER_LISTEN_ADDRESS: 0.0.0.0:8001
@@ -46,7 +46,7 @@ services:
     build:
       context: .
       dockerfile: docker/lakefs/Dockerfile
-    container_name: simarro-lakefs
+    container_name: lakefs
     restart: unless-stopped
     user: root
     environment:
@@ -79,7 +79,7 @@ services:
     build:
       context: .
       dockerfile: docker/mlflow/Dockerfile
-    container_name: simarro-mlflow
+    container_name: mlflow
     restart: unless-stopped
     volumes:
       - mlflow-data:/mlflow
@@ -106,7 +106,7 @@ services:
       args:
         JUPYTERHUB_IMAGE: ${JUPYTERHUB_IMAGE}
         PIP_TOOLS_VERSION: ${PIP_TOOLS_VERSION}
-    container_name: simarro-jupyterhub
+    container_name: jupyterhub
     restart: unless-stopped
     volumes:
       - jupyterhub-data:/srv/jupyterhub
@@ -137,7 +137,7 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
-    container_name: simarro-nginx
+    container_name: nginx
     restart: unless-stopped
     ports:
       - "80:80"
