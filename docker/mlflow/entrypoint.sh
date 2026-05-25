@@ -13,6 +13,6 @@ mlflow server \
   --static-prefix /mlflow &
 MLFLOW_PID=$!
 
-python /mlflow/init/bootstrap_mlflow_metadata.py
+python /mlflow/init/init_mlflow.py
 
 wait "$MLFLOW_PID"

@@ -7,7 +7,7 @@ ENV CASES_CONFIG_PATH=/mlflow/init/cases_config.json
 ENV MLFLOW_INIT_RETRIES=60
 ENV MLFLOW_INIT_RETRY_SECONDS=2
 
-COPY docker/mlflow/bootstrap_mlflow_metadata.py /mlflow/init/bootstrap_mlflow_metadata.py
+COPY docker/mlflow/init_mlflow.py /mlflow/init/init_mlflow.py
 COPY config/cases_config.json /mlflow/init/cases_config.json
 COPY docker/mlflow/entrypoint.sh /entrypoint.sh
 

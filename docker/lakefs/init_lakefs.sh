@@ -6,7 +6,7 @@ set -eu
 # -----------------------------------------------------------------------------
 # Objetivo:
 #   1) Esperar a que lakeFS arranque y completar setup inicial (si falta).
-#   2) Crear/actualizar usuarios "casoX" con credenciales fijas.
+#   2) Crear usuarios "casoX" con credenciales fijas si no existen.
 #   3) Aplicar permisos:
 #      - Lectura global (pueden ver todos los repos).
 #      - Escritura solo en repos con prefijo propio: "<user>--*".
