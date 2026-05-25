@@ -83,48 +83,17 @@ indicando cómo debe procesarse cada fuente de datos para producir capas Bronze,
 Mientras `captia_schema.json` describe la estructura común que debe cumplir cualquier dato normalizado en la capa
 Silver, `cases_config.json` describe cómo se aplica ese contrato a cada caso de uso concreto.
 
-
 ### `schema_id`, `version`, `project` y `description`
 
-Estos campos identifican el fichero de configuración y su versión.
-
-Son necesarios para saber qué configuración operativa se ha usado en un momento concreto del proyecto. Si cambian los
-datasets, las rutas lakeFS, los mappings o las métricas requeridas, debe actualizarse la versión del fichero.
-
+Identifican la configuración operativa y su versión efectiva.
 
 ### `variables`
 
-La sección `variables` define el catálogo de variables de proyecto que pueden aparecer como valores del tag `variable`
-en la capa Silver.
-
-Cada variable incluye:
-
-- `metric_kind`;
-- unidad;
-- tipo de dato;
-- valores permitidos cuando aplica.
-
-Ejemplo:
-
-```json
-"co2": {
-  "metric_kind": "analog_gauge",
-  "unit": "ppm",
-  "data_type": "float"
-}
-```
-
-Esta información no está en `captia_schema.json` porque no describe la estructura común del punto Silver, sino el
-vocabulario semántico usado por el proyecto.
-
-Debe estar aquí porque los datasets concretos necesitan mapear sus columnas originales a estas variables.
-
+Es el catálogo semántico del proyecto (variable, `metric_kind`, unidad y tipo), usado por `datasets.column_mappings`.
 
 ### `repository_schema`
 
-La sección `repository_schema` define la estructura esperada de los repositorios lakeFS asociados a datasets.
-
-Incluye las capas Medallion:
+Describe la estructura esperada del repositorio lakeFS por capas:
 
 ```text
 bronze/
@@ -133,350 +102,83 @@ gold/
 metadata/
 ```
 
-Esta información pertenece a `cases_config.json` porque lakeFS es una decisión operativa del proyecto. No forma parte
-del contrato CAPTIA, pero sí es necesaria para que todos los casos usen una estructura homogénea de versionado.
-
-#### `bronze`
-
-Contiene los datasets originales sin modificar.
-
-Ejemplos:
-
-```text
-datatraining.txt
-datatest.txt
-datatest2.txt
-electricity.csv
-weather.csv
-```
-
-#### `silver`
-
-Contiene los datos normalizados conforme a `captia_schema.json`.
-
-En este proyecto, la capa Silver puede materializarse como fichero Parquet o CSV en lakeFS, simulando la estructura que
-tendría en InfluxDB.
-
-#### `gold`
-
-Contiene los datasets preparados para consumo por modelos, informes o dashboards.
-
-Ejemplos:
-
-```text
-train.parquet
-test.parquet
-features_schema.json
-class_balance_report.json
-```
-
-#### `metadata`
-
-Contiene información de lineage, calidad y reproducibilidad.
-
-Ejemplos:
-
-```text
-lineage.json
-quality_report.json
-captia_schema.json
-cases_config.json
-```
-
+En la versión actual también documenta `files` por capa y `recommended_files`.
 
 ### `lakefs_conventions`
 
-Esta sección define convenciones de ramas y tags lakeFS.
+Define las convenciones activas:
 
-Debe estar en `cases_config.json` porque depende del sistema de versionado usado por el proyecto, no del contrato
-CAPTIA.
+- `repo_name_pattern`: `caso{case}--{dataset}`
+- `branch_pattern`: `transform/v{version}`
+- `tag_patterns`: `{dataset}_v{version}`
 
-Los tags permiten identificar versiones estables de cada capa:
-
-```text
-{dataset}_bronze_v{version}
-{dataset}_silver_v{version}
-{dataset}_gold_caso{case}_v{version}
-```
-
-Esto permite que un experimento MLflow pueda referenciar de forma explícita la versión del dataset usada durante el
-entrenamiento.
-
+Importante: el proyecto ya usa **un único tag de versión** al finalizar Gold, no un tag por capa.
 
 ### `mlflow_conventions`
 
-Esta sección define convenciones mínimas para registrar experimentos.
+Establece convenciones de naming y tags mínimos para runs:
 
-Debe estar en `cases_config.json` porque MLflow pertenece a la infraestructura MLOps, no al schema CAPTIA.
-
-Incluye:
-
-- patrón de nombre de experimento;
-- patrón de nombre de run;
-- tags obligatorios relacionados con lakeFS y schema.
-
-La finalidad es garantizar que cada experimento pueda vincularse con:
-
-- versión Bronze;
-- versión Silver;
-- versión Gold;
-- versión del schema CAPTIA.
-
+- `experiment_pattern`
+- `run_pattern`
+- `required_tags`
 
 ### `cases`
 
-La sección `cases` describe cada caso de uso del proyecto.
+Define cada caso (`B`, `C`, `D`, `E`) con:
 
-Para cada caso se define:
-
-- nombre;
+- nombre y descripción;
 - tipo de problema;
+- propósito funcional;
 - datasets asociados;
-- variable objetivo si aplica;
+- variable objetivo (si aplica);
 - modelos esperados;
-- métricas requeridas;
-- outputs relevantes.
+- métricas esperadas;
+- reportes de calidad (si aplica).
 
-Ejemplo:
-
-```json
-"D": {
-  "name": "Calidad del Aire, Confort Interior y Ocupación",
-  "problem_type": "binary_classification",
-  "datasets": ["uci_occupancy", "ingauge"],
-  "target_variable": "occupancy",
-  "models": ["logistic_regression", "random_forest", "svm", "xgboost"],
-  "metrics": ["accuracy", "precision", "recall", "f1_score", "auc_roc"]
-}
-```
-
-Esta sección permite que la infraestructura MLOps sepa qué se espera de cada caso sin codificarlo directamente en los
-notebooks.
-
+Esta sección se usa para validar expectativas funcionales por caso (incluyendo modelos requeridos en webhook).
 
 ### `datasets`
 
-La sección `datasets` contiene la configuración operativa de cada dataset.
+Configura cada dataset con:
 
-Cada dataset puede incluir:
+- `case` asociado;
+- `source`;
+- `fixed_tags` CAPTIA (`captia_env`, `domain_id`, `site_id`);
+- `column_mappings` (columna origen -> variable CAPTIA + rol);
+- campos opcionales como `advanced_time_windows` o `conversion`.
 
-- caso de uso asociado;
-- fuente original;
-- repositorio lakeFS;
-- ficheros Bronze;
-- rutas Bronze, Silver y Gold;
-- tags fijos CAPTIA;
-- regla para `asset_id`;
-- columna temporal;
-- variable objetivo;
-- mapping de columnas originales a variables CAPTIA.
+En la versión actual **no se define** `lakefs_repo` por dataset: el repo se resuelve con `repo_name_pattern`.
 
-Esta información pertenece a `cases_config.json` porque depende del dataset concreto.
+### `fixed_tags` y `column_mappings`
 
+`fixed_tags` aporta los tags constantes para Silver.  
+`column_mappings` conecta columnas heterogéneas con variables del catálogo común, incluyendo su `role` (`feature`, `target`, `context`).
 
-### `fixed_tags`
+## Elementos que ya no forman parte del esquema operativo actual
 
-`fixed_tags` define los valores comunes de algunos tags CAPTIA para un dataset.
+En el `cases_config.json` actual ya no se usan como contrato principal:
 
-Ejemplo:
+- tags por capa Bronze/Silver/Gold;
+- secciones dedicadas de `paths` por dataset;
+- secciones de `tracking` en el propio fichero;
+- estrategia declarativa `default_asset_id` / `asset_id_column` / `asset_id_rule`.
 
-```json
-"fixed_tags": {
-  "captia_env": "prod",
-  "domain_id": "bms_classrooms",
-  "site_id": "uci_occupancy"
-}
-```
+## Resumen operativo actualizado
 
-Estos valores son necesarios para generar Silver, porque `captia_schema.json` exige los cinco tags CAPTIA:
+`cases_config.json` define:
 
 ```text
-captia_env
-domain_id
-site_id
-asset_id
-variable
+qué casos existen
+qué datasets pertenecen a cada caso
+cómo mapear cada dataset al vocabulario CAPTIA
+qué convenciones lakeFS/MLflow aplicar
+qué modelos/métricas exige cada caso
 ```
 
-De esos cinco:
-
-- `captia_env`, `domain_id` y `site_id` suelen ser fijos por dataset;
-- `asset_id` puede ser fijo, derivado de una columna o generado por regla;
-- `variable` sale del mapping de columnas.
-
-Si un dataset no tiene `fixed_tags` ni una forma equivalente de derivarlos, no tiene información suficiente para generar una capa Silver válida.
-
----
-
-## `default_asset_id`, `asset_id_column` y `asset_id_rule`
-
-Cada punto Silver debe tener `asset_id`.
-
-Dependiendo del dataset, puede obtenerse de distintas formas.
-
-### `default_asset_id`
-
-Se usa cuando el dataset representa una única entidad lógica.
-
-Ejemplo:
-
-```json
-"default_asset_id": "ROOM01"
-```
-
-### `asset_id_column`
-
-Se usa cuando el dataset contiene una columna que identifica el activo.
-
-Ejemplo:
-
-```json
-"asset_id_column": "building_id"
-```
-
-### `asset_id_rule`
-
-Se usa cuando el activo debe construirse mediante una regla.
-
-Ejemplo:
-
-```json
-"asset_id_rule": "AULA{classroom_number}"
-```
-
-Al menos una de estas tres estrategias debe estar definida para cada dataset que se vaya a transformar a Silver.
-
----
-
-## `column_mappings`
-
-`column_mappings` define cómo se transforman las columnas originales de cada dataset en variables CAPTIA.
-
-Ejemplo para UCI Occupancy:
-
-```json
-"column_mappings": {
-  "Temperature": {
-    "variable": "temperature_01",
-    "role": "feature"
-  },
-  "CO2": {
-    "variable": "co2",
-    "role": "feature"
-  },
-  "Occupancy": {
-    "variable": "occupancy",
-    "role": "target"
-  }
-}
-```
-
-Esta sección no pertenece a `captia_schema.json` porque cada dataset usa nombres de columnas distintos.
-
-El mapping permite transformar datasets heterogéneos a una representación común:
+Y `captia_schema.json` define:
 
 ```text
-Temperature      → temperature_01
-IndoorCO2        → co2
-Appliances       → power_01
-SA_TEMP          → temperature_supply
-2m_temperature   → temperature_outdoor
+la estructura formal de Silver (contrato de datos)
 ```
 
----
-
-## `paths`
-
-La sección `paths` indica dónde se escriben las salidas dentro del repositorio lakeFS.
-
-Ejemplo:
-
-```json
-"paths": {
-  "bronze": "bronze/",
-  "silver": "silver/captia_points.parquet",
-  "gold_train": "gold/train.parquet",
-  "gold_test": "gold/test.parquet"
-}
-```
-
-Esta información es operativa. Sirve para que notebooks, scripts o pipelines escriban y lean de ubicaciones homogéneas.
-
----
-
-## `tracking`
-
-La sección `tracking` define requisitos mínimos de trazabilidad.
-
-Incluye:
-
-- datasets de entrenamiento versionados en lakeFS;
-- experimentos registrados en MLflow;
-- tags lakeFS registrados en los runs;
-- métricas, parámetros, artefactos y modelos guardados.
-
-Debe estar en `cases_config.json` porque pertenece al flujo MLOps del proyecto, no al contrato estructural CAPTIA.
-
----
-
-## Información que no debe estar en `cases_config.json`
-
-`cases_config.json` no debe redefinir la estructura Silver común.
-
-No debe contener:
-
-- definición de `measurement`;
-- definición del field `value`;
-- lista de tags obligatorios como contrato estructural;
-- tipos estructurales de la capa Silver;
-- reglas estructurales generales de validación.
-
-Esa información pertenece a `captia_schema.json`.
-
----
-
-## Resumen
-
-`cases_config.json` contiene la información necesaria para aplicar el contrato CAPTIA a los casos de uso reales del proyecto.
-
-Su contenido se justifica porque define:
-
-```text
-qué caso usa qué dataset
-dónde se versiona
-qué ficheros componen Bronze
-cómo se genera Silver
-qué rutas usa lakeFS
-cómo se genera Gold
-qué modelos y métricas se esperan
-qué trazabilidad debe registrarse
-```
-
-El fichero actúa como puente entre:
-
-```text
-captia_schema.json
-  contrato común Silver
-
-notebooks/scripts
-  implementación concreta
-
-lakeFS/MLflow
-  trazabilidad y reproducibilidad
-```
-
----
-
-# Criterio final
-
-La frontera correcta es:
-
-```text
-captia_schema.json
-  Qué forma tiene un dato Silver.
-
-cases_config.json
-  Cómo se genera ese dato Silver desde cada dataset y cómo se usa en cada caso.
-```
-
-Por eso `captia_schema.json` es estable y común, mientras que `cases_config.json` puede crecer o cambiar a medida que se añadan datasets, casos, modelos, métricas o repositorios.
+Esa separación mantiene estable el contrato técnico y permite evolucionar la operación por caso/dataset sin duplicar reglas estructurales.

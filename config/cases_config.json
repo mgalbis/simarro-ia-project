@@ -145,20 +145,35 @@
       },
       "silver": {
         "path": "silver/",
-        "content": "datos normalizados según schema_captia.json"
+        "content": "datos normalizados según schema_captia.json",
+        "files": {
+          "captia_points": "captia_points.parquet"
+        }
       },
       "gold": {
         "path": "gold/",
-        "content": "datasets de entrenamiento, test, features e informes por caso de uso"
+        "content": "datasets de entrenamiento, test, features e informes por caso de uso",
+        "files": {
+          "train": "train.parquet",
+          "test": "test.parquet"
+        }
       },
       "metadata": {
         "path": "metadata/",
-        "content": "lineage, informes de calidad y metadatos del procesamiento"
+        "content": "lineage, informes de calidad y metadatos del procesamiento",
+        "files": {
+          "lineage": "lineage.json",
+          "quality_report": "quality_report.json"
+        }
       }
     },
     "recommended_files": {
       "silver": [
-        "silver/captia_points.parquet"
+        "captia_points.parquet"
+      ],
+      "gold": [
+        "train.parquet",
+        "test.parquet"
       ],
       "metadata": [
         "metadata/lineage.json",
