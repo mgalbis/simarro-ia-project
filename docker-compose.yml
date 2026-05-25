@@ -110,6 +110,7 @@ services:
     restart: unless-stopped
     volumes:
       - jupyterhub-data:/srv/jupyterhub
+      - jupyterhub-workspace:/home
     environment:
       JUPYTERHUB_ADMIN: admin
       CASES_CONFIG_PATH: /app/config/cases_config.json
@@ -159,4 +160,5 @@ volumes:
   mlflow-data:
   lakefs-data:
   jupyterhub-data:
+  jupyterhub-workspace:
   aclserver-db-data:
