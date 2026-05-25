@@ -77,6 +77,17 @@ Flujo principal:
 - `jupyterhub-data`: estado local de JupyterHub.
 - `aclserver-db-data`: datos de Postgres del ACL server.
 
+## Política de reinicio (`restart: unless-stopped`)
+
+Todos los servicios usan `restart: unless-stopped` por estos motivos:
+
+- **Recuperación automática:** si un contenedor cae o se reinicia Docker/host, el servicio vuelve a levantarse sin
+intervención manual.
+- **Disponibilidad del stack completo:** evita que queden piezas clave (Postgres, ACL, lakeFS, MLflow, JupyterHub o
+Nginx) apagadas tras fallos puntuales.
+- **Control operativo:** si se detiene explícitamente un servicio (`docker compose stop`), Docker respeta esa decisión y
+no lo relanza hasta que se arranque de nuevo.
+
 ## Objetivo de diseño
 
 Separar claramente:
