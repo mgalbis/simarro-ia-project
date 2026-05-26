@@ -313,14 +313,14 @@ def registrar_report_evidently(
                     current[col] = current[col].astype(str)
 
         report = Report(metrics=[DataSummaryPreset(), DataDriftPreset()])
-        report.run(reference_data=reference, current_data=current)
+        snapshot = report.run(reference_data=reference, current_data=current)
 
         with tempfile.TemporaryDirectory(prefix="evidently_") as tmp_dir:
             html_path = os.path.join(tmp_dir, "evidently_report.html")
             json_path = os.path.join(tmp_dir, "evidently_report.json")
 
-            report.save_html(html_path)
-            report.save_json(json_path)
+            snapshot.save_html(html_path)
+            snapshot.save_json(json_path)
 
             mlflow.log_artifact(html_path, artifact_path="monitoring/evidently")
             mlflow.log_artifact(json_path, artifact_path="monitoring/evidently")
