@@ -1,36 +1,40 @@
-# Script de reentrenamiento automático.
-# Se invoca desde pipeline_server.py cuando hay un merge a main.
-#
-# Uso (manual para pruebas):
-#   python pipeline_train.py --caso B
-#                            --dataset uci-appliances
-#                            --commit abc123
-#                            --committer caso_b
+"""Pipeline de reentrenamiento automático.
 
-import os
-import sys
+Se invoca desde ``pipeline_server.py`` cuando hay un merge a main.
+
+Uso (manual para pruebas):
+    python pipeline_train.py --caso B
+                             --dataset uci-appliances
+                             --commit abc123
+                             --committer caso_b
+"""
+
 import argparse
 import logging
+import os
+import sys
 import tempfile
+from datetime import datetime
 from io import BytesIO
+
+import lakefs_sdk
 import mlflow
 import mlflow.sklearn
-import lakefs_sdk
+import numpy as np
+import pandas as pd
 from lakefs_sdk.client import LakeFSClient
-from datetime import datetime
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import (
     accuracy_score,
-    precision_score,
-    recall_score,
     f1_score,
+    mean_absolute_error,
+    mean_squared_error,
+    precision_score,
+    r2_score,
+    recall_score,
     roc_auc_score,
 )
-import pandas as pd
-import numpy as np
+from sklearn.model_selection import train_test_split
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [TRAIN] %(levelname)s — %(message)s"
@@ -78,6 +82,7 @@ TARGET_D = "Occupancy"
 
 
 def get_lakefs_client() -> LakeFSClient:
+    """Crea un cliente de lakeFS con credenciales de entorno."""
     cfg = lakefs_sdk.Configuration(
         host=LAKEFS_HOST,
         username=LAKEFS_ACCESS,
@@ -99,9 +104,7 @@ def _read_lakefs_csv(
 
 
 def descargar_datos(dataset: str, commit: str, config_caso: dict):
-    """
-    Descarga el dataset desde lakeFS en el commit exacto que disparó el pipeline.
-    """
+    """Descarga el dataset desde lakeFS en el commit que disparó el pipeline."""
     log.info(f"Descargando datos de lakeFS. Repo: {dataset}  Commit: {commit[:8]}")
 
     client = get_lakefs_client()
@@ -122,7 +125,8 @@ def descargar_datos(dataset: str, commit: str, config_caso: dict):
 
         total_filas = sum(len(df) for df in datasets.values())
         log.info(
-            f"Dataset occupancy cargado: {total_filas} filas totales en {len(datasets)} ficheros"
+            "Dataset occupancy cargado: "
+            f"{total_filas} filas totales en {len(datasets)} ficheros"
         )
         return datasets
 
@@ -147,9 +151,9 @@ def descargar_datos(dataset: str, commit: str, config_caso: dict):
 
 
 def validar_datos(df, dataset: str, config_caso: dict) -> bool:
-    """
-    Validación básica de calidad antes de entrenar.
-    Devuelve True si los datos son válidos, False si hay problemas.
+    """Valida la calidad básica de los datos antes de entrenar.
+
+    Devuelve True si los datos son válidos y False si hay problemas.
     """
     log.info("Validando calidad de los datos...")
 
@@ -157,7 +161,8 @@ def validar_datos(df, dataset: str, config_caso: dict) -> bool:
         required_files = {"datatraining.txt", "datatest.txt", "datatest2.txt"}
         if set(df.keys()) != required_files:
             log.error(
-                f"Archivos esperados ausentes. Esperados: {required_files}. Recibidos: {set(df.keys())}"
+                "Archivos esperados ausentes. "
+                f"Esperados: {required_files}. Recibidos: {set(df.keys())}"
             )
             return False
 
@@ -168,7 +173,9 @@ def validar_datos(df, dataset: str, config_caso: dict) -> bool:
 
         if len(train_df) < 100 or len(test_df) < 100:
             log.error(
-                f"Dataset occupancy demasiado pequeño: train={len(train_df)}, test={len(test_df)} (mínimo 100 por split)"
+                "Dataset occupancy demasiado pequeño: "
+                f"train={len(train_df)}, test={len(test_df)} "
+                "(mínimo 100 por split)"
             )
             return False
 
@@ -206,9 +213,7 @@ def validar_datos(df, dataset: str, config_caso: dict) -> bool:
 
 
 def entrenar_modelo(df, caso: str, config_caso: dict):
-    """
-    Entrena el modelo correspondiente del caso de uso.
-    """
+    """Entrena el modelo correspondiente del caso de uso."""
     log.info(f"Entrenando modelo para Caso de Uso {caso}")
 
     if config_caso.get("trainer") == "occupancy_classification":
@@ -217,21 +222,26 @@ def entrenar_modelo(df, caso: str, config_caso: dict):
             [df["datatest.txt"], df["datatest2.txt"]], ignore_index=True
         )
 
-        X_train = train_df[SENSOR_FEATURES_D].copy()
+        x_train = train_df[SENSOR_FEATURES_D].copy()
         y_train = train_df[TARGET_D].astype(int)
-        X_test = test_df[SENSOR_FEATURES_D].copy()
+        x_test = test_df[SENSOR_FEATURES_D].copy()
         y_test = test_df[TARGET_D].astype(int)
 
-        medianas = X_train.median(numeric_only=True)
-        X_train = X_train.fillna(medianas)
-        X_test = X_test.fillna(medianas)
+        medianas = x_train.median(numeric_only=True)
+        x_train = x_train.fillna(medianas)
+        x_test = x_test.fillna(medianas)
 
-        params = {"n_estimators": 100, "max_depth": 6, "random_state": 42, "n_jobs": -1}
+        params = {
+            "n_estimators": 100,
+            "max_depth": 6,
+            "random_state": 42,
+            "n_jobs": -1,
+        }
         modelo = RandomForestClassifier(**params)
-        modelo.fit(X_train, y_train)
+        modelo.fit(x_train, y_train)
 
-        predicciones = modelo.predict(X_test)
-        proba = modelo.predict_proba(X_test)[:, 1]
+        predicciones = modelo.predict(x_test)
+        proba = modelo.predict_proba(x_test)[:, 1]
         metricas = {
             "accuracy": round(accuracy_score(y_test, predicciones), 4),
             "precision": round(
@@ -243,25 +253,25 @@ def entrenar_modelo(df, caso: str, config_caso: dict):
         }
 
         log.info(f"Métricas: {metricas}")
-        return modelo, params, metricas, X_train, X_test, y_test, predicciones
+        return modelo, params, metricas, x_train, x_test, y_test, predicciones
 
     # Preparar features
     columnas_numericas = df.select_dtypes(include=[np.number]).columns.tolist()
     target = columnas_numericas[-1]
     features = columnas_numericas[:-1]
 
-    X = df[features].fillna(df[features].median())
+    x = df[features].fillna(df[features].median())
     y = df[target].fillna(df[target].median())
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+    x_train, x_test, y_train, y_test = train_test_split(
+        x, y, test_size=0.2, random_state=42
     )
 
     params = {"n_estimators": 100, "max_depth": 6, "random_state": 42}
     modelo = RandomForestRegressor(**params)
-    modelo.fit(X_train, y_train)
+    modelo.fit(x_train, y_train)
 
-    predicciones = modelo.predict(X_test)
+    predicciones = modelo.predict(x_test)
     metricas = {
         "rmse": round(mean_squared_error(y_test, predicciones) ** 0.5, 4),
         "mae": round(mean_absolute_error(y_test, predicciones), 4),
@@ -269,18 +279,19 @@ def entrenar_modelo(df, caso: str, config_caso: dict):
     }
 
     log.info(f"Métricas: {metricas}")
-    return modelo, params, metricas, X_train, X_test, y_test, predicciones
+    return modelo, params, metricas, x_train, x_test, y_test, predicciones
 
 
 def registrar_report_evidently(
-    X_train: pd.DataFrame,
-    X_test: pd.DataFrame,
+    x_train: pd.DataFrame,
+    x_test: pd.DataFrame,
     caso: str,
     dataset: str,
     commit: str,
 ) -> None:
-    """
-    Genera un informe básico de drift con Evidently y lo adjunta como artefacto en MLflow
+    """Genera un informe básico de drift con Evidently.
+
+    Adjunta el informe como artefacto en MLflow.
     """
     try:
         from evidently import Report
@@ -291,8 +302,8 @@ def registrar_report_evidently(
         return
 
     try:
-        current = X_test.copy()
-        reference = X_train.copy()
+        current = x_test.copy()
+        reference = x_train.copy()
 
         # Evita errores y problemas con columnas no serializables
         for col in reference.columns:
@@ -333,8 +344,9 @@ def registrar_report_evidently(
 
 
 def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str):
-    """
-    Ejecuta el pipeline completo de reentrenamiento siguiendo los pasos:
+    """Ejecuta el pipeline completo de reentrenamiento.
+
+    Pasos:
         1. Descarga datos del commit exacto de lakeFS
         2. Valida calidad
         3. Entrena modelo
@@ -344,7 +356,8 @@ def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str):
     config_caso = CASOS.get(caso)
     if not config_caso:
         log.error(
-            f"El Caso de uso {caso} no está registrado. Casos válidos: {list(CASOS.keys())}"
+            f"El Caso de uso {caso} no está registrado. "
+            f"Casos válidos: {list(CASOS.keys())}"
         )
         sys.exit(1)
 
@@ -369,7 +382,7 @@ def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str):
     mlflow.set_experiment(config_caso["experimento"])
 
     # Entrenar antes de abrir el run para derivar el nombre real del algoritmo
-    modelo, params, metricas, X_train, X_test, y_test, preds = entrenar_modelo(
+    modelo, params, metricas, x_train, x_test, y_test, preds = entrenar_modelo(
         df, caso, config_caso
     )
 
@@ -385,7 +398,7 @@ def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str):
                 "caso_uso": caso,
                 "grupo": f"G{'1' if caso=='B' else '3' if caso in ('C','E') else '4'}",
                 "dataset": dataset,
-                "dataset_version": commit,  # commit hash exacto de lakeFS. Sino no tiene trazabilidad
+                "dataset_version": commit,
                 "dataset_branch": "main",
                 "capa_medallion": "oro",
                 "disparado_por": "webhook_lakefs",
@@ -400,8 +413,8 @@ def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str):
 
         # Informe de drift de datos
         registrar_report_evidently(
-            X_train=X_train,
-            X_test=X_test,
+            x_train=x_train,
+            x_test=x_test,
             caso=caso,
             dataset=dataset,
             commit=commit,
@@ -432,9 +445,7 @@ def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str):
 
 
 def _llevar_a_staging(nombre_modelo: str, run_id: str):
-    """
-    Promueve la última versión del modelo a estado Staging en el registry.
-    """
+    """Promueve la última versión del modelo a estado Staging en el registry."""
     from mlflow.tracking import MlflowClient
 
     client = MlflowClient(tracking_uri=MLFLOW_URI)
