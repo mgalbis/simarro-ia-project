@@ -289,11 +289,14 @@ def ejecutar_pipeline(
             commit=commit,
         )
 
+        model_name = config_caso.get("functional_model_name")
+
         # Registrar el modelo
         mlflow.sklearn.log_model(
             sk_model=modelo,
-            artifact_path="model",
-            registered_model_name=config_caso.get("functional_model_name"),
+            name="model",
+            serialization_format="skops",
+            registered_model_name=model_name,
             metadata={
                 "caso_uso": caso,
                 "framework": "scikit-learn",
@@ -304,30 +307,32 @@ def ejecutar_pipeline(
         run_id = run.info.run_id
         log.info(f"Run registrado en MLflow: {run_id}")
 
-        _llevar_a_staging(config_caso.get("functional_model_name"), run_id)
+        _llevar_a_staging(model_name, run_id)
 
     log.info("Pipeline completado correctamente")
 
 
 def _llevar_a_staging(nombre_modelo: str, run_id: str):
-    """Promueve la última versión del modelo a estado Staging en el registry."""
+    """Asigna el alias `staging` a la versión más reciente del run en registry."""
     from mlflow.tracking import MlflowClient
 
     client = MlflowClient(tracking_uri=MLFLOW_URI)
 
-    versiones = client.get_latest_versions(nombre_modelo, stages=["None"])
+    versiones = list(client.search_model_versions(f"name='{nombre_modelo}'"))
     if not versiones:
         log.warning("No se encontró versión")
         return
 
-    ultima_version = versiones[0].version
-    client.transition_model_version_stage(
+    versiones_run = [v for v in versiones if getattr(v, "run_id", None) == run_id]
+    candidatas = versiones_run or versiones
+    ultima_version = str(max(candidatas, key=lambda v: int(v.version)).version)
+
+    client.set_registered_model_alias(
         name=nombre_modelo,
+        alias="staging",
         version=ultima_version,
-        stage="Staging",
-        archive_existing_versions=True,
     )
-    log.info(f"Modelo '{nombre_modelo}' v{ultima_version} subido a Staging")
+    log.info(f"Modelo '{nombre_modelo}' alias 'staging' -> v{ultima_version}")
 
 
 if __name__ == "__main__":
