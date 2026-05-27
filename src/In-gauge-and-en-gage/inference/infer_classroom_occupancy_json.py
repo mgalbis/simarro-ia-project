@@ -39,7 +39,6 @@ from typing import Any
 import joblib
 import pandas as pd
 
-
 # =============================================================================
 # Configuración de rutas
 # =============================================================================
@@ -67,6 +66,7 @@ DEFAULT_TARGET = "Occupied"
 # =============================================================================
 # Funciones auxiliares
 # =============================================================================
+
 
 def find_best_model_path(metadata: dict[str, Any] | None = None) -> Path:
     """
@@ -129,8 +129,7 @@ def load_metadata() -> dict[str, Any]:
         "final_evaluation": "unknown",
         "notes": {
             "metadata_source": (
-                "No se encontró JSON de metadata. "
-                "Se usan features por defecto."
+                "No se encontró JSON de metadata. " "Se usan features por defecto."
             )
         },
     }
@@ -150,9 +149,7 @@ def load_model_artifact(model_path: Path) -> tuple[Any, dict[str, Any]]:
     if isinstance(loaded, dict) and "model" in loaded:
         model = loaded["model"]
         artifact_metadata = {
-            key: value
-            for key, value in loaded.items()
-            if key != "model"
+            key: value for key, value in loaded.items() if key != "model"
         }
         return model, artifact_metadata
 
@@ -233,7 +230,7 @@ def load_cases_from_json() -> pd.DataFrame:
 
 def validate_input(df: pd.DataFrame, features: list[str]) -> pd.DataFrame:
     """
-    Valida columnas y devuelve X con las features en el orden correcto.
+    Valida columnas y devuelve features_df con las features en el orden correcto.
     """
 
     missing_features = [col for col in features if col not in df.columns]
@@ -246,13 +243,13 @@ def validate_input(df: pd.DataFrame, features: list[str]) -> pd.DataFrame:
             f"{df.columns.tolist()}"
         )
 
-    X = df[features].copy()
+    features_df = df[features].copy()
 
     for col in features:
-        X[col] = pd.to_numeric(X[col], errors="coerce")
+        features_df[col] = pd.to_numeric(features_df[col], errors="coerce")
 
-    if X.isna().any().any():
-        missing_by_column = X.isna().sum()
+    if features_df.isna().any().any():
+        missing_by_column = features_df.isna().sum()
         missing_by_column = missing_by_column[missing_by_column > 0]
 
         raise ValueError(
@@ -260,7 +257,7 @@ def validate_input(df: pd.DataFrame, features: list[str]) -> pd.DataFrame:
             f"{missing_by_column}"
         )
 
-    return X
+    return features_df
 
 
 def predict_cases(
@@ -302,18 +299,17 @@ def predict_cases(
 
     print()
 
-    X = validate_input(cases_df, features)
+    features_df = validate_input(cases_df, features)
 
     predictions = model.predict(features_df)
 
     results_df = cases_df.copy()
     results_df[f"{target}_pred"] = predictions
-    results_df["pred_label"] = results_df[f"{target}_pred"].map(
-        {
-            0: "No ocupado",
-            1: "Ocupado",
-        }
-    ).fillna(results_df[f"{target}_pred"].astype(str))
+    results_df["pred_label"] = (
+        results_df[f"{target}_pred"]
+        .map({0: "No ocupado", 1: "Ocupado",})
+        .fillna(results_df[f"{target}_pred"].astype(str))
+    )
 
     if hasattr(model, "predict_proba"):
         probabilities = model.predict_proba(features_df)
@@ -348,12 +344,10 @@ def print_results(results_df: pd.DataFrame):
     base_columns = [col for col in base_columns if col in results_df.columns]
 
     pred_columns = [
-        col for col in results_df.columns
-        if col.endswith("_pred") or col in [
-            "pred_label",
-            "prob_no_ocupado",
-            "prob_ocupado",
-        ]
+        col
+        for col in results_df.columns
+        if col.endswith("_pred")
+        or col in ["pred_label", "prob_no_ocupado", "prob_ocupado",]
     ]
 
     columns_to_show = base_columns + pred_columns

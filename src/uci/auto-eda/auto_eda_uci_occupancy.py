@@ -1,9 +1,8 @@
-from pathlib import Path
 import zipfile
+from pathlib import Path
 
 import pandas as pd
 from ydata_profiling import ProfileReport
-
 
 # =========================
 # CONFIGURACIÓN
@@ -19,6 +18,7 @@ INNER_ZIP_NAME = "UCI_Occupancy_Detection/occupancy_detection.zip"
 # =========================
 # FUNCIONES
 # =========================
+
 
 def read_uci_occupancy_from_zip(zip_path: Path) -> dict[str, pd.DataFrame]:
     """
@@ -112,6 +112,7 @@ def create_profile_report(df: pd.DataFrame, title: str, output_path: Path) -> No
 # =========================
 # PROCESO PRINCIPAL
 # =========================
+
 
 def main() -> None:
     datasets = read_uci_occupancy_from_zip(ZIP_PATH)
