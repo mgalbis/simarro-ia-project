@@ -69,86 +69,20 @@ def _build_regression_frames() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def test_read_lakefs_parquet_uses_read_method_when_available(monkeypatch):
-    """`_read_lakefs_parquet` prioriza `response.read()` si existe."""
+    """`_read_lakefs_parquet` delega en `LAKEFS_MANAGER.read_parquet`."""
     captured: dict[str, object] = {}
-    payload = b"parquet_binary_payload"
-
-    class _Resp:
-        """Respuesta lakeFS con método `read`."""
-
-        def read(self):
-            return payload
-
-    class _ObjectsAPI:
-        """API lakeFS simulada para capturar args."""
-
-        def get_object(self, repository: str, ref: str, path: str):
-            captured["args"] = (repository, ref, path)
-            return _Resp()
-
-    monkeypatch.setattr(pt, "LAKEFS_CLIENT", SimpleNamespace(objects_api=_ObjectsAPI()))
-
     expected_df = pd.DataFrame({"x": [1]})
-    monkeypatch.setattr(
-        pt.pd,
-        "read_parquet",
-        lambda bio: expected_df if bio.getvalue() == payload else None,
-    )
+
+    class _Manager:
+        def read_parquet(self, repository: str, ref: str, path: str):
+            captured["args"] = (repository, ref, path)
+            return expected_df
+
+    monkeypatch.setattr(pt, "LAKEFS_MANAGER", _Manager())
 
     df = pt._read_lakefs_parquet("repo", "tag", "gold/train.parquet")
 
     assert captured["args"] == ("repo", "tag", "gold/train.parquet")
-    assert df.equals(expected_df)
-
-
-def test_read_lakefs_parquet_falls_back_to_data_field(monkeypatch):
-    """`_read_lakefs_parquet` usa `response.data` cuando no hay método `read`."""
-    payload = b"payload_from_data"
-
-    class _Resp:
-        """Respuesta lakeFS sin `read`, con campo `data`."""
-
-        data = payload
-
-    monkeypatch.setattr(
-        pt,
-        "LAKEFS_CLIENT",
-        SimpleNamespace(
-            objects_api=SimpleNamespace(get_object=lambda **kwargs: _Resp())
-        ),
-    )
-
-    expected_df = pd.DataFrame({"x": [2]})
-    monkeypatch.setattr(
-        pt.pd,
-        "read_parquet",
-        lambda bio: expected_df if bio.getvalue() == payload else None,
-    )
-
-    df = pt._read_lakefs_parquet("repo", "tag", "gold/test.parquet")
-    assert df.equals(expected_df)
-
-
-def test_read_lakefs_parquet_accepts_raw_bytes_response(monkeypatch):
-    """`_read_lakefs_parquet` acepta respuesta `bytes` directa de lakeFS."""
-    payload = b"payload_raw_bytes"
-
-    monkeypatch.setattr(
-        pt,
-        "LAKEFS_CLIENT",
-        SimpleNamespace(
-            objects_api=SimpleNamespace(get_object=lambda **kwargs: payload)
-        ),
-    )
-
-    expected_df = pd.DataFrame({"x": [3]})
-    monkeypatch.setattr(
-        pt.pd,
-        "read_parquet",
-        lambda bio: expected_df if bio.getvalue() == payload else None,
-    )
-
-    df = pt._read_lakefs_parquet("repo", "tag", "gold/raw.parquet")
     assert df.equals(expected_df)
 
 
@@ -160,13 +94,17 @@ def test_descargar_datos_reads_train_and_test_from_real_gold_paths(monkeypatch):
     test_df = pd.DataFrame({"a": [3]})
     calls: list[tuple[str, str, str]] = []
 
-    def _fake_read(repo: str, ref: str, path: str):
-        calls.append((repo, ref, path))
-        if path == expected_paths["train"]:
-            return train_df
-        return test_df
+    class _Manager:
+        def resolve_gold_paths(self):
+            return expected_paths
 
-    monkeypatch.setattr(pt, "_read_lakefs_parquet", _fake_read)
+        def read_parquet(self, repository: str, ref: str, path: str):
+            calls.append((repository, ref, path))
+            if path == expected_paths["train"]:
+                return train_df
+            return test_df
+
+    monkeypatch.setattr(pt, "LAKEFS_MANAGER", _Manager())
 
     loaded_train, loaded_test = pt.descargar_datos("repo-dataset", "tag_v1")
 

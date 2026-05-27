@@ -92,8 +92,11 @@ def test_integration_trigger_to_pipeline_uses_expected_client_calls(monkeypatch)
                 return _FakeLakeFSResponse(train_bytes)
             return _FakeLakeFSResponse(test_bytes)
 
+    fake_client = SimpleNamespace(objects_api=_FakeObjectsAPI())
     monkeypatch.setattr(
-        pt, "LAKEFS_CLIENT", SimpleNamespace(objects_api=_FakeObjectsAPI())
+        pt,
+        "LAKEFS_MANAGER",
+        pt.LakeFSManager(client=fake_client, cases_config=pt.CASES_CONFIG),
     )
 
     def _fake_read_parquet(buffer: BytesIO):
