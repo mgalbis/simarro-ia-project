@@ -17,6 +17,7 @@ export default function RightPanel({
   lastReport = null,
   onOpenHistoricalReport = null,
   isCollapsed = false,
+  onDeleteIteration = null,
   onToggleCollapse = null,
   user = null,
 }) {
@@ -204,6 +205,7 @@ export default function RightPanel({
             history={history}
             onOpenHistoricalReport={onOpenHistoricalReport}
             hideTitle={true}
+            onDeleteIteration={onDeleteIteration}
             user={user}
           />
         </div>

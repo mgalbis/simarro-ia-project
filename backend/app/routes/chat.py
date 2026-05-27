@@ -7,6 +7,7 @@ import pandas as pd
 from io import StringIO
 from typing import Optional
 import uuid
+import json
 from app.services.qa_agent import QAAgent
 from app.services.assessment_comparison import build_assessment_comparison
 from app.services.pdf_report import build_pdf_report
@@ -20,11 +21,13 @@ from app.services.session_store import (
     create_session,
     get_report,
     get_session,
+    delete_report, 
     list_sessions,
     update_session_metadata,
     update_session_state,
 )
 from app.services.artifact_store import build_artifacts_zip, save_uploaded_artifact_bytes
+from app.services.conceptual_document_analysis import analyze_conceptual_document
 
 router = APIRouter()
 # Instanciamos el agente fuera para que mantenga su configuración
@@ -137,12 +140,67 @@ async def delete_qabot_session(session_id: str, user_id: str):
         "ok": True
     }
 
+@router.delete("/sessions/{session_id}/reports/{execution_id}")
+async def delete_qabot_report(session_id: str, execution_id: str, user_id: str):
+    deleted = delete_report(execution_id=execution_id, user_id=user_id)
+
+    if not deleted:
+        return {"ok": False, "error": "Report no encontrado o sin permisos."}
+
+    return {"ok": True, "deleted": execution_id}
+
+@router.post("/conceptual-documents/analyze")
+async def analyze_conceptual_document_endpoint(
+    file: UploadFile = File(...),
+    session_id: Optional[str] = Form(None),
+    user_id: Optional[str] = Form(None),
+):
+    content = await file.read()
+
+    try:
+        analysis = analyze_conceptual_document(file.filename, content)
+    except Exception as exc:
+        return {
+            "assistant_message": (
+                "<div class='qa-result-card'>"
+                "<div class='qa-result-header'>"
+                "<span class='qa-strong'>No he podido analizar el documento conceptual</span>"
+                "<span class='qa-badge qa-badge-fail'>ERROR</span>"
+                "</div>"
+                f"<div class='qa-note'>{html.escape(str(exc))}</div>"
+                "</div>"
+            ),
+            "analysis": None,
+            "hasReport": False,
+        }
+
+    if session_id:
+        add_message(
+            session_id=session_id,
+            role="assistant",
+            content=analysis.get("assistant_message", ""),
+        )
+        update_session_state(
+            session_id=session_id,
+            user_id=user_id,
+            active_review_prompt=None,
+            pending_prompt=None,
+            last_processed_file_name=file.filename,
+        )
+
+    return {
+        "assistant_message": analysis.get("assistant_message", ""),
+        "analysis": analysis,
+        "hasReport": False,
+    }
+
 @router.post("/chat")
 async def chat(
     user_message: str = Form(...),
     file: Optional[UploadFile] = File(None),
     session_id: Optional[str] = Form(None),
     user_id: Optional[str] = Form(None),
+    conceptual_analysis: Optional[str] = Form(None),
 ):
     global last_report_cache, reports_history
     df = None
@@ -185,6 +243,11 @@ async def chat(
     execution_id = f"EXEC-{uuid.uuid4().hex[:6].upper()}"
     decision_data = agent.decide(perception)
     response = agent.act(decision_data, execution_id, intent=intent)
+
+    if response.get("report"):
+        conceptual_payload = _parse_conceptual_analysis_payload(conceptual_analysis)
+        if conceptual_payload:
+            response["report"]["conceptual_document_context"] = conceptual_payload
 
     if response.get("report") and response.get("addToHistory", False):
         previous_report = last_report_cache
@@ -256,6 +319,41 @@ async def chat(
             )
 
     return response
+
+
+def _parse_conceptual_analysis_payload(raw: Optional[str]) -> Optional[dict]:
+    if not raw:
+        return None
+
+    try:
+        payload = json.loads(raw)
+    except Exception:
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+
+    # Guardamos solo información funcional/auditable para el informe.
+    allowed_keys = {
+        "analysis_id",
+        "activity_type",
+        "filename",
+        "summary",
+        "entities",
+        "business_rules",
+        "datasets",
+        "models",
+        "dashboards",
+        "metrics",
+        "supported_activities",
+        "unsupported_activities",
+        "suggested_validation_tests",
+        "data_cycle",
+        "selected_activity",
+    }
+
+    cleaned = {key: value for key, value in payload.items() if key in allowed_keys}
+    return cleaned or None
 
 @router.put("/sessions/metadata")
 async def update_qabot_session_metadata(payload: SessionMetadataPayload):
@@ -344,16 +442,23 @@ def _build_transition_row(item: dict) -> str:
 def _status_badge(status: str) -> str:
     normalized = (status or "").upper()
 
-    if normalized in ("PASS", "SUCCESS"):
+    if normalized in ("PASS", "SUCCESS", "PASADA"):
         css_class = "qa-badge qa-badge-pass"
-    elif normalized in ("WARN", "WARNING"):
+        label = "PASADA"
+    elif normalized in ("WARN", "WARNING", "ADVERTENCIA"):
         css_class = "qa-badge qa-badge-warn"
-    elif normalized in ("FAIL", "ERROR"):
+        label = "ADVERTENCIA"
+    elif normalized in ("FAIL", "FALLIDA"):
         css_class = "qa-badge qa-badge-fail"
+        label = "FALLIDA"
+    elif normalized in ("ERROR", "ERRORES"):
+        css_class = "qa-badge qa-badge-fail"
+        label = "ERROR"
     else:
         css_class = "qa-badge"
+        label = normalized or "N/A"
 
-    return f'<span class="{css_class}">{_html_escape(normalized or "N/A")}</span>'
+    return f'<span class="{css_class}">{_html_escape(label)}</span>'
 
 
 def _html_escape(value) -> str:

@@ -9,7 +9,9 @@ export default function ChatPanel({
   clearChat,
   clearActiveReview,
   onFileUpload,
+  onDocumentUpload,
   selectedFile,
+  selectedDocument,
   isLoading,
   lastReport,
   downloadEnabled,
@@ -24,6 +26,7 @@ export default function ChatPanel({
   onLogout = null,
 }) {
   const fileInputRef = useRef(null);
+  const documentInputRef = useRef(null);
 
   const chatScrollRef = useRef(null);
   const chatTopRef = useRef(null);
@@ -77,6 +80,21 @@ export default function ChatPanel({
     if (file) {
       onFileUpload(file);
     }
+
+    // Permite volver a subir el mismo CSV y relanzar la iteración.
+    // Sin este reset el navegador no dispara onChange si el usuario elige
+    // el mismo fichero, dejando el ciclo en "Pendiente de dataset".
+    event.target.value = "";
+  };
+
+  const handleDocumentChange = (event) => {
+    const file = event.target.files[0];
+
+    if (file) {
+      onDocumentUpload?.(file);
+    }
+
+    event.target.value = "";
   };
 
   const handleDownload = () => {
@@ -536,17 +554,35 @@ export default function ChatPanel({
             accept=".csv"
           />
 
+          <input
+            type="file"
+            ref={documentInputRef}
+            onChange={handleDocumentChange}
+            className="hidden"
+            accept=".docx,.ipynb,.txt,.md"
+          />
+
           <button
             className="flex items-center gap-2 bg-[#1a1a2e] border border-qa-purple/50 px-4 py-2.5 rounded-xl text-[11px] font-black text-qa-purple-light shadow-[0_0_15px_rgba(142,53,255,0.1)] hover:bg-qa-purple hover:text-white transition-all uppercase whitespace-nowrap"
             onClick={() => fileInputRef.current.click()}
           >
-            <span>UPLOAD</span>
+            <span>Añadir dataset</span>
             <span className="text-sm">📤</span>
           </button>
 
-          <div className="flex-1 bg-black/40 border border-qa-purple/20 rounded-xl px-4 py-2.5 flex items-center">
+          <button
+            className="flex items-center gap-2 bg-[#111827] border border-qa-green/40 px-4 py-2.5 rounded-xl text-[11px] font-black text-qa-green shadow-[0_0_15px_rgba(0,255,133,0.08)] hover:bg-qa-green hover:text-black transition-all uppercase whitespace-nowrap"
+            onClick={() => documentInputRef.current.click()}
+            disabled={isLoading}
+            title="Subir documento conceptual Word o notebook Jupyter"
+          >
+            <span>Subir documento</span>
+            <span className="text-sm">🧾</span>
+          </button>
+
+          <div className="flex-1 bg-black/40 border border-qa-purple/20 rounded-xl px-4 py-2.5 flex items-center min-w-0">
             <span className="text-[11px] text-qa-muted italic truncate">
-              {selectedFile ? `📄 ${selectedFile.name}` : "No hay archivo seleccionado..."}
+              {selectedFile ? `📊 Dataset: ${selectedFile.name}` : selectedDocument ? `🧾 Documento: ${selectedDocument.name}` : "No hay archivo seleccionado..."}
             </span>
           </div>
         </div>

@@ -6,6 +6,7 @@ import useQABotChat from "./hooks/useQABotChat";
 
 export default function App({ user, onLogout }) {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedDocument, setSelectedDocument] = useState(null);
   const [lastReport, setLastReport] = useState(null);
   const [history, setHistory] = useState([]);
   const [downloadEnabled, setDownloadEnabled] = useState(false);
@@ -19,14 +20,27 @@ export default function App({ user, onLogout }) {
 
   // Función para manejar la subida desde el ChatPanel
   const handleFileUpload = (file) => {
-    console.log("Archivo listo para procesar:", file.name);
+    if (!file) return;
+    console.log("Dataset listo para procesar:", file.name);
+    // Mantener el estado visual legacy sincronizado inmediatamente.
+    // El hook también lo persiste, pero aquí evitamos que el flujo documental
+    // vea dataset=null durante el mismo ciclo de render.
+    setSelectedFile(file);
+    setSelectedDocument(null);
     chat.handleDatasetUploaded(file);
+  };
+
+  const handleDocumentUpload = (file) => {
+    console.log("Documento conceptual listo para analizar:", file.name);
+    setSelectedDocument(file);
+    chat.handleConceptualDocumentUploaded(file);
   };
 
   // Función para resetear todo el sistema y crear un nuevo ciclo
   const handleNewSession = () => {
     chat.newSession();
     setSelectedFile(null);
+    setSelectedDocument(null);
     setLastReport(null);
     setHistory([]);
     setDownloadEnabled(false);
@@ -91,6 +105,22 @@ export default function App({ user, onLogout }) {
     user
   );
 
+  const handleDeleteIteration = async (executionId) => {
+    const deleted = await chat.deleteIteration(executionId);
+    if (!deleted) return;
+
+    setHistory((prev) => {
+      const remaining = prev.filter((item) => item.execution_id !== executionId);
+
+      if (lastReport?.execution_id === executionId) {
+        const newLast = remaining[0]?.report ?? null;
+        setLastReport(newLast);
+        setDownloadEnabled(Boolean(newLast));
+      }
+
+      return remaining;
+    });
+  };
   const gridTemplateColumns = `${leftCollapsed ? "64px" : "320px"} minmax(620px, 1fr) ${
   rightCollapsed ? "64px" : "360px"
 }`;
@@ -134,7 +164,9 @@ export default function App({ user, onLogout }) {
           clearChat={chat.clearChat}
           clearActiveReview={chat.clearActiveReview}
           onFileUpload={handleFileUpload}
+          onDocumentUpload={handleDocumentUpload}
           selectedFile={selectedFile}
+          selectedDocument={selectedDocument}
           isLoading={chat.isLoading}
           lastReport={lastReport} 
           downloadEnabled={downloadEnabled}
@@ -155,6 +187,7 @@ export default function App({ user, onLogout }) {
           lastReport={lastReport}
           onOpenHistoricalReport={handleOpenHistoricalReport}
           isCollapsed={rightCollapsed}
+          onDeleteIteration={handleDeleteIteration}
           onToggleCollapse={() => setRightCollapsed((value) => !value)}
           user={user}
         />

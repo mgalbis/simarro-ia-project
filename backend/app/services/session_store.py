@@ -506,3 +506,29 @@ def add_phase_feedback(
             ),
         )
         conn.commit()
+
+def delete_report(execution_id: str, user_id: Optional[str]) -> bool:
+    init_db()
+    clean_user_id = _require_user_id(user_id)
+
+    with _connect() as conn:
+        valid = conn.execute(
+            """
+            SELECT reports.execution_id
+            FROM reports
+            INNER JOIN sessions ON sessions.session_id = reports.session_id
+            WHERE reports.execution_id = ? AND sessions.user_id = ?
+            """,
+            (execution_id, clean_user_id),
+        ).fetchone()
+
+        if not valid:
+            return False
+
+        conn.execute(
+            "DELETE FROM reports WHERE execution_id = ?",
+            (execution_id,),
+        )
+        conn.commit()
+
+    return True

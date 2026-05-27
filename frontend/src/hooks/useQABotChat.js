@@ -32,6 +32,9 @@ export default function useQABotChat(
   // Último fichero procesado. Sirve para detectar nuevas versiones del artefacto.
   const [lastProcessedFileName, setLastProcessedFileName] = useState(null);
 
+  // Último análisis conceptual usado como memoria funcional del ciclo.
+  const [conceptualAnalysis, setConceptualAnalysis] = useState(null);
+
   const timestamp = () =>
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
@@ -139,6 +142,7 @@ export default function useQABotChat(
       setActiveReviewPrompt(session.active_review_prompt ?? null);
       setPendingPrompt(session.pending_prompt ?? null);
       setLastProcessedFileName(session.last_processed_file_name ?? null);
+      setConceptualAnalysis(null);
 
       if (session.reports?.length && onSessionReportsRestored) {
         const restoredReports = session.reports.map((report) => ({
@@ -204,6 +208,21 @@ export default function useQABotChat(
 
   const inferTestPhaseFromPrompt = (prompt) => {
     const text = (prompt || "").toLowerCase();
+
+    // Mejora documental aislada: solo aplica cuando el prompt llega con una directiva explícita desde el DC.
+    // El comportamiento legacy de inferencia por revisión/dataset queda intacto.
+    if (text.includes("activity_type=minable_dataset_validation") || text.includes("actividad seleccionada: minable_dataset_validation")) {
+      return "Validación de tabla minable";
+    }
+    if (text.includes("activity_type=dataset_split_validation") || text.includes("actividad seleccionada: dataset_split_validation")) {
+      return "Particiones train/validation/test";
+    }
+    if (text.includes("activity_type=model_performance_evaluation") || text.includes("actividad seleccionada: model_performance_evaluation")) {
+      return "Desempeño del modelo";
+    }
+    if (text.includes("activity_type=threshold_quality_evaluation") || text.includes("actividad seleccionada: threshold_quality_evaluation")) {
+      return "Scores y umbrales";
+    }
 
     // El orden es importante: algunos prompts de modelo o particiones contienen
     // palabras genéricas como "dataset" o "target". Por eso primero se evalúan
@@ -403,6 +422,338 @@ export default function useQABotChat(
     });
   };
 
+  const buildPromptFromConceptualActivity = (activityType, originalPrompt = "") => {
+    const selectedActivity = conceptualAnalysis?.supported_activities?.find(
+      (activity) => activity.activity_type === activityType
+    );
+
+    const tests = selectedActivity?.tests || [];
+    const rules = conceptualAnalysis?.business_rules || [];
+    const metrics = conceptualAnalysis?.metrics || [];
+    const datasets = conceptualAnalysis?.datasets || [];
+
+    const basePrompt = selectedActivity
+      ? [
+          `activity_type=${selectedActivity.activity_type}`,
+          `Actividad seleccionada: ${selectedActivity.activity_type}`,
+          `Ejecuta ${selectedActivity.activity_type}: ${selectedActivity.label}.`,
+          tests.length ? `Pruebas solicitadas: ${tests.join(", ")}.` : null,
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : originalPrompt;
+
+    return [
+      basePrompt,
+      originalPrompt ? `Petición literal del usuario: ${originalPrompt}` : null,
+      datasets.length ? `Datasets documentales detectados: ${datasets.join("; ")}.` : null,
+      rules.length ? `Reglas documentales DC: ${rules.slice(0, 8).join(" | ")}.` : null,
+      metrics.length ? `Métricas/valores documentales detectados: ${metrics.join(", ")}.` : null,
+      "Ejecuta exclusivamente las pruebas de la actividad seleccionada y aplica los valores/reglas del DC cuando estén informados.",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  };
+
+  const buildCycleMetadataFromConceptualActivity = (activity) => {
+    if (!activity) return null;
+
+    const label = activity.label || activity.activity_type;
+
+    return {
+      project_label: activity.activity_type,
+      review_label: `Ciclo DC - ${label}`,
+      test_phase: label,
+    };
+  };
+
+  const getMetadataFromExplicitActivityPrompt = (prompt) => {
+    const text = (prompt || "").toLowerCase();
+
+    const catalog = [
+      {
+        key: "minable_dataset_validation",
+        project_label: "MINABLE_DATASET_VALIDATION",
+        review_label: "Validación de tabla minable",
+        test_phase: "Tabla minable",
+      },
+      {
+        key: "dataset_split_validation",
+        project_label: "DATASET_SPLIT_VALIDATION",
+        review_label: "Validación de particiones train/validation/test",
+        test_phase: "Particiones train/validation/test",
+      },
+      {
+        key: "model_performance_evaluation",
+        project_label: "MODEL_PERFORMANCE_EVALUATION",
+        review_label: "Evaluación de desempeño del modelo",
+        test_phase: "Desempeño del modelo",
+      },
+      {
+        key: "threshold_quality_evaluation",
+        project_label: "THRESHOLD_QUALITY_EVALUATION",
+        review_label: "Evaluación de scores y umbrales",
+        test_phase: "Scores y umbrales",
+      },
+    ];
+
+    const matched = catalog.find((item) =>
+      text.includes(`activity_type=${item.key}`) ||
+      text.includes(`actividad seleccionada: ${item.key}`) ||
+      text.includes(item.project_label.toLowerCase())
+    );
+
+    return matched
+      ? {
+          project_label: matched.project_label,
+          review_label: matched.review_label,
+          test_phase: matched.test_phase,
+        }
+      : null;
+  };
+
+  const ensureCycleMetadataForExecution = async (currentSessionId, cleanPrompt, fileToUse) => {
+    const activeSession = getActiveSession(currentSessionId);
+
+    if (activeSession?.project_label && activeSession?.review_label) {
+      return true;
+    }
+
+    // 1) Prioridad DC: si el usuario eligió una actividad documental, no se infiere otra.
+    const conceptualActivity = matchConceptualActivityFromPrompt(cleanPrompt);
+    const conceptualMetadata = buildCycleMetadataFromConceptualActivity(conceptualActivity);
+    if (conceptualMetadata) {
+      await updateCycleMetadata(conceptualMetadata);
+      return true;
+    }
+
+    // 2) Directiva explícita de activity_type generada por el modo documental.
+    const explicitActivityMetadata = getMetadataFromExplicitActivityPrompt(cleanPrompt);
+    if (explicitActivityMetadata) {
+      await updateCycleMetadata(explicitActivityMetadata);
+      return true;
+    }
+
+    // 3) Comportamiento original: inferencia por nombre/cabeceras del dataset.
+    if (fileToUse) {
+      const inferredContext = await inferDatasetExecutionContext(fileToUse);
+      if (inferredContext?.metadata) {
+        await updateCycleMetadata(inferredContext.metadata);
+        return true;
+      }
+    }
+
+    // 4) Último fallback legacy: inferencia por texto de revisión.
+    const detectedPhase = inferTestPhaseFromPrompt(cleanPrompt);
+    if (detectedPhase && detectedPhase !== "Fase no determinada") {
+      await updateCycleMetadata({
+        project_label: detectedPhase.toUpperCase().replace(/[^A-Z0-9]+/g, "_"),
+        review_label: cleanPrompt.slice(0, 80) || detectedPhase,
+        test_phase: detectedPhase,
+      });
+      return true;
+    }
+
+    return false;
+  };
+
+  const normalizeActivityText = (value) =>
+    (value || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const matchConceptualActivityFromPrompt = (prompt) => {
+    if (!conceptualAnalysis?.supported_activities?.length) return null;
+
+    const text = normalizeActivityText(prompt);
+
+    const aliases = {
+      MINABLE_DATASET_VALIDATION: [
+        "validacion de tabla minable",
+        "tabla minable",
+        "calidad de tabla minable",
+        "validar tabla minable",
+        "validacion calidad dataset",
+        "calidad dataset",
+        "nulos duplicados data types outliers balance skewness",
+        "nulls duplicates data types outliers balance skewness",
+      ],
+      MODEL_PERFORMANCE_EVALUATION: [
+        "evaluacion de desempeno del modelo",
+        "desempeno del modelo",
+        "rendimiento del modelo",
+        "performance del modelo",
+        "accuracy precision recall f1 auc",
+      ],
+      DATASET_SPLIT_VALIDATION: [
+        "validacion de particiones train validation test",
+        "particiones train validation test",
+        "dataset split",
+        "split validation",
+        "train validation test",
+      ],
+      THRESHOLD_QUALITY_EVALUATION: [
+        "evaluacion de scores y umbrales",
+        "scores y umbrales",
+        "umbral",
+        "threshold",
+        "punto de corte",
+      ],
+    };
+
+    const scored = conceptualAnalysis.supported_activities.map((activity) => {
+      const activityTypeRaw = activity.activity_type || "";
+      const activityType = normalizeActivityText(activityTypeRaw);
+      const label = normalizeActivityText(activity.label);
+      const tests = activity.tests || [];
+      let score = 0;
+
+      if (activityType && text.includes(activityType)) score += 120;
+      if (label && text.includes(label)) score += 100;
+
+      const activityAliases = aliases[activityTypeRaw] || [];
+      activityAliases.forEach((alias) => {
+        const normalizedAlias = normalizeActivityText(alias);
+        if (normalizedAlias && text.includes(normalizedAlias)) score += 90;
+      });
+
+      if (activityTypeRaw === "MINABLE_DATASET_VALIDATION") {
+        ["minable", "nulos", "nulls", "duplicados", "duplicates", "outliers", "tipos", "data types", "balance", "skewness"].forEach((word) => {
+          if (text.includes(normalizeActivityText(word))) score += 12;
+        });
+      }
+
+      if (activityTypeRaw === "MODEL_PERFORMANCE_EVALUATION") {
+        ["modelo", "desempeno", "performance", "accuracy", "precision", "recall", "f1", "auc"].forEach((word) => {
+          if (text.includes(normalizeActivityText(word))) score += 16;
+        });
+      }
+
+      if (activityTypeRaw === "DATASET_SPLIT_VALIDATION") {
+        ["split", "particion", "particiones", "train", "validation", "test", "conjunto"].forEach((word) => {
+          if (text.includes(normalizeActivityText(word))) score += 16;
+        });
+      }
+
+      if (activityTypeRaw === "THRESHOLD_QUALITY_EVALUATION") {
+        ["umbral", "threshold", "punto de corte", "score"].forEach((word) => {
+          if (text.includes(normalizeActivityText(word))) score += 16;
+        });
+      }
+
+      tests.forEach((testName) => {
+        const test = normalizeActivityText(testName);
+        if (test && text.includes(test)) score += 18;
+      });
+
+      return { activity, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+
+    return scored[0]?.score > 0 ? scored[0].activity : null;
+  };
+
+
+
+  const readCsvHeader = async (file) => {
+    if (!file || !file.name?.toLowerCase().endsWith(".csv")) return [];
+
+    try {
+      const text = await file.slice(0, 4096).text();
+      const firstLine = text.split(/\r?\n/).find((line) => line.trim());
+      if (!firstLine) return [];
+
+      return firstLine
+        .split(",")
+        .map((column) => column.trim().replace(/^"|"$/g, ""))
+        .filter(Boolean);
+    } catch (error) {
+      console.warn("No se pudo leer la cabecera del dataset", error);
+      return [];
+    }
+  };
+
+  const inferDatasetExecutionContext = async (file) => {
+    const fileName = (file?.name || "").toLowerCase();
+    const columns = await readCsvHeader(file);
+    const lowerColumns = columns.map((column) => column.toLowerCase());
+
+    const hasColumn = (...names) =>
+      lowerColumns.some((column) => names.some((name) => column === name || column.includes(name)));
+
+    const targetColumn =
+      columns.find((column) => ["abandono", "target", "y_true", "real", "label", "clase"].includes(column.toLowerCase())) ||
+      columns.find((column) => ["target", "label", "clase", "real"].some((name) => column.toLowerCase().includes(name)));
+
+    const scoreColumn =
+      columns.find((column) => ["probabilidad_abandono", "score", "prediction", "prediccion", "predicción", "y_pred", "probabilidad"].includes(column.toLowerCase())) ||
+      columns.find((column) => ["probabilidad", "score", "pred", "prediction"].some((name) => column.toLowerCase().includes(name)));
+
+    const splitColumn =
+      columns.find((column) => ["conjunto", "split", "partition", "particion", "partición", "subset"].includes(column.toLowerCase())) ||
+      columns.find((column) => ["split", "conjunto", "partition", "particion", "subset"].some((name) => column.toLowerCase().includes(name)));
+
+    const idColumn =
+      columns.find((column) => ["cliente_id", "id", "customer_id", "row_id"].includes(column.toLowerCase())) ||
+      columns.find((column) => column.toLowerCase().endsWith("_id"));
+
+    if (fileName.includes("model_performance") || (targetColumn && scoreColumn)) {
+      return {
+        prompt: [
+          "Evalúa el desempeño del modelo",
+          targetColumn ? `target es ${targetColumn}` : null,
+          scoreColumn ? `score es ${scoreColumn}` : null,
+          idColumn ? `id es ${idColumn}` : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
+        metadata: {
+          project_label: "MODEL_PERFORMANCE_EVALUATION",
+          review_label: "Evaluación de desempeño del modelo",
+          test_phase: "Desempeño del modelo",
+        },
+      };
+    }
+
+    if (fileName.includes("split") || splitColumn || hasColumn("train", "validation", "test")) {
+      return {
+        prompt: [
+          "Valida las particiones train/validation/test del dataset",
+          splitColumn ? `split es ${splitColumn}` : null,
+          targetColumn ? `target es ${targetColumn}` : null,
+          idColumn ? `id es ${idColumn}` : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
+        metadata: {
+          project_label: "DATASET_SPLIT_VALIDATION",
+          review_label: "Validación de particiones train/validation/test",
+          test_phase: "Particiones train/validation/test",
+        },
+      };
+    }
+
+    return {
+      prompt: [
+        "Valida la calidad de tabla minable del dataset",
+        targetColumn ? `target es ${targetColumn}` : null,
+        idColumn ? `id es ${idColumn}` : null,
+      ]
+        .filter(Boolean)
+        .join(" "),
+      metadata: {
+        project_label: "MINABLE_DATASET_VALIDATION",
+        review_label: "Validación de tabla minable",
+        test_phase: "Tabla minable",
+      },
+    };
+  };
   const runAssessment = async ({
     promptToRun,
     fileToUse,
@@ -514,8 +865,17 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
     try {
       const currentSessionId = await ensureServerSession();
 
-      // Caso 2: hay artefacto, pero el ciclo no está configurado.
-      if (!hasRequiredCycleMetadata(currentSessionId)) {
+      // Caso 2: hay artefacto. Antes de bloquear, restauramos el comportamiento original:
+      // si el dataset o la petición permiten identificar la actividad/fase, autocompletamos
+      // proyecto/ciclo/fase y ejecutamos. El modo DC solo tiene prioridad cuando existe
+      // una actividad documental elegida explícitamente.
+      const hasExecutableMetadata = await ensureCycleMetadataForExecution(
+        currentSessionId,
+        cleanPrompt,
+        fileToUse
+      );
+
+      if (!hasExecutableMetadata) {
         addMessage(
           "assistant",
           "Antes de ejecutar la primera iteración debes completar los datos obligatorios del ciclo de pruebas: proyecto y título del ciclo."
@@ -540,6 +900,17 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
       formData.append("session_id", currentSessionId);
       formData.append("user_id", USER_ID);
       formData.append("file", fileToUse);
+
+      if (conceptualAnalysis) {
+        const matchedActivity = matchConceptualActivityFromPrompt(cleanPrompt);
+        formData.append(
+          "conceptual_analysis",
+          JSON.stringify({
+            ...conceptualAnalysis,
+            selected_activity: matchedActivity || null,
+          })
+        );
+      }
 
       await addProgressMessages();
 
@@ -597,6 +968,31 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
     // Si no hay texto ni archivo, no hacemos nada.
     if (!promptToRun && !selectedFile) return;
 
+    const conceptualActivity = matchConceptualActivityFromPrompt(promptToRun);
+
+    if (conceptualActivity && !selectedFile) {
+      const conceptualPrompt = buildPromptFromConceptualActivity(
+        conceptualActivity.activity_type,
+        promptToRun
+      );
+
+      addMessage("user", promptToRun);
+      setInput("");
+
+      const metadata = buildCycleMetadataFromConceptualActivity(conceptualActivity);
+      if (metadata) {
+        await updateCycleMetadata(metadata);
+      }
+
+      await runAssessment({
+        promptToRun: conceptualPrompt,
+        fileToUse: null,
+        autoTriggered: false,
+      });
+
+      return;
+    }
+
     // Si el usuario solo sube un archivo y ya hay ciclo de pruebas activo,
     // no hace falta inventar un prompt genérico.
     if (!promptToRun && selectedFile && activeReviewPrompt) {
@@ -617,8 +1013,20 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
 
     setInput("");
 
+    let promptForExecution = promptToRun || activeReviewPrompt || "Analiza este dataset";
+
+    // Comportamiento legacy protegido: si el usuario entrega solo dataset,
+    // inferimos actividad/fase desde nombre y columnas antes de ejecutar.
+    if (!promptToRun && selectedFile && !activeReviewPrompt) {
+      const inferredContext = await inferDatasetExecutionContext(selectedFile);
+      promptForExecution = inferredContext.prompt;
+      if (inferredContext.metadata) {
+        await updateCycleMetadata(inferredContext.metadata);
+      }
+    }
+
     await runAssessment({
-      promptToRun: promptToRun || activeReviewPrompt || "Analiza este dataset",
+      promptToRun: promptForExecution,
       fileToUse: selectedFile,
       autoTriggered: false,
     });
@@ -653,6 +1061,86 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
         autoTriggered: true,
         reason: "new_artifact_version",
       });
+      return;
+    }
+
+    // Caso 3: comportamiento original de ayuda por columnas/nombre del dataset.
+    // No ejecuta todavía; solo prepara fase/proyecto/ciclo para que el usuario pueda revisar.
+    const inferredContext = await inferDatasetExecutionContext(file);
+    if (inferredContext?.metadata) {
+      await updateCycleMetadata(inferredContext.metadata);
+    }
+  };
+
+  const handleConceptualDocumentUploaded = async (file) => {
+    if (!file || isLoading) return;
+
+    try {
+      const currentSessionId = await ensureServerSession();
+      setIsLoading(true);
+      setDownloadEnabled(false);
+      setConceptualAnalysis(null);
+
+      const userContent = `He subido el documento de especificación ${file.name}`;
+      const receivedContent = `He recibido el documento de especificación <b>${file.name}</b>. Voy a revisarlo para detectar actividades, reglas de negocio, datasets, modelos, dashboards, métricas y pruebas asociadas.`;
+
+      addMessage("user", userContent);
+      addMessage("assistant", receivedContent);
+
+      const conceptualSteps = [
+        "Pensando... interpretando documento conceptual...",
+        "Detectando entidades funcionales y reglas de negocio...",
+        "Mapeando actividades al catálogo de reglas QA...",
+        "Generando propuesta de validaciones y pruebas...",
+      ];
+
+      for (const step of conceptualSteps) {
+        addMessage("assistant", `<span class="text-qa-muted">${step}</span>`);
+        await new Promise((resolve) => setTimeout(resolve, 350));
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("session_id", currentSessionId);
+      formData.append("user_id", USER_ID);
+
+      const response = await fetch("http://localhost:8000/conceptual-documents/analyze", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Error analizando el documento conceptual");
+      }
+
+      const data = await response.json();
+      setConceptualAnalysis(data.analysis || null);
+
+      await addAssistantMessageProgressively(data.assistant_message);
+
+      await fetch("http://localhost:8000/sessions/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          session_id: currentSessionId,
+          user_id: USER_ID,
+          role: "user",
+          content: userContent,
+          timestamp: timestamp(),
+        }),
+      });
+
+      await loadAvailableSessions();
+    } catch (error) {
+      console.error("Error en análisis conceptual:", error);
+      addMessage(
+        "assistant",
+        "No he podido analizar el documento conceptual. Revisa que sea un .docx, .ipynb, .txt o .md válido y que el backend esté arrancado."
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -799,6 +1287,7 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
     setPendingPrompt(null);
     setActiveReviewPrompt(null);
     setLastProcessedFileName(null);
+    setConceptualAnalysis(null);
     setInput("");
 
     if (setDownloadEnabled) {
@@ -812,6 +1301,7 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
     setPendingPrompt(null);
     setActiveReviewPrompt(null);
     setLastProcessedFileName(null);
+    setConceptualAnalysis(null);
 
     if (setSelectedFile) {
       setSelectedFile(null);
@@ -880,6 +1370,27 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
     }
   };
 
+  const deleteIteration = async (executionId) => {
+    if (!executionId || !sessionId || !USER_ID) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:8000/sessions/${sessionId}/reports/${executionId}?user_id=${USER_ID}`,
+        { method: "DELETE" }
+      );
+
+      if (!response.ok) {
+        console.warn("No se pudo eliminar la iteración en el servidor.");
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error eliminando iteración:", error);
+      return false;
+    }
+  };
+
   return {
     messages,
     input,
@@ -890,6 +1401,8 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
     newSession,
     isLoading,
     handleDatasetUploaded,
+    handleConceptualDocumentUploaded,
+    conceptualAnalysis,
     pendingPrompt,
     activeReviewPrompt,
     sessionId,
@@ -899,5 +1412,6 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
     updateCycleMetadata,
     inferTestPhaseFromPrompt,
     reportPhaseFeedback,
+    deleteIteration,
   };
 }

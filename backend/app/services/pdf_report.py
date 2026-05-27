@@ -56,6 +56,7 @@ def build_pdf_report(report: Dict[str, Any]) -> bytes:
     _add_summary(elements, styles, report)
     _add_test_plan(elements, styles, report)
     _add_results(elements, styles, report)
+    _add_conceptual_document_context(elements, styles, report)
     _add_comparison(elements, styles, report)
     _add_footer_note(elements, styles)
 
@@ -382,13 +383,179 @@ def _add_recommendations(elements, styles, result):
     elements.append(_table(rows, [1.5 * cm, 22 * cm]))
 
 
+
+def _add_conceptual_document_context(elements, styles, report):
+    dc = report.get("conceptual_document_context") or {}
+
+    if not dc:
+        return
+
+    elements.append(Paragraph("4. Trazabilidad con documento conceptual (DC)", styles["h1"]))
+
+    selected = dc.get("selected_activity") or _infer_selected_activity_from_report(dc, report)
+    selected_label = "N/A"
+    selected_type = report.get("activity_type", "N/A")
+    selected_tests = []
+
+    if isinstance(selected, dict):
+        selected_type = selected.get("activity_type") or selected_type
+        selected_label = selected.get("label") or selected_type
+        selected_tests = selected.get("tests") or []
+
+    overview_rows = [
+        ["Documento DC", dc.get("filename", "N/A")],
+        ["Análisis DC", dc.get("analysis_id", "N/A")],
+        ["Actividad solicitada", selected_type],
+        ["Fase/actividad DC", selected_label],
+        ["Pruebas solicitadas por DC", ", ".join(selected_tests) if selected_tests else _tests_from_report(report)],
+    ]
+    elements.append(_table(overview_rows, [6 * cm, 19 * cm]))
+    elements.append(Spacer(1, 0.2 * cm))
+
+    summary = dc.get("summary")
+    if summary:
+        elements.append(Paragraph("Qué indica el DC", styles["h2"]))
+        elements.append(Paragraph(_trim(summary, 1200), styles["normal"]))
+        elements.append(Spacer(1, 0.15 * cm))
+
+    rules = dc.get("business_rules") or []
+    if rules:
+        elements.append(Paragraph("Reglas/criterios funcionales extraídos del DC", styles["h2"]))
+        rows = [["#", "Regla del DC"]]
+        for index, rule in enumerate(rules[:12], start=1):
+            rows.append([index, _trim(rule, 260)])
+        elements.append(_table(rows, [1.3 * cm, 23 * cm]))
+        elements.append(Spacer(1, 0.2 * cm))
+
+    data_cycle = dc.get("data_cycle") or {}
+    if data_cycle:
+        elements.append(Paragraph("Ciclo del dato definido/inferido", styles["h2"]))
+        rows = [["Bloque", "Contenido"]]
+        for key, label in [
+            ("input", "Entrada"),
+            ("transformation", "Transformación"),
+            ("validation", "Validación"),
+            ("output", "Salida"),
+        ]:
+            value = data_cycle.get(key, [])
+            rows.append([label, _list_to_text(value)])
+        elements.append(_table(rows, [4 * cm, 21 * cm]))
+        elements.append(Spacer(1, 0.2 * cm))
+
+    elements.append(Paragraph("Resultado de la prueba solicitada frente al DC", styles["h2"]))
+    rows = [["Prueba", "Estado", "Criterio DC aplicado", "Justificación del resultado"]]
+    rules_text = " | ".join(str(rule) for rule in rules)
+
+    for result in report.get("results", []):
+        name = result.get("name", "")
+        label = TEST_LABELS.get(name, name)
+        status = result.get("status", "N/A")
+        criterion = _match_dc_criterion(name, rules_text, selected_tests, dc)
+        justification = _build_dc_result_justification(result)
+        rows.append([label, status, criterion, justification])
+
+    if len(rows) > 1:
+        elements.append(_table(rows, [4.5 * cm, 2.3 * cm, 8 * cm, 11 * cm]))
+    else:
+        elements.append(Paragraph("No hay resultados ejecutados para contrastar con el DC.", styles["normal"]))
+
+    elements.append(Spacer(1, 0.25 * cm))
+
+
+def _infer_selected_activity_from_report(dc, report):
+    activity_type = report.get("activity_type")
+    for activity in dc.get("supported_activities") or []:
+        if activity.get("activity_type") == activity_type:
+            return activity
+    return None
+
+
+def _tests_from_report(report):
+    names = [TEST_LABELS.get(result.get("name", ""), result.get("name", "")) for result in report.get("results", [])]
+    return ", ".join([name for name in names if name]) or "N/A"
+
+
+def _list_to_text(value):
+    if isinstance(value, list):
+        return "; ".join(str(item) for item in value) if value else "N/A"
+    if isinstance(value, dict):
+        return str(value)
+    return str(value or "N/A")
+
+
+def _match_dc_criterion(test_name, rules_text, selected_tests, dc):
+    test_key = (test_name or "").lower()
+    if selected_tests and test_name not in selected_tests:
+        return "Prueba ejecutada como parte del ciclo QA; no aparece como prueba principal seleccionada en el DC."
+
+    snippets = []
+    for rule in dc.get("business_rules") or []:
+        lower = str(rule).lower()
+        if test_key in lower or TEST_LABELS.get(test_key, "").lower() in lower:
+            snippets.append(str(rule))
+
+    keyword_map = {
+        "nulls": ["nulo", "null", "vacío", "vacio"],
+        "duplicates": ["duplic", "unicidad"],
+        "data_types": ["tipo", "formato"],
+        "outliers": ["outlier", "atípico", "atipico"],
+        "balance": ["balance", "desbalance", "clase"],
+        "skewness": ["skew", "asimetr"],
+        "model_performance": ["accuracy", "precision", "recall", "f1", "auc", "modelo"],
+        "dataset_split": ["split", "partición", "particion", "train", "validation", "test"],
+    }
+
+    if not snippets:
+        for keyword in keyword_map.get(test_key, []):
+            for rule in dc.get("business_rules") or []:
+                if keyword in str(rule).lower():
+                    snippets.append(str(rule))
+
+    if snippets:
+        return _trim(" | ".join(dict.fromkeys(snippets)), 360)
+
+    metrics = dc.get("metrics") or []
+    if test_key in metrics:
+        return f"El DC menciona la métrica/prueba '{test_key}' como criterio de validación."
+
+    return "Criterio inferido desde la actividad seleccionada en el DC y el catálogo de reglas QA."
+
+
+def _build_dc_result_justification(result):
+    status = str(result.get("status", "N/A")).upper()
+    summary = result.get("summary") or ""
+    recommendations = result.get("recommendations") or []
+
+    if status in {"PASS", "SUCCESS"}:
+        prefix = "PASADA: el dataset cumple el criterio evaluado."
+    elif status in {"WARN", "WARNING"}:
+        prefix = "ADVERTENCIA: el dataset cumple parcialmente o presenta riesgo funcional."
+    elif status in {"FAIL", "ERROR"}:
+        prefix = "ERROR/FAIL: el dataset no cumple el criterio evaluado."
+    else:
+        prefix = "Resultado no concluyente."
+
+    parts = [prefix]
+    if summary:
+        parts.append(str(summary))
+    if recommendations:
+        parts.append("Recomendación: " + str(recommendations[0]))
+
+    return _trim(" ".join(parts), 520)
+
+
+def _trim(value, max_chars=300):
+    text = "" if value is None else str(value)
+    return text if len(text) <= max_chars else text[: max_chars - 3] + "..."
+
 def _add_comparison(elements, styles, report):
     comparison = report.get("comparison_vs_previous")
 
     if not comparison:
         return
 
-    elements.append(Paragraph("4. Comparacion con revision anterior", styles["h1"]))
+    section_number = "5" if report.get("conceptual_document_context") else "4"
+    elements.append(Paragraph(f"{section_number}. Comparacion con revision anterior", styles["h1"]))
 
     if not comparison.get("comparable"):
         elements.append(

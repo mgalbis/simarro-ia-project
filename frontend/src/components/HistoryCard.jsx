@@ -1,9 +1,11 @@
 import React from "react";
+import { useState } from "react";
 
 export default function HistoryCard({
   history = [],
   onOpenHistoricalReport,
   onDownloadArtifacts,
+  onDeleteIteration = null,
   hideTitle = false,
   user = null,
 }) {
@@ -72,7 +74,69 @@ export default function HistoryCard({
     );
   };
 
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
   return (
+      <>
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setConfirmDelete(null)}
+        >
+          <div
+            className="bg-[#0e0e1f] border border-qa-magenta/40 rounded-2xl p-6 w-[340px] shadow-[0_0_40px_rgba(255,0,100,0.15)] flex flex-col gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-qa-magenta text-2xl">⚠</span>
+              <div>
+                <div className="text-white font-black text-[13px] uppercase tracking-wider">
+                  Eliminar iteración {confirmDelete.iterationNumber}
+                </div>
+                <div className="text-white/40 text-[10px] font-bold uppercase mt-0.5">
+                  {confirmDelete.executionId}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 text-[11px] text-white/60 leading-relaxed border border-white/5 rounded-xl p-3 bg-black/30">
+              <div className="flex items-start gap-2">
+                <span className="text-qa-magenta mt-0.5">●</span>
+                <span>Esta acción <b className="text-white/80">no se puede deshacer</b>.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-qa-magenta mt-0.5">●</span>
+                <span>El informe PDF de esta iteración <b className="text-white/80">dejará de estar disponible</b>.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-qa-magenta mt-0.5">●</span>
+                <span>Los artefactos y evidencias asociados <b className="text-white/80">se eliminarán del historial</b>.</span>
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end mt-1">
+              <button
+                type="button"
+                className="text-[10px] uppercase font-black text-white/60 border border-white/10 rounded-lg px-4 py-2 hover:bg-white/5 transition-all"
+                onClick={() => setConfirmDelete(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="text-[10px] uppercase font-black text-white bg-gradient-to-r from-red-700 to-red-600 border border-red-500/30 rounded-lg px-4 py-2 hover:brightness-110 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(220,38,38,0.3)]"
+                onClick={() => {
+                  onDeleteIteration?.(confirmDelete.executionId);
+                  setConfirmDelete(null);
+                }}
+              >
+                Eliminar iteración
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     <div className="flex flex-col gap-3 h-full">
       {!hideTitle && (
         <div className="flex items-center gap-2 text-qa-purple-light font-black text-[13px] tracking-wider uppercase">
@@ -182,7 +246,7 @@ export default function HistoryCard({
                     className="text-[14px] leading-none text-qa-magenta hover:text-white transition-all px-1"
                     onClick={(event) => {
                       event.stopPropagation();
-                      alert("La eliminación de iteraciones todavía no está implementada.");
+                      setConfirmDelete({ executionId, iterationNumber });
                     }}
                     title="Eliminar iteración"
                   >
@@ -195,5 +259,5 @@ export default function HistoryCard({
         </div>
       )}
     </div>
-  );
-}
+  </>
+);}

@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from typing import Any, Dict, List, Optional
 
 from app.schemas.quality_assessment import ActivityType
@@ -83,6 +84,14 @@ TEST_KEYWORDS = {
 }
 
 
+def _normalize_text(value: str) -> str:
+    text = unicodedata.normalize("NFD", value or "")
+    text = "".join(char for char in text if unicodedata.category(char) != "Mn")
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9_]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def interpret_user_intent(message: str) -> Dict[str, Any]:
     """
     Interpretación determinista preliminar del mensaje del usuario.
@@ -91,6 +100,7 @@ def interpret_user_intent(message: str) -> Dict[str, Any]:
     en la versión mínima viable.
     """
     lower = message.lower()
+    normalized = _normalize_text(message)
 
     if _is_download_request(lower):
         return {
@@ -134,7 +144,7 @@ def interpret_user_intent(message: str) -> Dict[str, Any]:
             "excluded_columns": [],
         }
 
-    activity_type = _detect_activity_type(lower)
+    activity_type = _detect_activity_type(lower, normalized)
     requested_tests = _detect_requested_tests(lower, activity_type)
 
     target_column = _extract_column_after_patterns(
@@ -181,6 +191,24 @@ def interpret_user_intent(message: str) -> Dict[str, Any]:
     }
 
 
+
+def _extract_explicit_activity_type(lower: str) -> Optional[str]:
+    """Respeta directivas explícitas enviadas por el flujo de documento conceptual.
+
+    Esta función no altera el comportamiento legacy para solicitudes normales; solo
+    se activa cuando el prompt contiene una etiqueta activity_type/actividad clara.
+    """
+    for activity_type in ActivityType:
+        value = activity_type.value.lower()
+        if (
+            f"activity_type={value}" in lower
+            or f"actividad={value}" in lower
+            or f"ejecuta {value}" in lower
+            or f"actividad seleccionada: {value}" in lower
+        ):
+            return activity_type.value
+    return None
+
 def _is_download_request(lower: str) -> bool:
     return any(
         expression in lower
@@ -193,7 +221,43 @@ def _is_download_request(lower: str) -> bool:
     )
 
 
-def _detect_activity_type(lower: str) -> str:
+def _detect_activity_type(lower: str, normalized: Optional[str] = None) -> str:
+    normalized = normalized or _normalize_text(lower)
+    explicit_activity = _extract_explicit_activity_type(lower)
+    if explicit_activity:
+        return explicit_activity
+
+    # Directiva semántica del flujo documental: frases humanas del DC deben
+    # resolverse a la actividad canónica antes de llegar al ejecutor.
+    minable_aliases = [
+        "tabla minable",
+        "validacion de tabla minable",
+        "calidad de tabla minable",
+        "validar tabla minable",
+        "nulos duplicates data types outliers balance skewness",
+        "nulls duplicates data types outliers balance skewness",
+    ]
+    if any(alias in normalized for alias in minable_aliases):
+        return ActivityType.MINABLE_DATASET_VALIDATION.value
+
+    model_aliases = [
+        "desempeno del modelo",
+        "evaluacion de desempeno del modelo",
+        "rendimiento del modelo",
+        "performance del modelo",
+    ]
+    if any(alias in normalized for alias in model_aliases):
+        return ActivityType.MODEL_PERFORMANCE_EVALUATION.value
+
+    split_aliases = [
+        "validacion de particiones train validation test",
+        "particiones train validation test",
+        "dataset split",
+        "split validation",
+    ]
+    if any(alias in normalized for alias in split_aliases):
+        return ActivityType.DATASET_SPLIT_VALIDATION.value
+
     mentions_model_performance = (
         any(keyword in lower for keyword in TEST_KEYWORDS["model_performance"])
         or "matriz de confusión" in lower

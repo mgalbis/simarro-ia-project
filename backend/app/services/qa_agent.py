@@ -43,7 +43,7 @@ class QAAgent:
             return {
                 "action": "unknown_action",
             }
-            
+
         if intent.get("intent") == "download_report":
             return {
                 "action": "download_report",
@@ -142,6 +142,42 @@ class QAAgent:
             "execution_id": execution_id,
         }
 
+    def _infer_column_from_dataset(self, df, explicit_name, candidates, contains_candidates=None, suffix_candidates=None):
+        if df is None or df.empty:
+            return explicit_name
+
+        columns = list(df.columns)
+        by_lower = {str(column).lower(): str(column) for column in columns}
+
+        if explicit_name:
+            explicit_lower = str(explicit_name).lower()
+            if explicit_lower in by_lower:
+                return by_lower[explicit_lower]
+            for column in columns:
+                if explicit_lower == str(column).lower():
+                    return str(column)
+            # Si el prompt traía una columna inventada por texto documental
+            # (por ejemplo "dataset es documentales"), no bloqueamos la ejecución.
+            explicit_name = None
+
+        for candidate in candidates:
+            if candidate.lower() in by_lower:
+                return by_lower[candidate.lower()]
+
+        contains_candidates = contains_candidates or candidates
+        for column in columns:
+            column_lower = str(column).lower()
+            if any(candidate.lower() in column_lower for candidate in contains_candidates):
+                return str(column)
+
+        suffix_candidates = suffix_candidates or []
+        for column in columns:
+            column_lower = str(column).lower()
+            if any(column_lower.endswith(suffix.lower()) for suffix in suffix_candidates):
+                return str(column)
+
+        return explicit_name
+
     def _build_quality_assessment_order(
         self,
         df,
@@ -165,6 +201,34 @@ class QAAgent:
         split_column = intent.get("split_column")
         id_column = intent.get("id_column")
         threshold = intent.get("threshold")
+
+        # Compatibilidad legacy + modo documental: si el prompt no indica columnas
+        # o trae columnas no existentes por texto del DC, se infieren desde el CSV.
+        target_column = self._infer_column_from_dataset(
+            df,
+            target_column,
+            candidates=["target", "abandono", "churn", "y_true", "real", "label", "clase"],
+            contains_candidates=["target", "abandono", "churn", "label", "clase", "real"],
+        )
+        prediction_column = self._infer_column_from_dataset(
+            df,
+            prediction_column,
+            candidates=["probabilidad_abandono", "churn_probability", "score", "prediction", "prediccion", "predicción", "y_pred", "probabilidad", "predicted"],
+            contains_candidates=["probabilidad", "churn_probability", "score", "pred", "prediction"],
+        )
+        split_column = self._infer_column_from_dataset(
+            df,
+            split_column,
+            candidates=["split", "conjunto", "partition", "particion", "partición", "subset"],
+            contains_candidates=["split", "conjunto", "partition", "particion", "subset"],
+        )
+        id_column = self._infer_column_from_dataset(
+            df,
+            id_column,
+            candidates=["customer_id", "cliente_id", "id", "row_id"],
+            contains_candidates=["customer_id", "cliente_id"],
+            suffix_candidates=["_id"],
+        )
 
         missing_information = []
 
@@ -499,30 +563,43 @@ class QAAgent:
     def _status_badge(status: str) -> str:
         normalized = (status or "").upper()
 
-        if normalized in ("PASS", "SUCCESS"):
+        if normalized in ("PASS", "SUCCESS", "PASADA"):
             css_class = "qa-badge qa-badge-pass"
-        elif normalized in ("WARN", "WARNING"):
+            label = "PASADA"
+        elif normalized in ("WARN", "WARNING", "ADVERTENCIA"):
             css_class = "qa-badge qa-badge-warn"
-        elif normalized in ("FAIL", "ERROR"):
+            label = "ADVERTENCIA"
+        elif normalized in ("FAIL", "FALLIDA"):
             css_class = "qa-badge qa-badge-fail"
+            label = "FALLIDA"
+        elif normalized in ("ERROR", "ERRORES"):
+            css_class = "qa-badge qa-badge-fail"
+            label = "ERROR"
         else:
             css_class = "qa-badge"
+            label = normalized or "N/A"
 
-        return f'<span class="{css_class}">{normalized or "N/A"}</span>'
+        return f'<span class="{css_class}">{label}</span>'
 
 
     @staticmethod
     def _severity_badge(severity: str) -> str:
         normalized = (severity or "").upper()
 
-        if normalized in ("HIGH", "CRITICAL"):
+        if normalized in ("HIGH", "CRITICAL", "ERROR"):
             css_class = "qa-badge qa-badge-fail"
+            label = "CRÍTICO" if normalized == "CRITICAL" else "ERROR"
         elif normalized in ("MEDIUM", "WARN", "WARNING"):
             css_class = "qa-badge qa-badge-warn"
+            label = "ADVERTENCIA"
+        elif normalized in ("LOW", "INFO"):
+            css_class = "qa-badge"
+            label = "INFO"
         else:
             css_class = "qa-badge"
+            label = normalized
 
-        return f'<span class="{css_class}">{normalized}</span>'
+        return f'<span class="{css_class}">{label}</span>'
 
 
     @staticmethod
