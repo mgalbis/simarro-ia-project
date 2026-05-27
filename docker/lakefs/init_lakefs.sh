@@ -11,7 +11,7 @@ set -eu
 #      - Lectura global (pueden ver todos los repos).
 #      - Escritura solo en repos con prefijo propio: "<user>--*".
 #   4) Crear repos de cada caso (desde cases_config.json) con formato:
-#      "<user>--<repo_base>", rama main y hook-retrain.yml.
+#      "<user>--<repo_base>", rama por defecto y hook-retrain.yml.
 #
 # Nota:
 #   El nombre de repositorio en lakeFS no admite "/". Por eso se usa "--".
@@ -34,6 +34,7 @@ LAKEFS_INSTALLATION_SECRET_ACCESS_KEY="${LAKEFS_INSTALLATION_SECRET_ACCESS_KEY:-
 LAKEFS_SETUP_COMM_PREFS_EMAIL="${LAKEFS_SETUP_COMM_PREFS_EMAIL:-}"
 
 LAKEFS_CASE_USERS_SECRET_KEY="${LAKEFS_CASE_USERS_SECRET_KEY:-${DEFAULT_USER_PASSWORD:-}}"
+DEFAULT_BRANCH=""
 
 # Credenciales admin usadas por lakectl/curl en este script.
 export LAKECTL_SERVER_ENDPOINT_URL="$LAKEFS_ENDPOINT"
@@ -222,14 +223,40 @@ extract_case_repo_pairs() {
     | sort -u
 }
 
+extract_default_branch() {
+  branch="$(
+    jq -er '
+      .lakefs_conventions as $conv
+      | if ($conv | type) != "object" then
+          error("cases_config.json: lakefs_conventions debe ser un objeto")
+        else
+          $conv
+        end
+      | if (has("default_branch") | not) then
+          error("cases_config.json: lakefs_conventions.default_branch es obligatorio")
+        else
+          .
+        end
+      | if (.default_branch | type) != "string" then
+          error("cases_config.json: lakefs_conventions.default_branch debe ser string")
+        else
+          .default_branch
+        end
+    ' "$CASES_CONFIG_PATH"
+  )"
+  branch="$(printf '%s' "$branch" | awk '{ gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0); print }')"
+  [ -n "$branch" ] || { echo "cases_config.json: lakefs_conventions.default_branch no puede estar vacío" >&2; exit 1; }
+  printf '%s' "$branch"
+}
+
 # -----------------------------------------------------------------------------
-# 5) Operaciones de repositorio (crear repo/main/hook)
+# 5) Operaciones de repositorio (crear repo/rama-por-defecto/hook)
 # -----------------------------------------------------------------------------
 ensure_repo() {
   repo="$1"
   out="$(mktemp)"
 
-  if lakectl --no-color repo create "lakefs://$repo" "local://$repo" --default-branch main >"$out" 2>&1; then
+  if lakectl --no-color repo create "lakefs://$repo" "local://$repo" --default-branch "$DEFAULT_BRANCH" >"$out" 2>&1; then
     echo "[OK] Repositorio creado: $repo"
     rm -f "$out"
     return 0
@@ -237,7 +264,7 @@ ensure_repo() {
 
   # Fallback si namespace principal ya está ocupado.
   if grep -qi "storage namespace already in use" "$out"; then
-    if lakectl --no-color repo create "lakefs://$repo" "local://bootstrap/$repo" --default-branch main >"$out" 2>&1; then
+    if lakectl --no-color repo create "lakefs://$repo" "local://bootstrap/$repo" --default-branch "$DEFAULT_BRANCH" >"$out" 2>&1; then
       echo "[OK] Repositorio creado: $repo (namespace local://bootstrap/$repo)"
       rm -f "$out"
       return 0
@@ -261,16 +288,16 @@ repo_exists() {
     | awk -v target="$repo" 'NR > 2 && $1 == target { found = 1 } END { exit(found ? 0 : 1) }'
 }
 
-ensure_main_branch() {
+ensure_default_branch() {
   repo="$1"
-  lakectl --no-color branch show "lakefs://$repo/main" >/dev/null 2>&1 && { echo "[OK] Rama main disponible: $repo"; return 0; }
+  lakectl --no-color branch show "lakefs://$repo/$DEFAULT_BRANCH" >/dev/null 2>&1 && { echo "[OK] Rama $DEFAULT_BRANCH disponible: $repo"; return 0; }
 
   src="$(lakectl --no-color branch list "lakefs://$repo" | awk 'NR>2 && $1 != "" {print $1; exit}')"
-  [ -n "$src" ] || { echo "No se encontro rama origen para crear main en $repo" >&2; return 1; }
+  [ -n "$src" ] || { echo "No se encontro rama origen para crear $DEFAULT_BRANCH en $repo" >&2; return 1; }
 
   out="$(mktemp)"
-  if lakectl --no-color branch create "lakefs://$repo/main" -s "lakefs://$repo/$src" >"$out" 2>&1 || already_exists "$out"; then
-    echo "[OK] Rama main disponible: $repo"
+  if lakectl --no-color branch create "lakefs://$repo/$DEFAULT_BRANCH" -s "lakefs://$repo/$src" >"$out" 2>&1 || already_exists "$out"; then
+    echo "[OK] Rama $DEFAULT_BRANCH disponible: $repo"
     rm -f "$out"
     return 0
   fi
@@ -280,21 +307,21 @@ ensure_main_branch() {
   return 1
 }
 
-ensure_hook_in_main() {
+ensure_hook_in_default_branch() {
   repo="$1"
-  hook_uri="lakefs://$repo/main/$HOOK_TARGET_PATH"
+  hook_uri="lakefs://$repo/$DEFAULT_BRANCH/$HOOK_TARGET_PATH"
   tmp="$(mktemp)"
 
   if lakectl --no-color fs cat "$hook_uri" >"$tmp" 2>/dev/null && cmp -s "$HOOK_FILE_PATH" "$tmp"; then
-    echo "[OK] Hook ya configurado en $repo/main"
+    echo "[OK] Hook ya configurado en $repo/$DEFAULT_BRANCH"
     rm -f "$tmp"
     return 0
   fi
   rm -f "$tmp"
 
   lakectl --no-color fs upload "$hook_uri" -s "$HOOK_FILE_PATH" >/dev/null
-  lakectl --no-color commit "lakefs://$repo/main" -m "ci: configurar hook retrain" --meta managed_by=lakefs-entrypoint >/dev/null
-  echo "[OK] Hook configurado en $repo/main"
+  lakectl --no-color commit "lakefs://$repo/$DEFAULT_BRANCH" -m "ci: configurar hook retrain" --meta managed_by=lakefs-entrypoint >/dev/null
+  echo "[OK] Hook configurado en $repo/$DEFAULT_BRANCH"
 }
 
 # -----------------------------------------------------------------------------
@@ -436,8 +463,8 @@ bootstrap_case_repos_as_user() {
     fi
     echo "Procesando repo como $user_id: $repo (base: $repo_base)"
     ensure_repo "$repo" || { export LAKECTL_CREDENTIALS_ACCESS_KEY_ID="$admin_key"; export LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY="$admin_secret"; return 1; }
-    ensure_main_branch "$repo" || { export LAKECTL_CREDENTIALS_ACCESS_KEY_ID="$admin_key"; export LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY="$admin_secret"; return 1; }
-    ensure_hook_in_main "$repo" || { export LAKECTL_CREDENTIALS_ACCESS_KEY_ID="$admin_key"; export LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY="$admin_secret"; return 1; }
+    ensure_default_branch "$repo" || { export LAKECTL_CREDENTIALS_ACCESS_KEY_ID="$admin_key"; export LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY="$admin_secret"; return 1; }
+    ensure_hook_in_default_branch "$repo" || { export LAKECTL_CREDENTIALS_ACCESS_KEY_ID="$admin_key"; export LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY="$admin_secret"; return 1; }
   done < "$repos_file"
 
   # Restauramos credenciales admin para seguir con el siguiente caso.
@@ -536,6 +563,8 @@ if ! wait_admin_auth; then
 fi
 
 # Parseo de casos/repos.
+DEFAULT_BRANCH="$(extract_default_branch)"
+echo "Rama por defecto detectada: $DEFAULT_BRANCH"
 pairs="$(extract_case_repo_pairs)"
 [ -n "$pairs" ] || { echo "No se han encontrado pares case/dataset-key en $CASES_CONFIG_PATH" >&2; exit 1; }
 repos="$(printf '%s\n' "$pairs" | cut -d '|' -f 2 | sort -u)"
