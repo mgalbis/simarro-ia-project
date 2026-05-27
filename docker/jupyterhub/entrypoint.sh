@@ -84,14 +84,12 @@ rm -f "$CASE_USERS_FILE" "$ALL_USERS_FILE"
 # eventos de lakeFS y disparar reentrenamientos.
 PIPELINE_SERVER_PATH="/app/src/mlops/pipeline/pipeline_server.py"
 PIPELINE_SERVER_PORT="${PIPELINE_PORT:-8080}"
-PIPELINE_SERVER_LOG="${PIPELINE_SERVER_LOG:-/tmp/pipeline_server.log}"
 
 if [ -n "$PYTHON_BIN" ] && [ -f "$PIPELINE_SERVER_PATH" ]; then
     echo "Arrancando pipeline server en puerto ${PIPELINE_SERVER_PORT}..."
-    PIPELINE_PORT="$PIPELINE_SERVER_PORT" \
-        "$PYTHON_BIN" "$PIPELINE_SERVER_PATH" > "$PIPELINE_SERVER_LOG" 2>&1 &
+    PIPELINE_PORT="$PIPELINE_SERVER_PORT" "$PYTHON_BIN" "$PIPELINE_SERVER_PATH"
     PIPELINE_SERVER_PID="$!"
-    echo "Pipeline server arrancado (PID ${PIPELINE_SERVER_PID}). Log: ${PIPELINE_SERVER_LOG}"
+    echo "Pipeline server arrancado (PID ${PIPELINE_SERVER_PID})"
 else
     echo "[WARN] No se pudo arrancar pipeline server (python o script no disponible)."
 fi
