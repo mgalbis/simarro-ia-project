@@ -126,10 +126,6 @@ export default function App({ user, onLogout }) {
   rightCollapsed ? "64px" : "360px"
 }`;
 
-  const currentSession = chat.availableSessions.find(
-    s => s.session_id === chat.sessionId
-  );
-
   return (
     <div className="relative h-screen max-h-screen overflow-hidden">
       <Toaster
@@ -208,7 +204,7 @@ export default function App({ user, onLogout }) {
           lastReport={lastReport}
           onOpenHistoricalReport={handleOpenHistoricalReport}
           isCollapsed={rightCollapsed}
-          session={currentSession}
+          session={chat.currentSession}
           onDeleteIteration={handleDeleteIteration}
           onToggleCollapse={() => setRightCollapsed((value) => !value)}
           user={user}

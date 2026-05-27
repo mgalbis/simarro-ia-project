@@ -1370,6 +1370,10 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
     }
   };
 
+  const currentSession = availableSessions.find(
+    (session) => session.session_id === sessionId
+  );
+
   const deleteIteration = async (executionId) => {
     if (!executionId || !sessionId || !USER_ID) return;
 
@@ -1413,5 +1417,6 @@ Cuando subas un dataset, relanzaré automáticamente las pruebas si el ciclo est
     inferTestPhaseFromPrompt,
     reportPhaseFeedback,
     deleteIteration,
+    currentSession,
   };
 }
