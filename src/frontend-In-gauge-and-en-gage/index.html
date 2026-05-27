@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Caso D - Simulador de ocupación de aula</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">CASO D · IAQ + Ocupación</p>
+        <h1>Simulador visual de ocupación de aula</h1>
+        <p class="subtitle">Ajusta sensores ambientales y consulta la API para estimar si el aula está ocupada.</p>
+      </div>
+      <div class="status" id="api-status">Conectando API...</div>
+    </section>
+
+    <section class="layout">
+      <div class="classroom-card">
+        <div class="blackboard">Predicción de ocupación</div>
+        <div class="room" id="room">
+          <div class="teacher-desk"></div>
+          <div class="desks">
+            <span></span><span></span><span></span>
+            <span></span><span></span><span></span>
+            <span></span><span></span><span></span>
+          </div>
+          <div class="sensor co2">CO₂</div>
+          <div class="sensor noise">dB</div>
+          <div class="sensor temp">°C</div>
+        </div>
+        <div class="prediction" id="prediction-box">
+          <h2>Resultado pendiente</h2>
+          <p>Modifica los valores y pulsa “Predecir ocupación”.</p>
+        </div>
+      </div>
+
+      <form class="panel" id="predict-form">
+        <h2>Parámetros del modelo</h2>
+        <p class="panel-intro">El modelo usa únicamente señales de sensórica ambiental, sin variables de horario lectivo ni calendario.</p>
+        <div id="inputs"></div>
+        <button type="submit">Predecir ocupación</button>
+      </form>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

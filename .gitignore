@@ -12,14 +12,11 @@ env/
 data/raw/*
 data/processed/*
 data/external/*
-models/*
 artifacts/*
 mlruns/
 *.parquet
-*.csv
 *.zip
 *.pkl
-*.joblib
 *.onnx
 !data/raw/.gitkeep
 !data/processed/.gitkeep
