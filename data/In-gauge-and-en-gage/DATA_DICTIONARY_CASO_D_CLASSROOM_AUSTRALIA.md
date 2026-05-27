@@ -8,7 +8,7 @@ Ruta de referencia del dataset:
 https://physionet.org/content/in-gauge-and-en-gage/1.0.0/
 ```
 
-El proyecto consta de un dataset de 16 Ficheros con la siguiente estructura: 
+El proyecto consta de un dataset de 16 Ficheros con la siguiente estructura:
 
 
 ## 1. Esquema de columnas

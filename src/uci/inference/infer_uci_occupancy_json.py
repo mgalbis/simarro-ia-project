@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
 Script de inferencia para el modelo UCI Occupancy Detection.
 
 Este script carga desde el DIRECTORIO ACTUAL:
@@ -23,9 +23,9 @@ src/In-gauge-and-en-gage/inference/
 └── simulated_cases.json
 """
 
-from pathlib import Path
 import json
 import sys
+from pathlib import Path
 
 import joblib
 import pandas as pd
@@ -193,7 +193,7 @@ def predict_cases(model, metadata: dict, cases_df: pd.DataFrame) -> pd.DataFrame
 
     X = validate_input(cases_df, features)
 
-    predictions = model.predict(X)
+    predictions = model.predict(features_df)
 
     results_df = cases_df.copy()
     results_df[f"{target}_pred"] = predictions
@@ -205,7 +205,7 @@ def predict_cases(model, metadata: dict, cases_df: pd.DataFrame) -> pd.DataFrame
     )
 
     if hasattr(model, "predict_proba"):
-        probabilities = model.predict_proba(X)
+        probabilities = model.predict_proba(features_df)
 
         if probabilities.shape[1] == 2:
             results_df["prob_no_ocupado"] = probabilities[:, 0]
@@ -239,7 +239,11 @@ def print_results(results_df: pd.DataFrame):
 
     pred_columns = [
         col for col in results_df.columns
-        if col.endswith("_pred") or col in ["pred_label", "prob_no_ocupado", "prob_ocupado"]
+        if col.endswith("_pred") or col in [
+            "pred_label",
+            "prob_no_ocupado",
+            "prob_ocupado",
+        ]
     ]
 
     columns_to_show = base_columns + pred_columns

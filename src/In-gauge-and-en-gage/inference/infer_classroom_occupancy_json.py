@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
 Script de inferencia para CASO D - CLASSROOM / Occupancy Detection.
 
 Este script carga desde el DIRECTORIO ACTUAL:
@@ -31,9 +31,9 @@ Variables esperadas en simulated_cases.json:
 
 from __future__ import annotations
 
-from pathlib import Path
 import json
 import sys
+from pathlib import Path
 from typing import Any
 
 import joblib
@@ -128,7 +128,10 @@ def load_metadata() -> dict[str, Any]:
         "selection_metric": "unknown",
         "final_evaluation": "unknown",
         "notes": {
-            "metadata_source": "No se encontró JSON de metadata. Se usan features por defecto."
+            "metadata_source": (
+                "No se encontró JSON de metadata. "
+                "Se usan features por defecto."
+            )
         },
     }
 
@@ -260,7 +263,9 @@ def validate_input(df: pd.DataFrame, features: list[str]) -> pd.DataFrame:
     return X
 
 
-def predict_cases(model: Any, metadata: dict[str, Any], cases_df: pd.DataFrame) -> pd.DataFrame:
+def predict_cases(
+    model: Any, metadata: dict[str, Any], cases_df: pd.DataFrame
+) -> pd.DataFrame:
     """
     Realiza inferencia usando el modelo cargado.
     """
@@ -278,7 +283,10 @@ def predict_cases(model: Any, metadata: dict[str, Any], cases_df: pd.DataFrame) 
     print("Metadata del modelo")
     print("=" * 80)
     print(f"Caso: {metadata.get('case', 'CASO D - CLASSROOM')}")
-    print(f"Modelo: {metadata.get('best_model_name') or metadata.get('model_name', 'desconocido')}")
+    model_name = metadata.get("best_model_name") or metadata.get(
+        "model_name", "desconocido"
+    )
+    print(f"Modelo: {model_name}")
     print(f"Target: {target}")
     print(f"Features usadas: {features}")
     print(f"Métrica de selección: {metadata.get('selection_metric', 'desconocida')}")
@@ -296,7 +304,7 @@ def predict_cases(model: Any, metadata: dict[str, Any], cases_df: pd.DataFrame) 
 
     X = validate_input(cases_df, features)
 
-    predictions = model.predict(X)
+    predictions = model.predict(features_df)
 
     results_df = cases_df.copy()
     results_df[f"{target}_pred"] = predictions
@@ -308,7 +316,7 @@ def predict_cases(model: Any, metadata: dict[str, Any], cases_df: pd.DataFrame) 
     ).fillna(results_df[f"{target}_pred"].astype(str))
 
     if hasattr(model, "predict_proba"):
-        probabilities = model.predict_proba(X)
+        probabilities = model.predict_proba(features_df)
 
         if probabilities.shape[1] == 2:
             results_df["prob_no_ocupado"] = probabilities[:, 0]
@@ -341,7 +349,11 @@ def print_results(results_df: pd.DataFrame):
 
     pred_columns = [
         col for col in results_df.columns
-        if col.endswith("_pred") or col in ["pred_label", "prob_no_ocupado", "prob_ocupado"]
+        if col.endswith("_pred") or col in [
+            "pred_label",
+            "prob_no_ocupado",
+            "prob_ocupado",
+        ]
     ]
 
     columns_to_show = base_columns + pred_columns

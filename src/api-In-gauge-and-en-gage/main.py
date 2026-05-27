@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""API sencilla para predicción de ocupación de aulas.
+r"""API sencilla para predicción de ocupación de aulas.
 
 Caso D - In-Gauge and En-Gage classrooms.
 
@@ -11,9 +11,9 @@ Endpoints principales:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
-import json
 
 import joblib
 import pandas as pd
@@ -50,7 +50,9 @@ model = load_model()
 
 
 class OccupancyInput(BaseModel):
-    IndoorTemperature: float = Field(..., description="Temperatura interior del aula en °C")
+    IndoorTemperature: float = Field(
+        ..., description="Temperatura interior del aula en °C"
+    )
     IndoorHumidity: float = Field(..., description="Humedad relativa interior en %")
     IndoorCO2: float = Field(..., description="CO2 interior en ppm")
     IndoorNoise: float = Field(..., description="Ruido interior en dB")
@@ -68,7 +70,10 @@ class PredictionResponse(BaseModel):
 
 app = FastAPI(
     title="Caso D - API de predicción de ocupación de aulas",
-    description="API sencilla para predecir si un aula está ocupada usando sensores ambientales.",
+    description=(
+        "API sencilla para predecir si un aula está ocupada usando "
+        "sensores ambientales."
+    ),
     version="1.0.0",
 )
 
@@ -96,20 +101,25 @@ def predict(payload: OccupancyInput) -> PredictionResponse:
     data = payload.model_dump()
 
     try:
-        X = pd.DataFrame([{feature: float(data[feature]) for feature in FEATURES}])
-        pred = int(model.predict(X)[0])
+        features_df = pd.DataFrame(
+            [{feature: float(data[feature]) for feature in FEATURES}]
+        )
+        pred = int(model.predict(features_df)[0])
 
         prob_occupied = None
         prob_not_occupied = None
         if hasattr(model, "predict_proba"):
-            probabilities = model.predict_proba(X)[0]
+            probabilities = model.predict_proba(features_df)[0]
             if len(probabilities) >= 2:
                 prob_not_occupied = float(probabilities[0])
                 prob_occupied = float(probabilities[1])
 
         label = "Ocupado" if pred == 1 else "No ocupado"
         if prob_occupied is not None:
-            interpretation = f"El modelo estima que el aula está {label.lower()} con probabilidad de ocupación {prob_occupied:.1%}."
+            interpretation = (
+                f"El modelo estima que el aula está {label.lower()} "
+                f"con probabilidad de ocupación {prob_occupied:.1%}."
+            )
         else:
             interpretation = f"El modelo estima que el aula está {label.lower()}."
 
