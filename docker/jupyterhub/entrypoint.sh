@@ -87,8 +87,8 @@ PIPELINE_SERVER_PORT="${PIPELINE_PORT:-8080}"
 
 if [ -n "$PYTHON_BIN" ] && [ -f "$PIPELINE_SERVER_PATH" ]; then
     echo "Arrancando pipeline server en puerto ${PIPELINE_SERVER_PORT}..."
-    PIPELINE_PORT="$PIPELINE_SERVER_PORT"
-    "$PYTHON_BIN" "$PIPELINE_SERVER_PATH"
+    PIPELINE_PORT="$PIPELINE_SERVER_PORT" \
+            "$PYTHON_BIN" "$PIPELINE_SERVER_PATH" &
     PIPELINE_SERVER_PID="$!"
     echo "Pipeline server arrancado (PID ${PIPELINE_SERVER_PID})"
 else
