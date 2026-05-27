@@ -115,6 +115,8 @@ def entrenar_modelo(train_df, test_df, caso: str, dataset: str, config_caso: dic
     y_train = train_df[target_column].copy()
     y_test = test_df[target_column].copy()
 
+    # TODO: obtener los modelos a entrenar y sus parametros de configuración
+    # a partir de los últimos ejecutados con en mlflow
     if config_caso.get("problem_type") == "binary_classification":
         params = {
             "n_estimators": 100,
