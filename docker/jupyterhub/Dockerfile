@@ -6,6 +6,7 @@ FROM ${JUPYTERHUB_IMAGE}
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app/src
+ENV GIT_PYTHON_REFRESH=quiet
 
 COPY docker/jupyterhub/requirements.txt /app/requirements.txt
 
