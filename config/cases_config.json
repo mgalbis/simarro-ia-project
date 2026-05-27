@@ -184,14 +184,16 @@
   "lakefs_conventions": {
     "repo_name_pattern": "caso{case}--{dataset}",
     "tag_patterns": "{dataset}_v{version}",
-    "branch_pattern": "transform/v{version}"
+    "branch_pattern": "transform/v{version}",
+    "default_branch": "main"
   },
   "mlflow_conventions": {
-    "experiment_pattern": "Caso{case}_{description}",
-    "run_pattern": "{algorithm}_{timestamp}_{description}",
+    "experiment_pattern": "Caso{case}_{name}",
+    "run_pattern": "{algorithm}_{timestamp}_{name}",
     "required_tags": [
       "lakefs_tag",
-      "schema_captia_version"
+      "schema_captia_version",
+      "algorithm"
     ]
   },
   "cases": {
