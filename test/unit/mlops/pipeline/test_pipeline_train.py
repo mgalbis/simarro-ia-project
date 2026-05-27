@@ -129,6 +129,29 @@ def test_read_lakefs_parquet_falls_back_to_data_field(monkeypatch):
     assert df.equals(expected_df)
 
 
+def test_read_lakefs_parquet_accepts_raw_bytes_response(monkeypatch):
+    """`_read_lakefs_parquet` acepta respuesta `bytes` directa de lakeFS."""
+    payload = b"payload_raw_bytes"
+
+    monkeypatch.setattr(
+        pt,
+        "LAKEFS_CLIENT",
+        SimpleNamespace(
+            objects_api=SimpleNamespace(get_object=lambda **kwargs: payload)
+        ),
+    )
+
+    expected_df = pd.DataFrame({"x": [3]})
+    monkeypatch.setattr(
+        pt.pd,
+        "read_parquet",
+        lambda bio: expected_df if bio.getvalue() == payload else None,
+    )
+
+    df = pt._read_lakefs_parquet("repo", "tag", "gold/raw.parquet")
+    assert df.equals(expected_df)
+
+
 def test_descargar_datos_reads_train_and_test_from_real_gold_paths(monkeypatch):
     """`descargar_datos` usa rutas de `resolve_gold_paths` reales de CASES_CONFIG."""
     expected_paths = pt.CASES_CONFIG.resolve_gold_paths()

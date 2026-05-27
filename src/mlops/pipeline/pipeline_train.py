@@ -64,7 +64,24 @@ def _read_lakefs_parquet(dataset: str, ref: str, path: str) -> pd.DataFrame:
         ref=ref,
         path=path,
     )
-    contenido = respuesta.read() if hasattr(respuesta, "read") else respuesta.data
+    if hasattr(respuesta, "read"):
+        contenido = respuesta.read()
+    elif isinstance(respuesta, (bytes, bytearray, memoryview)):
+        contenido = bytes(respuesta)
+    elif hasattr(respuesta, "data"):
+        contenido = respuesta.data
+    else:
+        raise TypeError(
+            "Respuesta lakeFS inválida: se esperaba read(), data o bytes crudos"
+        )
+
+    if isinstance(contenido, (bytearray, memoryview)):
+        contenido = bytes(contenido)
+    elif not isinstance(contenido, bytes):
+        raise TypeError(
+            "Contenido lakeFS inválido: se esperaba bytes/bytearray/memoryview"
+        )
+
     return pd.read_parquet(BytesIO(contenido))
 
 
