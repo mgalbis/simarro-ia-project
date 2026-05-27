@@ -159,3 +159,5 @@ docs/
 Este proyecto se distribuye bajo licencia MIT.
 
 Los datasets, modelos entrenados, credenciales y artefactos pesados no forman parte del repositorio.
+
+```
