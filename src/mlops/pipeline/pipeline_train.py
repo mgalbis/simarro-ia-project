@@ -199,7 +199,9 @@ def registrar_report_evidently(
         mlflow.set_tag("evidently_error", str(exc)[:250])
 
 
-def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str, tag: str):
+def ejecutar_pipeline(
+    caso: str, repository: str, dataset: str, commit: str, committer: str, tag: str
+):
     """Ejecuta el pipeline completo de reentrenamiento.
 
     Pasos:
@@ -221,7 +223,7 @@ def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str, tag:
 
     # Paso 1: Descarga de datos
     try:
-        train_df, test_df = descargar_datos(dataset, tag)
+        train_df, test_df = descargar_datos(repository, tag)
     except Exception as e:
         log.error(f"Error descargando datos: {e}")
         sys.exit(1)
@@ -316,8 +318,9 @@ if __name__ == "__main__":
         description="Pipeline de reentrenamiento automático"
     )
     parser.add_argument("--caso", required=True, help="Letra del caso (B, C, D, E)")
+    parser.add_argument("--repository", required=True, help="")
     parser.add_argument("--dataset", required=True, help="Nombre del repo en lakeFS")
-    parser.add_argument("--commit", default="main", help="Commit hash de lakeFS")
+    parser.add_argument("--commit", required=True, help="Commit hash de lakeFS")
     parser.add_argument(
         "--committer", default="auto", help="Usuario que hizo el tag de versión"
     )
@@ -326,6 +329,7 @@ if __name__ == "__main__":
 
     ejecutar_pipeline(
         caso=args.caso,
+        repository=args.repository,
         dataset=args.dataset,
         commit=args.commit,
         committer=args.committer,

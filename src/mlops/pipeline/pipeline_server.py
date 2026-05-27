@@ -103,6 +103,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
             f"Commit: {trigger.commit_hash[:8]}"
         )
         self._lanzar_pipeline(
+            repository=trigger.repository,
             dataset=trigger.dataset,
             case_id=trigger.case_id,
             commit_hash=trigger.commit_hash,
@@ -116,6 +117,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
     def _lanzar_pipeline(
         self,
+        repository: str,
         dataset: str,
         case_id: str,
         commit_hash: str,
@@ -125,6 +127,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
         """Lanza ``pipeline_train.py`` de forma no bloqueante.
 
         Args:
+            repository: Nombre del repositorio en lakeFD
             dataset: Dataset lógico extraído desde ``repositorio``.
             case_id: Identificador de caso de uso asociado al dataset.
             commit_hash: Commit exacto asociado al tag recibido.
@@ -141,6 +144,8 @@ class WebhookHandler(BaseHTTPRequestHandler):
             str(BASE_DIR / "pipeline_train.py"),
             "--caso",
             case_id,
+            "--repository",
+            repository,
             "--dataset",
             dataset,
             "--commit",
