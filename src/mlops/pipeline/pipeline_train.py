@@ -15,13 +15,10 @@ import os
 import sys
 import tempfile
 from datetime import datetime
-from io import BytesIO
 
-import lakefs_sdk
 import mlflow
 import mlflow.sklearn
 import pandas as pd
-from lakefs_sdk.client import LakeFSClient
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import (
     accuracy_score,
@@ -35,69 +32,37 @@ from sklearn.metrics import (
 )
 
 from mlops.config import CASES_CONFIG
+from mlops.utils.lakefs_manager import LakeFSManager
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [TRAIN] %(levelname)s — %(message)s"
 )
 log = logging.getLogger(__name__)
 
-# Configuración
 MLFLOW_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000")
-LAKEFS_HOST = os.environ.get("LAKEFS_ENDPOINT", "http://localhost:8001")
-LAKEFS_ACCESS = os.environ.get("LAKEFS_ACCESS_KEY_ID")
-LAKEFS_SECRET = os.environ.get("LAKEFS_SECRET_ACCESS_KEY")
 
 # Funciones auxiliares
-LAKEFS_CLIENT = LakeFSClient(
-    configuration=lakefs_sdk.Configuration(
-        host=LAKEFS_HOST,
-        username=LAKEFS_ACCESS,
-        password=LAKEFS_SECRET,
-    )
-)
+LAKEFS_MANAGER = LakeFSManager(cases_config=CASES_CONFIG)
 
 
 def _read_lakefs_parquet(dataset: str, ref: str, path: str) -> pd.DataFrame:
-    """Lee un parquet desde lakeFS y devuelve un DataFrame."""
-    respuesta = LAKEFS_CLIENT.objects_api.get_object(
-        repository=dataset,
-        ref=ref,
-        path=path,
-    )
-    if hasattr(respuesta, "read"):
-        contenido = respuesta.read()
-    elif isinstance(respuesta, (bytes, bytearray, memoryview)):
-        contenido = bytes(respuesta)
-    elif hasattr(respuesta, "data"):
-        contenido = respuesta.data
-    else:
-        raise TypeError(
-            "Respuesta lakeFS inválida: se esperaba read(), data o bytes crudos"
-        )
-
-    if isinstance(contenido, (bytearray, memoryview)):
-        contenido = bytes(contenido)
-    elif not isinstance(contenido, bytes):
-        raise TypeError(
-            "Contenido lakeFS inválido: se esperaba bytes/bytearray/memoryview"
-        )
-
-    return pd.read_parquet(BytesIO(contenido))
+    """Compatibilidad: delega lectura parquet al manager lakeFS."""
+    return LAKEFS_MANAGER.read_parquet(repository=dataset, ref=ref, path=path)
 
 
 def descargar_datos(dataset: str, tag: str):
     """Descarga train/test de Gold desde lakeFS a partir de un tag."""
     log.info(f"Descargando datos de lakeFS. Repo: {dataset}  Tag: {tag}")
 
-    gold_paths = CASES_CONFIG.resolve_gold_paths()
+    gold_paths = LAKEFS_MANAGER.resolve_gold_paths()
     train_path = gold_paths["train"]
     test_path = gold_paths["test"]
 
     log.info(f"Descargando Gold train: {train_path}")
-    train_df = _read_lakefs_parquet(dataset, tag, train_path)
+    train_df = LAKEFS_MANAGER.read_parquet(dataset, tag, train_path)
 
     log.info(f"Descargando Gold test: {test_path}")
-    test_df = _read_lakefs_parquet(dataset, tag, test_path)
+    test_df = LAKEFS_MANAGER.read_parquet(dataset, tag, test_path)
 
     log.info("Gold cargado: " f"train={len(train_df)} filas, test={len(test_df)} filas")
     return train_df, test_df
@@ -116,7 +81,7 @@ def entrenar_modelo(train_df, test_df, caso: str, dataset: str, config_caso: dic
     y_test = test_df[target_column].copy()
 
     # TODO: obtener los modelos a entrenar y sus parametros de configuración
-    # a partir de los últimos ejecutados con en mlflow
+    # a partir de los últimos ejecutados en mlflow
     if config_caso.get("problem_type") == "binary_classification":
         params = {
             "n_estimators": 100,
