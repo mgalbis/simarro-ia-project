@@ -20,7 +20,6 @@ from io import BytesIO
 import lakefs_sdk
 import mlflow
 import mlflow.sklearn
-import numpy as np
 import pandas as pd
 from lakefs_sdk.client import LakeFSClient
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -34,7 +33,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import train_test_split
+
 from mlops.config import CASES_CONFIG
 
 logging.basicConfig(
@@ -58,11 +57,7 @@ LAKEFS_CLIENT = LakeFSClient(
 )
 
 
-def _read_lakefs_parquet(
-    dataset: str,
-    ref: str,
-    path: str
-) -> pd.DataFrame:
+def _read_lakefs_parquet(dataset: str, ref: str, path: str) -> pd.DataFrame:
     """Lee un parquet desde lakeFS y devuelve un DataFrame."""
     respuesta = LAKEFS_CLIENT.objects_api.get_object(
         repository=dataset,
@@ -87,20 +82,11 @@ def descargar_datos(dataset: str, tag: str):
     log.info(f"Descargando Gold test: {test_path}")
     test_df = _read_lakefs_parquet(dataset, tag, test_path)
 
-    log.info(
-        "Gold cargado: "
-        f"train={len(train_df)} filas, test={len(test_df)} filas"
-    )
+    log.info("Gold cargado: " f"train={len(train_df)} filas, test={len(test_df)} filas")
     return train_df, test_df
 
 
-def entrenar_modelo(
-    train_df,
-    test_df,
-    caso: str,
-    dataset: str,
-    config_caso: dict
-):
+def entrenar_modelo(train_df, test_df, caso: str, dataset: str, config_caso: dict):
     """Entrena el modelo correspondiente del caso de uso."""
     log.info(f"Entrenando modelo para Caso de Uso {caso}")
 
@@ -213,13 +199,7 @@ def registrar_report_evidently(
         mlflow.set_tag("evidently_error", str(exc)[:250])
 
 
-def ejecutar_pipeline(
-    caso: str,
-    dataset: str,
-    commit: str,
-    committer: str,
-    tag: str
-):
+def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str, tag: str):
     """Ejecuta el pipeline completo de reentrenamiento.
 
     Pasos:
@@ -237,9 +217,7 @@ def ejecutar_pipeline(
         )
         sys.exit(1)
 
-    log.info(
-        f"Pipeline iniciado. Caso de uso {caso}. Dataset {dataset}. Tag {tag}"
-    )
+    log.info(f"Pipeline iniciado. Caso de uso {caso}. Dataset {dataset}. Tag {tag}")
 
     # Paso 1: Descarga de datos
     try:
@@ -340,7 +318,9 @@ if __name__ == "__main__":
     parser.add_argument("--caso", required=True, help="Letra del caso (B, C, D, E)")
     parser.add_argument("--dataset", required=True, help="Nombre del repo en lakeFS")
     parser.add_argument("--commit", default="main", help="Commit hash de lakeFS")
-    parser.add_argument("--committer", default="auto", help="Usuario que hizo el tag de versión")
+    parser.add_argument(
+        "--committer", default="auto", help="Usuario que hizo el tag de versión"
+    )
     parser.add_argument("--tag", required=True, help="Tag de versión creado")
     args = parser.parse_args()
 

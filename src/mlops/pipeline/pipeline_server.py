@@ -1,21 +1,16 @@
-# Servidor webhook que recibe eventos de lakeFS y dispara el pipeline de
-# reentrenamiento automático.
-#
-# LakeFS llama a este servidor vía HTTP POST cuando ocurre un evento de tag
-# en cualquier repositorio de datasets.
+"""Servidor webhook que recibe eventos de lakeFS y dispara reentrenamiento.
+
+LakeFS llama a este servidor vía HTTP POST cuando ocurre un evento de tag
+en cualquier repositorio de datasets.
+"""
 
 import json
 import logging
 import os
 import subprocess
-import sys
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-
-SRC_ROOT = Path(__file__).resolve().parents[2]
-if str(SRC_ROOT) not in sys.path:
-    sys.path.append(str(SRC_ROOT))
 
 from mlops.config import CASES_CONFIG
 from mlops.pipeline.trigger_resolver import (
@@ -44,10 +39,16 @@ def _format_configured_datasets() -> str:
     )
     return "\n".join(f"\t- {dataset}" for dataset in dataset_names)
 
-class WebhookHandler(BaseHTTPRequestHandler):
-    """Gestiona las peticiones HTTP entrantes de lakeFS."""
 
-    def do_GET(self):
+class WebhookHandler(BaseHTTPRequestHandler):
+    """Gestiona peticiones webhook HTTP enviadas por lakeFS.
+
+    Implementa los endpoints de healthcheck y recepción de eventos, resuelve
+    triggers con `PipelineTriggerResolver` y lanza `pipeline_train.py` cuando
+    el evento es aplicable.
+    """
+
+    def do_GET(self):  # noqa: N802
         """Endpoint de healthcheck.
 
         Responde siempre ``200 OK`` con cuerpo JSON mínimo para facilitar
@@ -55,7 +56,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
         """
         self._responder(200, "OK")
 
-    def do_POST(self):
+    def do_POST(self):  # noqa: N802
         """Procesa eventos webhook de lakeFS y dispara reentrenamiento.
 
         Flujo:
@@ -106,7 +107,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
             case_id=trigger.case_id,
             commit_hash=trigger.commit_hash,
             committer=trigger.committer,
-            tag_id=trigger.tag_id
+            tag_id=trigger.tag_id,
         )
         self._responder(
             200,

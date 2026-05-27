@@ -5,13 +5,17 @@ from __future__ import annotations
 import copy
 import json
 import os
-from pathlib import Path
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 
 class CasesConfig:
-    """Representa la configuración de casos cargada una vez al inicio."""
+    """Representa la configuración operativa cargada desde `cases_config.json`.
+
+    Esta clase encapsula el acceso al JSON de configuración y expone métodos
+    de resolución estricta para casos, datasets, convenciones de lakeFS/MLflow
+    y rutas/columnas derivadas.
+    """
 
     def __init__(self, data: dict[str, Any], source_path: Path):
         """Construye el contenedor de configuración en memoria.
@@ -96,7 +100,9 @@ class CasesConfig:
         """
         cases = self._data.get("cases", {})
         if not isinstance(cases, dict):
-            raise ValueError("cases_config.json debe contener un nodo 'cases' tipo objeto")
+            raise ValueError(
+                "cases_config.json debe contener un nodo 'cases' tipo objeto"
+            )
         return copy.deepcopy(cases)
 
     @property
@@ -129,7 +135,8 @@ class CasesConfig:
         conventions = self._data.get("lakefs_conventions", {})
         if not isinstance(conventions, dict):
             raise ValueError(
-                "cases_config.json debe contener un nodo 'lakefs_conventions' tipo objeto"
+                "cases_config.json debe contener un nodo "
+                "'lakefs_conventions' tipo objeto"
             )
         return copy.deepcopy(conventions)
 
@@ -146,7 +153,8 @@ class CasesConfig:
         conventions = self._data.get("mlflow_conventions", {})
         if not isinstance(conventions, dict):
             raise ValueError(
-                "cases_config.json debe contener un nodo 'mlflow_conventions' tipo objeto"
+                "cases_config.json debe contener un nodo "
+                "'mlflow_conventions' tipo objeto"
             )
         return copy.deepcopy(conventions)
 
@@ -242,7 +250,8 @@ class CasesConfig:
         pattern = conventions["repo_name_pattern"]
         if not isinstance(pattern, str):
             raise ValueError(
-                "cases_config.json: lakefs_conventions.repo_name_pattern debe ser string"
+                "cases_config.json: lakefs_conventions.repo_name_pattern "
+                "debe ser string"
             )
 
         normalized = pattern.strip()
@@ -316,7 +325,8 @@ class CasesConfig:
         pattern = conventions["experiment_pattern"]
         if not isinstance(pattern, str):
             raise ValueError(
-                "cases_config.json: mlflow_conventions.experiment_pattern debe ser string"
+                "cases_config.json: mlflow_conventions.experiment_pattern "
+                "debe ser string"
             )
         pattern = pattern.strip()
         if not pattern:
@@ -332,7 +342,8 @@ class CasesConfig:
         except KeyError as exc:
             missing = exc.args[0]
             raise ValueError(
-                "mlflow_conventions.experiment_pattern contiene placeholder no soportado: "
+                "mlflow_conventions.experiment_pattern contiene placeholder "
+                "no soportado: "
                 f"'{missing}'"
             ) from exc
 
@@ -365,7 +376,9 @@ class CasesConfig:
                 raise ValueError("cases_config.json: falta repository_schema.layers")
             gold_node = layers.get("gold")
             if not isinstance(gold_node, dict):
-                raise ValueError("cases_config.json: falta repository_schema.layers.gold")
+                raise ValueError(
+                    "cases_config.json: falta repository_schema.layers.gold"
+                )
 
         gold_path = gold_node.get("path")
         files = gold_node.get("files")
@@ -377,9 +390,13 @@ class CasesConfig:
         train_name = files.get("train")
         test_name = files.get("test")
         if not isinstance(train_name, str) or not train_name.strip():
-            raise ValueError("cases_config.json: falta repository_schema.gold.files.train")
+            raise ValueError(
+                "cases_config.json: falta repository_schema.gold.files.train"
+            )
         if not isinstance(test_name, str) or not test_name.strip():
-            raise ValueError("cases_config.json: falta repository_schema.gold.files.test")
+            raise ValueError(
+                "cases_config.json: falta repository_schema.gold.files.test"
+            )
 
         base = PurePosixPath(gold_path.strip("/"))
         train_path = str(base / train_name.strip("/"))
@@ -406,7 +423,8 @@ class CasesConfig:
         column_mappings = dataset_cfg.get("column_mappings")
         if not isinstance(column_mappings, dict) or not column_mappings:
             raise ValueError(
-                f"Dataset '{dataset}' debe definir 'column_mappings' como objeto no vacío"
+                f"Dataset '{dataset}' debe definir 'column_mappings' "
+                "como objeto no vacío"
             )
         return column_mappings
 
@@ -429,7 +447,8 @@ class CasesConfig:
         for column_name, mapping in column_mappings.items():
             if not isinstance(mapping, dict):
                 raise ValueError(
-                    f"Dataset '{dataset}': mapping inválido para columna '{column_name}'"
+                    f"Dataset '{dataset}': mapping inválido para columna "
+                    f"'{column_name}'"
                 )
 
             if mapping.get("role") == "feature":
@@ -464,13 +483,15 @@ class CasesConfig:
         for column_name, mapping in column_mappings.items():
             if not isinstance(mapping, dict):
                 raise ValueError(
-                    f"Dataset '{dataset}': mapping inválido para columna '{column_name}'"
+                    f"Dataset '{dataset}': mapping inválido para columna "
+                    f"'{column_name}'"
                 )
 
             if mapping.get("role") == "target":
                 if target is not None:
                     raise ValueError(
-                        f"Dataset '{dataset}' define más de una columna con role='target'"
+                        f"Dataset '{dataset}' define más de una columna con "
+                        "role='target'"
                     )
                 target = column_name
 
@@ -479,6 +500,7 @@ class CasesConfig:
                 f"Dataset '{dataset}' no define ninguna columna con role='target'"
             )
         return target
+
 
 CASES_CONFIG = CasesConfig.from_file()
 

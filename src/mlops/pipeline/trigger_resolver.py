@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 from mlops.config import CASES_CONFIG
 
@@ -14,7 +14,11 @@ GENERIC_TOKEN_RE = r"[A-Za-z0-9][A-Za-z0-9._-]*"
 
 @dataclass(frozen=True)
 class PipelineTrigger:
-    """Evento validado y listo para ejecutar ``pipeline_train.py``."""
+    """Representa un trigger validado y listo para disparar entrenamiento.
+
+    Instancias de esta clase contienen los campos normalizados mínimos que
+    necesita `pipeline_train.py` para ejecutar el pipeline de forma trazable.
+    """
 
     repository: str
     dataset: str
@@ -25,25 +29,41 @@ class PipelineTrigger:
 
 
 class TriggerResolverError(Exception):
-    """Error base durante la resolución de un trigger."""
+    """Define el error base para fallos durante la resolución de triggers.
+
+    Incluye un `status_code` HTTP que permite mapear la excepción a la
+    respuesta del webhook sin lógica adicional en el servidor.
+    """
 
     status_code = 400
 
 
 class TriggerIgnoredError(TriggerResolverError):
-    """Evento válido pero no aplicable para disparar pipeline."""
+    """Indica que el evento es válido pero no aplica para lanzar pipeline.
+
+    Se usa para eventos que deben ignorarse de forma explícita sin tratarse
+    como error funcional del sistema.
+    """
 
     status_code = 200
 
 
 class TriggerValidationError(TriggerResolverError):
-    """Evento mal formado o inconsistente."""
+    """Indica que el payload del evento es inválido o inconsistente.
+
+    Se usa cuando faltan campos obligatorios, no encajan patrones o existe
+    incoherencia semántica en los datos recibidos.
+    """
 
     status_code = 400
 
 
 class PipelineTriggerResolver:
-    """Valida eventos de lakeFS y construye ``PipelineTrigger``."""
+    """Valida eventos de lakeFS y construye objetos `PipelineTrigger`.
+
+    Esta clase concentra las reglas de negocio para aceptar, ignorar o
+    rechazar eventos de webhook antes de iniciar un pipeline de entrenamiento.
+    """
 
     EVENT_TYPE = "post-create-tag"
 
