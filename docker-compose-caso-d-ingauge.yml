@@ -1,0 +1,16 @@
+services:
+  api-ingauge-engage:
+    build:
+      context: ./src/api-In-gauge-and-en-gage
+    container_name: caso-d-api-ingauge-engage
+    ports:
+      - "8000:8000"
+
+  frontend-ingauge-engage:
+    build:
+      context: ./src/frontend-In-gauge-and-en-gage
+    container_name: caso-d-frontend-ingauge-engage
+    ports:
+      - "8080:80"
+    depends_on:
+      - api-ingauge-engage

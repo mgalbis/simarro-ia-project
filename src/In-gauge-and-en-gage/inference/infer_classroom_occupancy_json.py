@@ -9,13 +9,13 @@ Este script carga desde el DIRECTORIO ACTUAL:
 
 Ejemplo en Windows / PowerShell:
 
-cd "C:/cursoia/ProyectoFinal/CASOD-Calidad del Aire Ocupacion/CLASSROOM/modelo-inferencia"
+cd .\src\In-gauge-and-en-gage\inference
 
 & "C:/Program Files/Python31210/python.exe" "./infer_classroom_occupancy_json.py"
 
 Estructura esperada:
 
-modelo-inferencia/
+src/In-gauge-and-en-gage/inference/
 │
 ├── infer_classroom_occupancy_json.py
 ├── best_sensorica_ambiental_<Modelo>.joblib

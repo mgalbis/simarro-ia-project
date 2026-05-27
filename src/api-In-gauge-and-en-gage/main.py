@@ -1,0 +1,126 @@
+# -*- coding: utf-8 -*-
+"""API sencilla para predicción de ocupación de aulas.
+
+Caso D - In-Gauge and En-Gage classrooms.
+
+Endpoints principales:
+- GET  /health
+- GET  /metadata
+- POST /predict
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+import json
+
+import joblib
+import pandas as pd
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_DIR = BASE_DIR / "models"
+METADATA_PATH = BASE_DIR / "model_metadata.json"
+
+
+def load_metadata() -> dict[str, Any]:
+    with open(METADATA_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+metadata = load_metadata()
+FEATURES = metadata["features"]
+TARGET = metadata.get("target", "Occupied")
+MODEL_PATH = MODEL_DIR / metadata["model_filename"]
+
+
+def load_model() -> Any:
+    if not MODEL_PATH.exists():
+        raise FileNotFoundError(f"No se encontró el modelo en {MODEL_PATH}")
+    artifact = joblib.load(MODEL_PATH)
+    if isinstance(artifact, dict) and "model" in artifact:
+        return artifact["model"]
+    return artifact
+
+
+model = load_model()
+
+
+class OccupancyInput(BaseModel):
+    IndoorTemperature: float = Field(..., description="Temperatura interior del aula en °C")
+    IndoorHumidity: float = Field(..., description="Humedad relativa interior en %")
+    IndoorCO2: float = Field(..., description="CO2 interior en ppm")
+    IndoorNoise: float = Field(..., description="Ruido interior en dB")
+
+
+class PredictionResponse(BaseModel):
+    prediction: int
+    prediction_label: str
+    probability_occupied: float | None = None
+    probability_not_occupied: float | None = None
+    features_used: dict[str, float]
+    model_name: str
+    interpretation: str
+
+
+app = FastAPI(
+    title="Caso D - API de predicción de ocupación de aulas",
+    description="API sencilla para predecir si un aula está ocupada usando sensores ambientales.",
+    version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok", "model": metadata.get("model_name", "unknown")}
+
+
+@app.get("/metadata")
+def get_metadata() -> dict[str, Any]:
+    return metadata
+
+
+@app.post("/predict", response_model=PredictionResponse)
+def predict(payload: OccupancyInput) -> PredictionResponse:
+    data = payload.model_dump()
+
+    try:
+        X = pd.DataFrame([{feature: float(data[feature]) for feature in FEATURES}])
+        pred = int(model.predict(X)[0])
+
+        prob_occupied = None
+        prob_not_occupied = None
+        if hasattr(model, "predict_proba"):
+            probabilities = model.predict_proba(X)[0]
+            if len(probabilities) >= 2:
+                prob_not_occupied = float(probabilities[0])
+                prob_occupied = float(probabilities[1])
+
+        label = "Ocupado" if pred == 1 else "No ocupado"
+        if prob_occupied is not None:
+            interpretation = f"El modelo estima que el aula está {label.lower()} con probabilidad de ocupación {prob_occupied:.1%}."
+        else:
+            interpretation = f"El modelo estima que el aula está {label.lower()}."
+
+        return PredictionResponse(
+            prediction=pred,
+            prediction_label=label,
+            probability_occupied=prob_occupied,
+            probability_not_occupied=prob_not_occupied,
+            features_used={k: float(v) for k, v in data.items()},
+            model_name=metadata.get("model_name", "unknown"),
+            interpretation=interpretation,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

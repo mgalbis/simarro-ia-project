@@ -16,7 +16,7 @@ No se usan variables de contexto docente, calendario u operación, como `Day`, `
 ## Estructura esperada
 
 ```text
-modelo-inferencia/
+src/In-gauge-and-en-gage/inference/
 │
 ├── infer_classroom_occupancy_json.py
 ├── best_sensorica_ambiental_<Modelo>.joblib
@@ -25,11 +25,7 @@ modelo-inferencia/
 └── requirements.txt
 ```
 
-El archivo `.joblib` no está incluido en este ZIP porque debe ser el modelo real generado por tu notebook de entrenamiento. Copialo desde Drive, desde la carpeta `models/`, por ejemplo:
-
-```text
-best_sensorica_ambiental_LogisticRegression.joblib
-```
+El archivo `.joblib` del mejor modelo ya está incluido en este directorio para facilitar la inferencia local. También se conserva una copia en `src/In-gauge-and-en-gage/models/`.
 
 El script también puede leer `models_metadata.json` si lo copiás desde la salida del notebook.
 
@@ -60,7 +56,7 @@ pip install -r requirements.txt
 ## Ejecución en Windows / PowerShell
 
 ```powershell
-cd "C:/cursoia/ProyectoFinal/CASOD-Calidad del Aire Ocupacion/CLASSROOM/modelo-inferencia"
+cd .\src\In-gauge-and-en-gage\inference
 
 & "C:/Program Files/Python31210/python.exe" "./infer_classroom_occupancy_json.py"
 ```

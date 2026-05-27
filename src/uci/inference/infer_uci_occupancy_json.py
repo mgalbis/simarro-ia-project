@@ -9,13 +9,13 @@ Este script carga desde el DIRECTORIO ACTUAL:
 
 Ejemplo en Windows / PowerShell:
 
-cd "C:/cursoia/ProyectoFinal/CASOD-Calidad del Aire Ocupación/UCI_Occupancy_Detection/modelo-inferencia"
+cd .\src\uci\inference
 
 & "C:/Program Files/Python31210/python.exe" "./infer_uci_occupancy_json.py"
 
 Estructura esperada:
 
-modelo-inferencia/
+src/In-gauge-and-en-gage/inference/
 │
 ├── infer_uci_occupancy_json.py
 ├── best_model_LogisticRegression.joblib
