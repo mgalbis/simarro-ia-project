@@ -22,8 +22,7 @@ if not defined SERVICE_NAME set "SERVICE_NAME=jupyterhub"
 
 if "%~1"=="" goto help
 if /I "%~1"=="help" goto help
-if /I "%~1"=="requeriments" goto requeriments
-if /I "%~1"=="tls-cert" goto tls-cert
+if /I "%~1"=="init" goto init
 if /I "%~1"=="build" goto build
 if /I "%~1"=="start" goto start
 if /I "%~1"=="stop" goto stop
@@ -32,12 +31,8 @@ if /I "%~1"=="destroy" goto destroy
 echo Target no reconocido: %~1
 goto help
 
-:requeriments
+:init
 docker run --rm -v "%CD%/docker/%SERVICE_NAME%:/work" -w /work %JUPYTERHUB_IMAGE% sh -c "pip install --no-cache-dir pip-tools==%PIP_TOOLS_VERSION% && pip-compile requirements.in"
-if errorlevel 1 exit /b %errorlevel%
-goto end
-
-:tls-cert
 docker run --rm -v "%CD%/docker/nginx/certs:/certs" alpine/openssl req -x509 -nodes -newkey rsa:4096 -sha256 -days 365 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" -keyout /certs/tls.key -out /certs/tls.crt
 if errorlevel 1 exit /b %errorlevel%
 goto end
@@ -66,8 +61,7 @@ goto end
 echo Uso: make.bat ^<target^>
 echo.
 echo Targets disponibles:
-echo   requeriments  Genera requirements.txt con pip-compile en Python Linux
-echo   tls-cert      Genera certificado TLS autofirmado para nginx ^(desarrollo^)
+echo   init          Inicializa el proyecto generando requeriments.txt y certificados TLS
 echo   build         Construye la imagen de los servicios
 echo   start         Levanta todos los contenedores de todos los servicios
 echo   stop          Elimina todos los contenedores manteniendo los volumenes

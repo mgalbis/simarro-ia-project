@@ -20,21 +20,18 @@ TLS_CERT_CN ?= localhost
 
 .DEFAULT_GOAL := help
 
-.PHONY: help requeriments tls-cert build start stop destroy
+.PHONY: help init build start stop destroy
 
 help:
 	@echo "Targets disponibles:"
-	@echo "  requeriments  Genera requirements.txt con pip-compile en Python Linux"
-	@echo "  tls-cert      Genera certificado TLS autofirmado para nginx (desarrollo)"
+	@echo "  init          Inicializa el proyecto generando requeriments.txt y certificados TLS"
 	@echo "  build         Construye la imagen de los servicios"
 	@echo "  start         Levanta todos los contenedores de todos los servicios"
 	@echo "  stop          Elimina todos los contenedores manteniendo los volúmenes"
 	@echo "  destroy       Elimina todos los contenedores y volúmenes"
 
-requeriments:
+init:
 	docker run --rm -v "$(CURDIR)/docker/$(SERVICE_NAME):/work" -w /work $(JUPYTERHUB_IMAGE) sh -c "pip install --no-cache-dir pip-tools==$(PIP_TOOLS_VERSION) && pip-compile requirements.in"
-
-tls-cert:
 	docker run --rm -v "$(CURDIR)/$(TLS_CERT_DIR):/certs" alpine/openssl req -x509 -nodes -newkey rsa:4096 -sha256 -days $(TLS_CERT_DAYS) -subj "/CN=$(TLS_CERT_CN)" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" -keyout /certs/tls.key -out /certs/tls.crt
 
 build:
