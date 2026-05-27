@@ -175,6 +175,7 @@ def test_integration_trigger_to_pipeline_uses_expected_client_calls(monkeypatch)
 
     pt.ejecutar_pipeline(
         caso=trigger.case_id,
+        repository=trigger.repository,
         dataset=trigger.dataset,
         commit=trigger.commit_hash,
         committer=trigger.committer,
@@ -184,12 +185,12 @@ def test_integration_trigger_to_pipeline_uses_expected_client_calls(monkeypatch)
     gold_paths = CASES_CONFIG.resolve_gold_paths()
     assert lakefs_calls == [
         {
-            "repository": trigger.dataset,
+            "repository": trigger.repository,
             "ref": trigger.tag_id,
             "path": gold_paths["train"],
         },
         {
-            "repository": trigger.dataset,
+            "repository": trigger.repository,
             "ref": trigger.tag_id,
             "path": gold_paths["test"],
         },

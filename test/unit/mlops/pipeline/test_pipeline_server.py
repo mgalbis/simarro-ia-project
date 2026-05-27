@@ -30,6 +30,7 @@ class _DummyPostHandler:
     def _lanzar_pipeline(
         self,
         *,
+        repository: str,
         dataset: str,
         case_id: str,
         commit_hash: str,
@@ -38,6 +39,7 @@ class _DummyPostHandler:
     ):
         self.launch_calls.append(
             {
+                "repository": repository,
                 "dataset": dataset,
                 "case_id": case_id,
                 "commit_hash": commit_hash,
@@ -187,6 +189,7 @@ def test_do_post_launches_pipeline_with_trigger_fields(monkeypatch):
 
     assert handler.launch_calls == [
         {
+            "repository": "casob--uci-appliances",
             "dataset": "uci-appliances",
             "case_id": "B",
             "commit_hash": "abc123",
@@ -233,6 +236,7 @@ def test_lanzar_pipeline_builds_expected_command_and_log_path(monkeypatch):
 
     ps.WebhookHandler._lanzar_pipeline(
         None,
+        repository="casob--uci-appliances",
         dataset="uci-appliances",
         case_id="B",
         commit_hash="abc123",
@@ -247,6 +251,8 @@ def test_lanzar_pipeline_builds_expected_command_and_log_path(monkeypatch):
         str(ps.BASE_DIR / "pipeline_train.py"),
         "--caso",
         "B",
+        "--repository",
+        "casob--uci-appliances",
         "--dataset",
         "uci-appliances",
         "--commit",

@@ -366,6 +366,7 @@ def test_ejecutar_pipeline_exits_when_case_is_not_configured():
     with pytest.raises(SystemExit) as exc:
         pt.ejecutar_pipeline(
             caso="Z",
+            repository="casoz--dataset",
             dataset="dataset",
             commit="abc123",
             committer="tester",
@@ -386,6 +387,7 @@ def test_ejecutar_pipeline_exits_when_data_download_fails(monkeypatch):
     with pytest.raises(SystemExit) as exc:
         pt.ejecutar_pipeline(
             caso="B",
+            repository="casob--uci-appliances",
             dataset="uci-appliances",
             commit="abc123",
             committer="tester",
@@ -472,6 +474,7 @@ def test_ejecutar_pipeline_happy_path_calls_mlflow_and_staging(monkeypatch):
 
     pt.ejecutar_pipeline(
         caso="D",
+        repository="casod--uci-occupancy",
         dataset="uci-occupancy",
         commit="abcdef123456",
         committer="tester",
