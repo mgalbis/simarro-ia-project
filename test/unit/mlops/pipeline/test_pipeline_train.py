@@ -520,33 +520,35 @@ def test_ejecutar_pipeline_happy_path_calls_mlflow_and_staging(monkeypatch):
 
 
 def test_llevar_a_staging_transitions_latest_version(monkeypatch):
-    """Promueve a Staging la última versión disponible en estado `None`."""
+    """Asigna alias `staging` a la versión más reciente del modelo."""
     captured: dict[str, object] = {}
 
     class _FakeClient:
-        """Cliente MLflow simulado para comprobar transición de stage."""
+        """Cliente MLflow simulado para comprobar asignación de alias."""
 
         def __init__(self, tracking_uri=None):
             captured["tracking_uri"] = tracking_uri
 
-        def get_latest_versions(self, name, stages):
-            captured["get_latest_versions"] = (name, stages)
-            return [SimpleNamespace(version="7")]
+        def search_model_versions(self, filter_string):
+            captured["search_model_versions"] = filter_string
+            return [
+                SimpleNamespace(version="6", run_id="run_old"),
+                SimpleNamespace(version="7", run_id="run_123"),
+            ]
 
-        def transition_model_version_stage(self, **kwargs):
-            captured["transition"] = kwargs
+        def set_registered_model_alias(self, **kwargs):
+            captured["set_alias"] = kwargs
 
     monkeypatch.setattr("mlflow.tracking.MlflowClient", _FakeClient)
 
     pt._llevar_a_staging("OccupancyClassifier", "run_123")
 
     assert captured["tracking_uri"] == pt.MLFLOW_URI
-    assert captured["get_latest_versions"] == ("OccupancyClassifier", ["None"])
-    assert captured["transition"] == {
+    assert captured["search_model_versions"] == "name='OccupancyClassifier'"
+    assert captured["set_alias"] == {
         "name": "OccupancyClassifier",
         "version": "7",
-        "stage": "Staging",
-        "archive_existing_versions": True,
+        "alias": "staging",
     }
 
 
@@ -560,17 +562,17 @@ def test_llevar_a_staging_does_nothing_when_no_versions(monkeypatch):
         def __init__(self, tracking_uri=None):
             captured["tracking_uri"] = tracking_uri
 
-        def get_latest_versions(self, name, stages):
-            captured["get_latest_versions"] = (name, stages)
+        def search_model_versions(self, filter_string):
+            captured["search_model_versions"] = filter_string
             return []
 
-        def transition_model_version_stage(self, **kwargs):
-            captured["transition"] = kwargs
+        def set_registered_model_alias(self, **kwargs):
+            captured["set_alias"] = kwargs
 
     monkeypatch.setattr("mlflow.tracking.MlflowClient", _FakeClient)
 
     pt._llevar_a_staging("OccupancyClassifier", "run_123")
 
     assert captured["tracking_uri"] == pt.MLFLOW_URI
-    assert captured["get_latest_versions"] == ("OccupancyClassifier", ["None"])
-    assert "transition" not in captured
+    assert captured["search_model_versions"] == "name='OccupancyClassifier'"
+    assert "set_alias" not in captured

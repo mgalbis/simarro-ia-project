@@ -164,12 +164,12 @@ def test_integration_trigger_to_pipeline_uses_expected_client_calls(monkeypatch)
         def __init__(self, tracking_uri=None):
             stage_calls["tracking_uri"] = tracking_uri
 
-        def get_latest_versions(self, name, stages):
-            stage_calls["get_latest_versions"] = (name, stages)
-            return [SimpleNamespace(version="3")]
+        def search_model_versions(self, filter_string):
+            stage_calls["search_model_versions"] = filter_string
+            return [SimpleNamespace(version="3", run_id="run_integration_1")]
 
-        def transition_model_version_stage(self, **kwargs):
-            stage_calls["transition"] = kwargs
+        def set_registered_model_alias(self, **kwargs):
+            stage_calls["set_alias"] = kwargs
 
     monkeypatch.setattr("mlflow.tracking.MlflowClient", _FakeMlflowClient)
 
@@ -208,6 +208,6 @@ def test_integration_trigger_to_pipeline_uses_expected_client_calls(monkeypatch)
 
     expected_model_name = CASES_CONFIG.cases[trigger.case_id]["functional_model_name"]
     assert captured["log_model"]["registered_model_name"] == expected_model_name
-    assert stage_calls["get_latest_versions"] == (expected_model_name, ["None"])
-    assert stage_calls["transition"]["name"] == expected_model_name
-    assert stage_calls["transition"]["stage"] == "Staging"
+    assert stage_calls["search_model_versions"] == f"name='{expected_model_name}'"
+    assert stage_calls["set_alias"]["name"] == expected_model_name
+    assert stage_calls["set_alias"]["alias"] == "staging"
