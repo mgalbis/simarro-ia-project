@@ -12,13 +12,13 @@ dev → candidate → validated → production-ready → archived
 
 ## Definición de estados
 
-| Estado | Descripción |
-|---|---|
-| `dev` | Experimento en desarrollo. Puede estar incompleto. |
-| `candidate` | Modelo candidato tras obtener métricas razonables. |
-| `validated` | Modelo revisado, con dataset y métricas trazables. |
+| Estado             | Descripción                                             |
+|--------------------|---------------------------------------------------------|
+| `dev`              | Experimento en desarrollo. Puede estar incompleto.      |
+| `candidate`        | Modelo candidato tras obtener métricas razonables.      |
+| `validated`        | Modelo revisado, con dataset y métricas trazables.      |
 | `production-ready` | Modelo preparado para ser reutilizado con datos reales. |
-| `archived` | Modelo descartado o reemplazado. |
+| `archived`         | Modelo descartado o reemplazado.                        |
 
 ## Criterios para pasar a `candidate`
 

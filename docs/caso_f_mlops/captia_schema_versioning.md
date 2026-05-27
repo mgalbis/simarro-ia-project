@@ -2,7 +2,8 @@
 
 ## Objetivo
 
-El schema CAPTIA define cómo se representan los datos en la capa plata. Debe versionarse porque los modelos dependen directamente de los nombres de variables, tags, unidades y tipos.
+El schema CAPTIA define cómo se representan los datos en la capa plata. Debe versionarse porque los modelos dependen
+directamente de los nombres de variables, tags, unidades y tipos.
 
 ## Schema base
 
@@ -76,4 +77,5 @@ captia_schema_version=captia_schema_v1
 
 ## Motivo
 
-Si cambia el nombre de una variable o el tipo de una señal, los modelos antiguos pueden dejar de ser reproducibles. Versionar el schema evita esa pérdida de trazabilidad.
+Si cambia el nombre de una variable o el tipo de una señal, los modelos antiguos pueden dejar de ser reproducibles.
+Versionar el schema evita esa pérdida de trazabilidad.
