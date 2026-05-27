@@ -1,0 +1,46 @@
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: simarro-mlflow
+    user: "0:0"
+    ports:
+      - "5000:5000"
+
+    # Comando de inicialización del servidor MLflow.
+    command: >
+      sh -c "mkdir -p /mlflow/artifacts &&
+      chmod -R 775 /mlflow &&
+      mlflow server
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --serve-artifacts
+      --artifacts-destination /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+      --dev
+      --allowed-hosts '*' 
+      --cors-allowed-origins 'http://10.151.18.176:5000,http://localhost:5000,http://127.0.0.1:5000'"
+
+    volumes:
+      - mlflow-data:/mlflow
+
+    # Dependencia con lakeFS
+    depends_on:
+      lakefs:
+        condition: service_healthy
+
+    # Comprobar el estado del servicio MLflow
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/', timeout=5).status < 500 else 1)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mlflow-data:

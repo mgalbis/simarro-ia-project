@@ -1,0 +1,10 @@
+# Fichero principal de orquestación
+# Se añaden los servicios de MLflow, lakeFS y JupyterHub a través de archivos de composición separados.
+#
+# En README.md están indicados los commandos básicos para su uso
+
+include:
+  - compose/lakefs.yml
+  - compose/mlflow.yml
+  - compose/jupyterhub.yml
+  - compose/pipeline.yml
