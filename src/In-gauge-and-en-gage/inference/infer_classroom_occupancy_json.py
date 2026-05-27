@@ -307,7 +307,12 @@ def predict_cases(
     results_df[f"{target}_pred"] = predictions
     results_df["pred_label"] = (
         results_df[f"{target}_pred"]
-        .map({0: "No ocupado", 1: "Ocupado",})
+        .map(
+            {
+                0: "No ocupado",
+                1: "Ocupado",
+            }
+        )
         .fillna(results_df[f"{target}_pred"].astype(str))
     )
 
@@ -347,7 +352,12 @@ def print_results(results_df: pd.DataFrame):
         col
         for col in results_df.columns
         if col.endswith("_pred")
-        or col in ["pred_label", "prob_no_ocupado", "prob_ocupado",]
+        or col
+        in [
+            "pred_label",
+            "prob_no_ocupado",
+            "prob_ocupado",
+        ]
     ]
 
     columns_to_show = base_columns + pred_columns
