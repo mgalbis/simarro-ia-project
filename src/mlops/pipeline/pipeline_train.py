@@ -35,6 +35,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
+from mlops.config import CASES_CONFIG
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [TRAIN] %(levelname)s — %(message)s"
@@ -47,190 +48,71 @@ LAKEFS_HOST = os.environ.get("LAKEFS_ENDPOINT", "http://localhost:8001")
 LAKEFS_ACCESS = os.environ.get("LAKEFS_ACCESS_KEY_ID")
 LAKEFS_SECRET = os.environ.get("LAKEFS_SECRET_ACCESS_KEY")
 
-# Mapa de casos a experimentos y modelos en MLflow
-CASOS = {
-    "B": {
-        "experimento": "CasoB_Prediccion_de_consumo_electrico",
-        "modelo_registry": "simarro-caso-b",
-        "loader": "default_csv",
-        "trainer": "default_regression",
-    },
-    "C": {
-        "experimento": "CasoC_Deteccion_de_anomalias_HVAC",
-        "modelo_registry": "simarro-caso-c",
-        "loader": "default_csv",
-        "trainer": "default_regression",
-    },
-    "D": {
-        "experimento": "CasoD_Calidad_del_aire",
-        "modelo_registry": "simarro-caso-d-occupancy",
-        "loader": "uci_occupancy",
-        "trainer": "occupancy_classification",
-    },
-    "E": {
-        "experimento": "CasoE_Datos_meteorologicos",
-        "modelo_registry": "simarro-caso-e",
-        "loader": "default_csv",
-        "trainer": "default_regression",
-    },
-}
-
-SENSOR_FEATURES_D = ["Temperature", "Humidity", "Light", "CO2", "HumidityRatio"]
-TARGET_D = "Occupancy"
-
 # Funciones auxiliares
-
-
-def get_lakefs_client() -> LakeFSClient:
-    """Crea un cliente de lakeFS con credenciales de entorno."""
-    cfg = lakefs_sdk.Configuration(
+LAKEFS_CLIENT = LakeFSClient(
+    configuration=lakefs_sdk.Configuration(
         host=LAKEFS_HOST,
         username=LAKEFS_ACCESS,
         password=LAKEFS_SECRET,
     )
-    return LakeFSClient(configuration=cfg)
+)
 
 
-def _read_lakefs_csv(
-    client: LakeFSClient, dataset: str, commit: str, path: str
+def _read_lakefs_parquet(
+    dataset: str,
+    ref: str,
+    path: str
 ) -> pd.DataFrame:
-    respuesta = client.objects_api.get_object(
+    """Lee un parquet desde lakeFS y devuelve un DataFrame."""
+    respuesta = LAKEFS_CLIENT.objects_api.get_object(
         repository=dataset,
-        ref=commit,
+        ref=ref,
         path=path,
     )
     contenido = respuesta.read() if hasattr(respuesta, "read") else respuesta.data
-    return pd.read_csv(BytesIO(contenido))
+    return pd.read_parquet(BytesIO(contenido))
 
 
-def descargar_datos(dataset: str, commit: str, config_caso: dict):
-    """Descarga el dataset desde lakeFS en el commit que disparó el pipeline."""
-    log.info(f"Descargando datos de lakeFS. Repo: {dataset}  Commit: {commit[:8]}")
+def descargar_datos(dataset: str, tag: str):
+    """Descarga train/test de Gold desde lakeFS a partir de un tag."""
+    log.info(f"Descargando datos de lakeFS. Repo: {dataset}  Tag: {tag}")
 
-    client = get_lakefs_client()
+    gold_paths = CASES_CONFIG.resolve_gold_paths()
+    train_path = gold_paths["train"]
+    test_path = gold_paths["test"]
 
-    if config_caso.get("loader") == "uci_occupancy":
-        archivos = [
-            "data/datatraining.txt",
-            "data/datatest.txt",
-            "data/datatest2.txt",
-        ]
-        datasets = {}
-        for ruta in archivos:
-            log.info(f"Descargando: {ruta}")
-            df = _read_lakefs_csv(client, dataset, commit, ruta)
-            if "date" in df.columns:
-                df["date"] = pd.to_datetime(df["date"], errors="coerce")
-            datasets[os.path.basename(ruta)] = df
+    log.info(f"Descargando Gold train: {train_path}")
+    train_df = _read_lakefs_parquet(dataset, tag, train_path)
 
-        total_filas = sum(len(df) for df in datasets.values())
-        log.info(
-            "Dataset occupancy cargado: "
-            f"{total_filas} filas totales en {len(datasets)} ficheros"
-        )
-        return datasets
+    log.info(f"Descargando Gold test: {test_path}")
+    test_df = _read_lakefs_parquet(dataset, tag, test_path)
 
-    # Lista los objetos en el commit exacto
-    objetos = client.objects_api.list_objects(
-        repository=dataset,
-        ref=commit,
-    ).results
-
-    # Descargar el primer CSV encontrado
-    csv_objects = [o for o in objetos if o.path.endswith(".csv")]
-
-    if not csv_objects:
-        raise FileNotFoundError(f"No hay CSVs en {dataset}@{commit[:8]}")
-
-    ruta_objeto = csv_objects[0].path
-    log.info(f"Descargando: {ruta_objeto}")
-
-    df = _read_lakefs_csv(client, dataset, commit, ruta_objeto)
-    log.info(f"Dataset cargado: {len(df)} filas, {len(df.columns)} columnas")
-    return df
+    log.info(
+        "Gold cargado: "
+        f"train={len(train_df)} filas, test={len(test_df)} filas"
+    )
+    return train_df, test_df
 
 
-def validar_datos(df, dataset: str, config_caso: dict) -> bool:
-    """Valida la calidad básica de los datos antes de entrenar.
-
-    Devuelve True si los datos son válidos y False si hay problemas.
-    """
-    log.info("Validando calidad de los datos...")
-
-    if config_caso.get("loader") == "uci_occupancy":
-        required_files = {"datatraining.txt", "datatest.txt", "datatest2.txt"}
-        if set(df.keys()) != required_files:
-            log.error(
-                "Archivos esperados ausentes. "
-                f"Esperados: {required_files}. Recibidos: {set(df.keys())}"
-            )
-            return False
-
-        train_df = df["datatraining.txt"]
-        test_df = pd.concat(
-            [df["datatest.txt"], df["datatest2.txt"]], ignore_index=True
-        )
-
-        if len(train_df) < 100 or len(test_df) < 100:
-            log.error(
-                "Dataset occupancy demasiado pequeño: "
-                f"train={len(train_df)}, test={len(test_df)} "
-                "(mínimo 100 por split)"
-            )
-            return False
-
-        columnas_requeridas = set(SENSOR_FEATURES_D + [TARGET_D])
-        columnas_train = set(train_df.columns)
-        columnas_test = set(test_df.columns)
-        if not columnas_requeridas.issubset(
-            columnas_train
-        ) or not columnas_requeridas.issubset(columnas_test):
-            log.error("Faltan columnas requeridas para el caso D")
-            return False
-
-        pct_nulos = max(
-            train_df[SENSOR_FEATURES_D].isnull().mean().max(),
-            test_df[SENSOR_FEATURES_D].isnull().mean().max(),
-        )
-        if pct_nulos > 0.3:
-            log.error(f"Demasiados nulos en features del caso D: {pct_nulos:.1%}")
-            return False
-
-        return True
-
-    # 1. Comprobar que no está vacío
-    if len(df) < 100:
-        log.error(f"Dataset demasiado pequeño: {len(df)} filas (mínimo 100)")
-        return False
-
-    # 2. Comprobar porcentaje de nulos
-    pct_nulos = df.isnull().mean().max()
-    if pct_nulos > 0.3:
-        log.error(f"Demasiados nulos: {pct_nulos:.1%} en alguna columna")
-        return False
-
-    return True
-
-
-def entrenar_modelo(df, caso: str, config_caso: dict):
+def entrenar_modelo(
+    train_df,
+    test_df,
+    caso: str,
+    dataset: str,
+    config_caso: dict
+):
     """Entrena el modelo correspondiente del caso de uso."""
     log.info(f"Entrenando modelo para Caso de Uso {caso}")
 
-    if config_caso.get("trainer") == "occupancy_classification":
-        train_df = df["datatraining.txt"]
-        test_df = pd.concat(
-            [df["datatest.txt"], df["datatest2.txt"]], ignore_index=True
-        )
+    feature_columns = CASES_CONFIG.resolve_feature_columns(dataset)
+    target_column = CASES_CONFIG.resolve_target_column(dataset)
 
-        x_train = train_df[SENSOR_FEATURES_D].copy()
-        y_train = train_df[TARGET_D].astype(int)
-        x_test = test_df[SENSOR_FEATURES_D].copy()
-        y_test = test_df[TARGET_D].astype(int)
+    x_train = train_df[feature_columns].copy()
+    x_test = test_df[feature_columns].copy()
+    y_train = train_df[target_column].copy()
+    y_test = test_df[target_column].copy()
 
-        medianas = x_train.median(numeric_only=True)
-        x_train = x_train.fillna(medianas)
-        x_test = x_test.fillna(medianas)
-
+    if config_caso.get("problem_type") == "binary_classification":
         params = {
             "n_estimators": 100,
             "max_depth": 6,
@@ -254,18 +136,6 @@ def entrenar_modelo(df, caso: str, config_caso: dict):
 
         log.info(f"Métricas: {metricas}")
         return modelo, params, metricas, x_train, x_test, y_test, predicciones
-
-    # Preparar features
-    columnas_numericas = df.select_dtypes(include=[np.number]).columns.tolist()
-    target = columnas_numericas[-1]
-    features = columnas_numericas[:-1]
-
-    x = df[features].fillna(df[features].median())
-    y = df[target].fillna(df[target].median())
-
-    x_train, x_test, y_train, y_test = train_test_split(
-        x, y, test_size=0.2, random_state=42
-    )
 
     params = {"n_estimators": 100, "max_depth": 6, "random_state": 42}
     modelo = RandomForestRegressor(**params)
@@ -343,47 +213,49 @@ def registrar_report_evidently(
         mlflow.set_tag("evidently_error", str(exc)[:250])
 
 
-def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str):
+def ejecutar_pipeline(
+    caso: str,
+    dataset: str,
+    commit: str,
+    committer: str,
+    tag: str
+):
     """Ejecuta el pipeline completo de reentrenamiento.
 
     Pasos:
-        1. Descarga datos del commit exacto de lakeFS
+        1. Descarga datos de Gold desde el tag de lakeFS
         2. Valida calidad
         3. Entrena modelo
         4. Registra en MLflow con trazabilidad completa
         5. Promueve a Staging si supera el umbral
     """
-    config_caso = CASOS.get(caso)
+    config_caso = CASES_CONFIG.cases.get(caso)
     if not config_caso:
         log.error(
             f"El Caso de uso {caso} no está registrado. "
-            f"Casos válidos: {list(CASOS.keys())}"
+            f"Casos válidos: {list(CASES_CONFIG.cases.keys())}"
         )
         sys.exit(1)
 
     log.info(
-        f"Pipeline iniciado. Caso de uso {caso}. Dataset {dataset}. Commit {commit[:8]}"
+        f"Pipeline iniciado. Caso de uso {caso}. Dataset {dataset}. Tag {tag}"
     )
 
     # Paso 1: Descarga de datos
     try:
-        df = descargar_datos(dataset, commit, config_caso)
+        train_df, test_df = descargar_datos(dataset, tag)
     except Exception as e:
         log.error(f"Error descargando datos: {e}")
         sys.exit(1)
 
-    # Paso 2: Validar datos
-    if not validar_datos(df, dataset, config_caso):
-        log.error("Validación fallida. Pipeline cancelada")
-        sys.exit(1)
-
-    # Paso 3 y 4: Entrenar y registrar en MLflow
+    # Paso 2: Entrenar y registrar en MLflow
+    experiment = CASES_CONFIG.resolve_experiment_name(caso)
     mlflow.set_tracking_uri(MLFLOW_URI)
-    mlflow.set_experiment(config_caso["experimento"])
+    mlflow.set_experiment(experiment)
 
     # Entrenar antes de abrir el run para derivar el nombre real del algoritmo
     modelo, params, metricas, x_train, x_test, y_test, preds = entrenar_modelo(
-        df, caso, config_caso
+        train_df, test_df, caso, dataset, config_caso
     )
 
     algoritmo = modelo.__class__.__name__
@@ -398,12 +270,12 @@ def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str):
                 "caso_uso": caso,
                 "grupo": f"G{'1' if caso=='B' else '3' if caso in ('C','E') else '4'}",
                 "dataset": dataset,
-                "dataset_version": commit,
-                "dataset_branch": "main",
-                "capa_medallion": "oro",
+                "dataset_commit": commit,
+                "dataset_tag": tag,
                 "disparado_por": "webhook_lakefs",
                 "committer": committer,
                 "run_type": "automatico",
+                "algorithm": algoritmo,
             }
         )
 
@@ -424,22 +296,18 @@ def ejecutar_pipeline(caso: str, dataset: str, commit: str, committer: str):
         mlflow.sklearn.log_model(
             sk_model=modelo,
             artifact_path="model",
-            registered_model_name=config_caso["modelo_registry"],
+            registered_model_name=config_caso.get("functional_model_name"),
             metadata={
                 "caso_uso": caso,
                 "framework": "scikit-learn",
-                "task": (
-                    "classification"
-                    if config_caso.get("trainer") == "occupancy_classification"
-                    else "regression"
-                ),
+                "task": config_caso.get("problem_type"),
             },
         )
 
         run_id = run.info.run_id
         log.info(f"Run registrado en MLflow: {run_id}")
 
-        _llevar_a_staging(config_caso["modelo_registry"], run_id)
+        _llevar_a_staging(config_caso.get("functional_model_name"), run_id)
 
     log.info("Pipeline completado correctamente")
 
@@ -472,7 +340,8 @@ if __name__ == "__main__":
     parser.add_argument("--caso", required=True, help="Letra del caso (B, C, D, E)")
     parser.add_argument("--dataset", required=True, help="Nombre del repo en lakeFS")
     parser.add_argument("--commit", default="main", help="Commit hash de lakeFS")
-    parser.add_argument("--committer", default="auto", help="Usuario que hizo el merge")
+    parser.add_argument("--committer", default="auto", help="Usuario que hizo el tag de versión")
+    parser.add_argument("--tag", required=True, help="Tag de versión creado")
     args = parser.parse_args()
 
     ejecutar_pipeline(
@@ -480,4 +349,5 @@ if __name__ == "__main__":
         dataset=args.dataset,
         commit=args.commit,
         committer=args.committer,
+        tag=args.tag,
     )

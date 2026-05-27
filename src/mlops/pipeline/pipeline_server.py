@@ -1,52 +1,74 @@
-# Servidor webhook que recibe eventos de lakeFS y dispara el pipeline de reentrenamiento automático.
+# Servidor webhook que recibe eventos de lakeFS y dispara el pipeline de
+# reentrenamiento automático.
 #
-# LakeFS llama a este servidor vía HTTP POST cuando ocurre un merge a la rama main de cualquier repositorio de datasets.
+# LakeFS llama a este servidor vía HTTP POST cuando ocurre un evento de tag
+# en cualquier repositorio de datasets.
 
-import os
 import json
 import logging
+import os
 import subprocess
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import sys
 from datetime import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+
+SRC_ROOT = Path(__file__).resolve().parents[2]
+if str(SRC_ROOT) not in sys.path:
+    sys.path.append(str(SRC_ROOT))
+
+from mlops.config import CASES_CONFIG
+from mlops.pipeline.trigger_resolver import (
+    PipelineTriggerResolver,
+    TriggerIgnoredError,
+    TriggerResolverError,
+)
 
 # Configuración
-PORT = int(os.environ.get("PIPELINE_PORT", 8080))
-
-RAMA_PRODUCCION = "main"
-
-# Definimos las pipelines en función de losrepositorios que tienen pipeline de reentrenamiento
-# Clave: nombre del repositorio en lakeFS
-# Valor: script de entrenamiento a ejecutar
-PIPELINES = {
-    "uci-appliances": "pipeline_train.py --caso B --dataset uci-appliances",
-    "lbnl-fdd": "pipeline_train.py --caso C --dataset lbnl-fdd",
-    "uci-occupancy": "pipeline_train.py --caso D --dataset uci-occupancy",
-    "era5": "pipeline_train.py --caso E --dataset era5",
-}
-
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [PIPELINE] %(levelname)s — %(message)s"
 )
 log = logging.getLogger(__name__)
 
+BASE_DIR = Path(__file__).resolve().parent
+PORT = int(os.environ.get("PIPELINE_PORT", 8080))
+TRIGGER_RESOLVER = PipelineTriggerResolver()
 
-# Handler del webhook
+
+def _format_configured_datasets() -> str:
+    """Devuelve datasets configurados en formato multilinea tabulado."""
+    dataset_names = sorted(
+        name
+        for name, cfg in CASES_CONFIG.datasets.items()
+        if isinstance(name, str) and isinstance(cfg, dict)
+    )
+    return "\n".join(f"\t- {dataset}" for dataset in dataset_names)
+
 class WebhookHandler(BaseHTTPRequestHandler):
-    """
-    GEstiona las peticiones HTTP entrantes de lakeFS y LakeFS envía un POST con un JSON que describe el evento.
-    """
+    """Gestiona las peticiones HTTP entrantes de lakeFS."""
 
     def do_GET(self):
-        """
-        Endpoint de salud para el healthcheck del contenedor. Responde con 200 OK a cualquier GET.
+        """Endpoint de healthcheck.
+
+        Responde siempre ``200 OK`` con cuerpo JSON mínimo para facilitar
+        comprobaciones de liveness/readiness del contenedor.
         """
         self._responder(200, "OK")
 
     def do_POST(self):
-        """Punto de entrada para todos los eventos de lakeFS."""
+        """Procesa eventos webhook de lakeFS y dispara reentrenamiento.
 
-        # Pasos del proceso:
-        # 1. Leer el cuerpo de la petición
+        Flujo:
+        1. Lee y parsea el JSON del request.
+        2. Resuelve/valida trigger con ``PipelineTriggerResolver``.
+        3. Si el trigger es válido, arranca ``pipeline_train.py`` en segundo
+           plano y responde inmediatamente.
+
+        Estrategia de errores:
+        - ``TriggerIgnoredError``: se responde 200 con mensaje de ignorado.
+        - ``TriggerResolverError``: se responde con código semántico (400).
+        - Cualquier otro error: se responde 500.
+        """
         longitud = int(self.headers.get("Content-Length", 0))
         cuerpo = self.rfile.read(longitud)
 
@@ -59,69 +81,83 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
         log.info(f"Evento recibido: {json.dumps(evento, indent=2)}")
 
-        # 2. Extraer campos del evento de lakeFS
-        # El payload de lakeFS tiene esta estructura:
-        # {
-        #   "event_type": "pre-merge" | "post-merge",
-        #   "repository": "uci-appliances",
-        #   "branch": "main",
-        #   "source_ref": "dev",
-        #   "commit_id": "abc123...",
-        #   "committer": "caso_b",
-        #   "commit_message": "mensaje del commit",
-        # }
-        tipo_evento = evento.get("event_type", "")
-        repositorio = evento.get("repository") or evento.get("repository_id", "")
-        rama_destino = evento.get("branch") or evento.get("branch_id", "")
-        commit_hash = evento.get("commit_id", "")
-
-        # 3. Filtrar: solo se procesarán los post-merge a main
-        if tipo_evento != "post-merge":
-            log.info(f"Evento ignorado ya que no es post-merge. Tipo: '{tipo_evento}'")
-            self._responder(200, "Ignorado (no es post-merge)")
+        try:
+            trigger = TRIGGER_RESOLVER.resolve(evento)
+        except TriggerIgnoredError as exc:
+            log.info(str(exc))
+            self._responder(exc.status_code, str(exc))
+            return
+        except TriggerResolverError as exc:
+            log.error(str(exc))
+            self._responder(exc.status_code, str(exc))
+            return
+        except Exception as exc:
+            log.exception("Error inesperado resolviendo trigger")
+            self._responder(500, f"Error interno resolviendo trigger: {exc}")
             return
 
-        if rama_destino != RAMA_PRODUCCION:
-            log.info(
-                f"Evento ignorado ya que la rama de destino no es main. Rama: '{rama_destino}'"
-            )
-            self._responder(200, f"Ignorado (no es main)")
-            return
-
-        if repositorio not in PIPELINES:
-            log.info(f"Repositorio '{repositorio}' sin pipeline configurado")
-            self._responder(200, f"No existe pipeline para {repositorio}")
-            return
-
-        # 4. Lanzar el pipeline de reentrenamiento
         log.info(
-            f"Disparando pipeline para el repositorio '{repositorio}'. Commit: {commit_hash[:8]}"
+            f"Disparando pipeline para el repositorio '{trigger.repository}'. "
+            f"Dataset: {trigger.dataset}. Tag: {trigger.tag_id}. "
+            f"Commit: {trigger.commit_hash[:8]}"
         )
-        self._lanzar_pipeline(repositorio, commit_hash, evento)
-        self._responder(200, f"Pipeline iniciado para el repositorio {repositorio}")
-
-    def _lanzar_pipeline(self, repositorio: str, commit_hash: str, evento: dict):
-        """
-        Lanza el script de entrenamiento en un proceso separado.
-        El proceso corre en segundo plano: el webhook responde inmediatamente sin esperar a que termine el entrenamiento.
-        """
-        comando_base = PIPELINES[repositorio]
-        comando = (
-            f"python {comando_base} "
-            f"--commit {commit_hash} "
-            f"--committer {evento.get('committer', 'unknown')}"
+        self._lanzar_pipeline(
+            dataset=trigger.dataset,
+            case_id=trigger.case_id,
+            commit_hash=trigger.commit_hash,
+            committer=trigger.committer,
+            tag_id=trigger.tag_id
+        )
+        self._responder(
+            200,
+            f"Pipeline iniciado para el repositorio {trigger.repository}",
         )
 
-        log.info(f"Ejecutando: {comando}")
+    def _lanzar_pipeline(
+        self,
+        dataset: str,
+        case_id: str,
+        commit_hash: str,
+        committer: str,
+        tag_id: str,
+    ):
+        """Lanza ``pipeline_train.py`` de forma no bloqueante.
 
-        # subprocess.Popen lanza el proceso sin esperar su fin (no-blocking)
-        # stdout y stderr se redirigen a un fichero de log
+        Args:
+            dataset: Dataset lógico extraído desde ``repositorio``.
+            case_id: Identificador de caso de uso asociado al dataset.
+            commit_hash: Commit exacto asociado al tag recibido.
+            committer: Usuario que originó el evento.
+            tag_id: Tag creado en lakeFS.
+
+        Comportamiento:
+        - Compone argumentos de proceso para evitar shell quoting manual.
+        - Redirige stdout/stderr a un fichero de log con timestamp.
+        - Usa ``subprocess.Popen`` para no bloquear el webhook.
+        """
+        comando_args = [
+            "python",
+            str(BASE_DIR / "pipeline_train.py"),
+            "--caso",
+            case_id,
+            "--dataset",
+            dataset,
+            "--commit",
+            commit_hash,
+            "--committer",
+            committer,
+            "--tag",
+            tag_id,
+        ]
+
+        log.info(f"Ejecutando: {' '.join(comando_args)}")
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_path = f"/tmp/pipeline_{repositorio}_{timestamp}.log"
+        log_path = f"/tmp/pipeline_{dataset}_{timestamp}.log"
 
         with open(log_path, "w") as log_file:
             subprocess.Popen(
-                comando.split(),
+                comando_args,
                 stdout=log_file,
                 stderr=log_file,
             )
@@ -129,21 +165,23 @@ class WebhookHandler(BaseHTTPRequestHandler):
         log.info(f"Pipeline lanzado. Log en: {log_path}")
 
     def _responder(self, codigo: int, mensaje: str):
-        """Envía una respuesta HTTP al webhook de lakeFS."""
+        """Envía respuesta JSON uniforme al cliente webhook.
+
+        Args:
+            codigo: Código HTTP de respuesta.
+            mensaje: Texto funcional de estado para trazabilidad.
+        """
         self.send_response(codigo)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         respuesta = json.dumps({"status": mensaje, "code": codigo})
         self.wfile.write(respuesta.encode())
 
-    def log_message(self, format, *args):
-        pass
-
 
 if __name__ == "__main__":
     servidor = HTTPServer(("0.0.0.0", PORT), WebhookHandler)
     log.info(f"Servidor webhook arrancado en puerto {PORT}")
-    log.info(f"Pipelines configurados: {list(PIPELINES.keys())}")
+    log.info("Pipelines configurados:\n%s", _format_configured_datasets())
     log.info("Esperando eventos de lakeFS")
 
     try:
