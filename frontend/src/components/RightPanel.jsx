@@ -19,6 +19,7 @@ export default function RightPanel({
   isCollapsed = false,
   onDeleteIteration = null,
   onToggleCollapse = null,
+  session = null,
   user = null,
 }) {
   const [collapsedSections, setCollapsedSections] = useState({
@@ -203,6 +204,7 @@ export default function RightPanel({
         <div className="h-full overflow-y-auto custom-scrollbar pr-1">
           <HistoryCard
             history={history}
+            session={session}
             onOpenHistoricalReport={onOpenHistoricalReport}
             hideTitle={true}
             onDeleteIteration={onDeleteIteration}

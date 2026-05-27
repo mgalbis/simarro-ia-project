@@ -3,6 +3,7 @@ import LeftPanel from "./components/LeftPanel";
 import ChatPanel from "./components/ChatPanel";
 import RightPanel from "./components/RightPanel";
 import useQABotChat from "./hooks/useQABotChat";
+import { Toaster } from "react-hot-toast";
 
 export default function App({ user, onLogout }) {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -125,8 +126,28 @@ export default function App({ user, onLogout }) {
   rightCollapsed ? "64px" : "360px"
 }`;
 
+  const currentSession = chat.availableSessions.find(
+    s => s.session_id === chat.sessionId
+  );
+
   return (
     <div className="relative h-screen max-h-screen overflow-hidden">
+      <Toaster
+      position="top-center"
+      toastOptions={{
+        duration: 6000,
+        style: {
+          background: "#111827",
+          color: "#fff",
+          border: "1px solid rgba(142,53,255,0.35)",
+          fontSize: "12px",
+          fontWeight: "700",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          boxShadow: "0 0 25px rgba(142,53,255,0.18)",
+        },
+      }}
+    />
       {/* CAPA DE FONDO */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40"
@@ -187,6 +208,7 @@ export default function App({ user, onLogout }) {
           lastReport={lastReport}
           onOpenHistoricalReport={handleOpenHistoricalReport}
           isCollapsed={rightCollapsed}
+          session={currentSession}
           onDeleteIteration={handleDeleteIteration}
           onToggleCollapse={() => setRightCollapsed((value) => !value)}
           user={user}

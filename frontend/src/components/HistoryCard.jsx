@@ -1,5 +1,6 @@
 import React from "react";
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 export default function HistoryCard({
   history = [],
@@ -7,6 +8,7 @@ export default function HistoryCard({
   onDownloadArtifacts,
   onDeleteIteration = null,
   hideTitle = false,
+  session = null,
   user = null,
 }) {
   const getStatusClass = (status) => {
@@ -75,6 +77,7 @@ export default function HistoryCard({
   };
 
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [secondConfirm, setSecondConfirm] = useState(false);
 
   return (
       <>
@@ -84,17 +87,19 @@ export default function HistoryCard({
           onClick={() => setConfirmDelete(null)}
         >
           <div
-            className="bg-[#0e0e1f] border border-qa-magenta/40 rounded-2xl p-6 w-[340px] shadow-[0_0_40px_rgba(255,0,100,0.15)] flex flex-col gap-4"
+            className="bg-[#0e0e1f] border border-qa-magenta/40 rounded-2xl p-6 w-[320px] shadow-[0_0_40px_rgba(255,0,100,0.15)] flex flex-col gap-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3">
               <span className="text-qa-magenta text-2xl">⚠</span>
+
               <div>
                 <div className="text-white font-black text-[13px] uppercase tracking-wider">
                   Eliminar iteración {confirmDelete.iterationNumber}
                 </div>
+
                 <div className="text-white/40 text-[10px] font-bold uppercase mt-0.5">
-                  {confirmDelete.executionId}
+                  Proyecto: {session?.project_label} | ID: {confirmDelete.executionId}
                 </div>
               </div>
             </div>
@@ -110,23 +115,96 @@ export default function HistoryCard({
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-qa-magenta mt-0.5">●</span>
-                <span>Los artefactos y evidencias asociados <b className="text-white/80">se eliminarán del historial</b>.</span>
+                <span><b className="text-white/80">No podrás recuperar resultados </b>de iteraciones del proyecto activo.</span>
               </div>
+            </div>
+
+            <div className="text-[12px] font-black tracking-wide text-white">
+                ¿Estás de acuerdo con eliminar la iteración solicitada?
             </div>
 
             <div className="flex gap-2 justify-end mt-1">
               <button
                 type="button"
                 className="text-[10px] uppercase font-black text-white/60 border border-white/10 rounded-lg px-4 py-2 hover:bg-white/5 transition-all"
-                onClick={() => setConfirmDelete(null)}
+                onClick={() => {
+                  toast(
+                    `No se gestiona la eliminación de la iteración ${confirmDelete.iterationNumber} del proyecto por petición del usuario.`
+                  );
+
+                  setConfirmDelete(null);
+                }}
               >
                 Cancelar
               </button>
+
+              <button
+                type="button"
+                className="text-[10px] uppercase font-black text-white bg-gradient-to-r from-qa-purple to-[#5b13db] border border-qa-purple/30 rounded-lg px-4 py-2 hover:brightness-110 hover:scale-105 active:scale-95 transition-all"
+                onClick={() => setSecondConfirm(true)}
+              >
+                Sí, continuar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {secondConfirm && confirmDelete && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#0e0e1f] border border-red-500/30 rounded-2xl p-6 w-[320px] shadow-[0_0_40px_rgba(255,0,100,0.15)] flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-red-400 text-2xl">⛔</span>
+
+              <div>
+                <div className="text-white font-black text-[13px] uppercase tracking-wider">
+                  Confirmación
+                </div>
+
+                <div className="text-white/40 text-[10px] uppercase mt-0.5">
+                  Eliminación irreversible
+                </div>
+              </div>
+            </div>
+
+            <div className="text-[11px] text-white/60 leading-relaxed border border-white/5 rounded-xl p-3 bg-black/30">
+              La iteración{" "}
+              <b className="text-white">
+                {confirmDelete.iterationNumber}
+              </b>{" "}
+              será eliminada definitivamente del proyecto{" "}
+              <b className="text-white">
+                {session?.project_label}
+              </b>.
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                className="text-[10px] uppercase font-black text-white/60 border border-white/10 rounded-lg px-4 py-2 hover:bg-white/5 transition-all"
+                onClick={() => {
+                  toast(
+                    `No se gestiona la eliminación de la iteración ${confirmDelete.iterationNumber} del proyecto por petición del usuario.`
+                  );
+
+                  setSecondConfirm(false);
+                  setConfirmDelete(null);
+                }}
+              >
+                No
+              </button>
+
               <button
                 type="button"
                 className="text-[10px] uppercase font-black text-white bg-gradient-to-r from-red-700 to-red-600 border border-red-500/30 rounded-lg px-4 py-2 hover:brightness-110 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(220,38,38,0.3)]"
                 onClick={() => {
                   onDeleteIteration?.(confirmDelete.executionId);
+
+                  toast.success(
+                    `Se ha eliminado con éxito la iteración solicitada del proyecto ${session?.project_label}.`
+                  );
+
+                  setSecondConfirm(false);
                   setConfirmDelete(null);
                 }}
               >
