@@ -1,0 +1,16 @@
+variable,status,reason
+IndoorTemperature,used_in_model,Variable ambiental procedente de sensórica directa
+IndoorHumidity,used_in_model,Variable ambiental procedente de sensórica directa
+IndoorCO2,used_in_model,Variable ambiental procedente de sensórica directa
+IndoorNoise,used_in_model,Variable ambiental procedente de sensórica directa
+Day,excluded_from_model,"Variable de contexto, calendario, horario, operación o identificador"
+Hour,excluded_from_model,"Variable de contexto, calendario, horario, operación o identificador"
+relative_weekday,excluded_from_model,"Variable de contexto, calendario, horario, operación o identificador"
+SchoolDay,excluded_from_model,"Variable de contexto, calendario, horario, operación o identificador"
+LessonNumber,excluded_from_model,"Variable de contexto, calendario, horario, operación o identificador"
+LessonPct,excluded_from_model,"Variable de contexto, calendario, horario, operación o identificador"
+CoolingState,excluded_from_model,"Variable de contexto, calendario, horario, operación o identificador"
+HeatingState,excluded_from_model,"Variable de contexto, calendario, horario, operación o identificador"
+Time,excluded_from_model,"Variable de contexto, calendario, horario, operación o identificador"
+classroom_id,excluded_from_model,"Variable de contexto, calendario, horario, operación o identificador"
+UsabilityMask,excluded_from_model,"Variable de contexto, calendario, horario, operación o identificador"
