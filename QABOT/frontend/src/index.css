@@ -234,3 +234,14 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: 0.55rem;
 }
+
+.qa-native-select option {
+  background-color: #0c0d21;
+  color: #ffffff;
+}
+
+.qa-native-select option:checked,
+.qa-native-select option:hover {
+  background-color: #BF00FF;
+  color: #ffffff;
+}

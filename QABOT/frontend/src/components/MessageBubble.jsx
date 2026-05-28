@@ -33,14 +33,14 @@ export default function MessageBubble({
         )}
 
         <div
-          className={`relative rounded-2xl px-4 py-3 border text-[12px] leading-relaxed ${
+          className={`relative rounded-2xl px-4 py-3 border text-[10px] leading-relaxed ${
             isUser
               ? "bg-gradient-to-r from-qa-purple to-[#7c3aed] text-white border-qa-purple/40 shadow-[0_0_18px_rgba(142,53,255,0.35)]"
               : "w-full bg-[#151428]/90 text-white/90 border-qa-purple/40 shadow-[0_0_18px_rgba(142,53,255,0.16)]"
           }`}
         >
           <div
-            className="prose prose-invert max-w-none text-[12px] leading-relaxed"
+            className="prose prose-invert max-w-none text-[10px] leading-relaxed"
             dangerouslySetInnerHTML={{ __html: decorateQaHtml(content) }}
           />
 

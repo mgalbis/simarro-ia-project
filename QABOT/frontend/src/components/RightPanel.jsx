@@ -138,15 +138,7 @@ export default function RightPanel({
           ←
         </button>
 
-        {lastReport?.global_status && (
-          <div
-            className={`mt-auto mb-1 text-[10px] font-black ${getStatusClass(
-              lastReport.global_status
-            )}`}
-          >
-            {lastReport.global_status}
-          </div>
-        )}
+
       </aside>
     );
   }

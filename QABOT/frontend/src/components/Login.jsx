@@ -93,30 +93,41 @@ export default function Login({ onLoginSuccess }) {
 
   return (
     <div className="relative min-h-screen w-full bg-qa-deep overflow-hidden font-sans">
-
-      {/* FONDO */}
+      {/* FONDO ORIGINAL CONSERVADO, CON EL ORDENADOR REDUCIDO */}
       <div
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url('/QABotLogin.png')` }}
+        className="absolute inset-0 z-0 bg-no-repeat"
+        style={{
+          backgroundImage: `url('/QABotLogin.png')`,
+          backgroundSize: "78% auto",
+          backgroundPosition: "center",
+          top: "-15%",
+        }}
       />
       <div className="absolute inset-0 z-0 bg-gradient-to-r from-qa-deep/80 via-transparent to-qa-deep/80" />
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-qa-deep/60 via-transparent to-qa-deep/80" />
 
-      {/* CONTENEDOR */}
-      <div className="relative z-10 flex h-screen items-center justify-start pl-[8vw]">
-        <div className="flex flex-col gap-8 w-[420px]">
+      {/* CONTENEDOR CENTRADO */}
+      <div className="relative z-10 flex min-h-screen items-center justify-left px-6 py-8 left-30">
+        <div className="flex w-full max-w-[440px] flex-col items-left gap-7">
+          <div className="rounded-2xl bg-[#BF00FF] px-8 py-3 text-left text-[13px] font-black uppercase tracking-[0.28em] text-white shadow-[0_0_28px_rgba(191,0,255,0.55)]">
+            Oficina de test inteligente
+          </div>
 
           {/* LOGO + TÍTULO */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-center gap-4">
             <div className="w-[70px] h-[70px] rounded-3xl bg-qa-bot-gradient shadow-[0_0_20px_rgba(142,53,255,0.70)]">
               <img src="/QABotIcon.png" alt="QABot" className="w-full h-full object-contain scale-105" />
             </div>
+
             <div className="flex flex-col">
               <h1 className="text-5xl font-[900] leading-none tracking-wide">
                 <span className="text-white">QA</span>
                 <span className="text-qa-purple-light">Bot</span>
+                <span className="text-white"> - </span>
+                <span className="italic text-qa-purple-light">OTI</span>
               </h1>
-              <p className="text-[11px] uppercase tracking-[0.25em] text-white/60 font-bold mt-1">
+
+              <p className="text-[11px] uppercase tracking-[0.25em] text-white/60 font-normal mt-1">
                 Asistente agéntico de calidad
               </p>
             </div>
@@ -238,12 +249,6 @@ export default function Login({ onLoginSuccess }) {
               )}
             </div>
           </form>
-
-          {/* Footer */}
-          <p className="text-[10px] text-qa-muted/40 text-center tracking-wider">
-            QA Office · IES Lluis Simarro
-          </p>
-
         </div>
       </div>
     </div>

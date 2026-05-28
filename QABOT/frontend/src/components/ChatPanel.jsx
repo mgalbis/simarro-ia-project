@@ -193,12 +193,20 @@ export default function ChatPanel({
           </div>
 
           <div className="flex-1">
-            <h1 className="text-[28px] font-[900] leading-none tracking-wider text-white italic">
-              QABot - Asistente de Calidad
-            </h1>
-            <h2 className="text-[11px] font-[800] uppercase text-qa-purple-light mt-1 tracking-widest">
+            <div className="flex flex-wrap items-baseline gap-3">
+              <h1 className="text-[28px] font-[900] leading-none tracking-wider">
+                <span className="text-white">QA</span>
+                <span className="text-qa-purple-light">Bot</span>
+                <span className="text-white"> - </span>
+                <span className="italic text-qa-purple-light">OTI</span>
+              </h1>
+              <span className="text-[16px] font-normal italic text-white/75">
+                Asistente agéntico de calidad
+              </span>
+            </div>
+            <div className="mt-2 inline-flex rounded-xl bg-[#BF00FF] px-5 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-white shadow-[0_0_18px_rgba(191,0,255,0.45)]">
               OFICINA DE TEST INTELIGENTE
-            </h2>
+            </div>
           </div>
 
           {/* WIDGET DE USUARIO */}
@@ -274,7 +282,7 @@ export default function ChatPanel({
           <div
             ref={chatScrollRef}
             onScroll={updateScrollPosition}
-            className="h-full overflow-y-auto p-4 pb-24 scrollbar-thin relative"
+            className="h-full overflow-y-auto p-4 pb-24 scrollbar-thin relative text-[10px]"
           >
             <div ref={chatTopRef} />
 
@@ -364,7 +372,7 @@ export default function ChatPanel({
       {/* TARJETA DE CONTROLES */}
       <div className="bg-qa-panel/80 border-2 border-qa-purple/40 rounded-2xl p-4 flex flex-col gap-4 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
         {hasCycleContext && (
-          <div className="bg-black/30 border border-qa-purple/30 rounded-xl px-4 py-3 text-[11px] text-qa-muted leading-relaxed">
+          <div className="bg-black/30 border border-qa-purple/30 rounded-xl px-4 py-3 text-[10px] text-qa-muted leading-relaxed">
             <div className="flex justify-between gap-3 items-start">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
@@ -423,7 +431,7 @@ export default function ChatPanel({
                   className="text-[10px] uppercase font-black text-white/70 border border-white/10 rounded-lg px-3 py-2 hover:bg-qa-purple hover:text-white transition-all"
                   onClick={() => setIsCycleConfigExpanded((value) => !value)}
                 >
-                  {isCycleConfigExpanded ? "Ocultar" : "Editar"}
+                  {isCycleConfigExpanded ? "Ocultar" : "Abrir"}
                 </button>
               )}
             </div>
@@ -436,7 +444,7 @@ export default function ChatPanel({
                       Proyecto *
                     </label>
                     <input
-                      className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-[11px] outline-none focus:border-qa-purple"
+                      className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-[10px] outline-none focus:border-qa-purple"
                       placeholder="Ej. Demo QABot"
                       value={projectLabel}
                       onChange={(event) => setProjectLabel(event.target.value)}
@@ -449,7 +457,7 @@ export default function ChatPanel({
                       Título del ciclo *
                     </label>
                     <input
-                      className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-[11px] outline-none focus:border-qa-purple"
+                      className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-[10px] outline-none focus:border-qa-purple"
                       placeholder="Ej. Validación calidad dataset abandono"
                       value={reviewLabel}
                       onChange={(event) => setReviewLabel(event.target.value)}
@@ -492,7 +500,7 @@ export default function ChatPanel({
                 {showPhaseFeedback && (
                   <div className="mt-3 flex flex-col gap-2">
                     <textarea
-                      className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-[11px] outline-none focus:border-qa-purple min-h-[70px]"
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-[10px] outline-none focus:border-qa-purple min-h-[70px]"
                       placeholder="Describe por qué la fase detectada no es correcta..."
                       value={phaseFeedbackComment}
                       onChange={(event) => setPhaseFeedbackComment(event.target.value)}
@@ -513,7 +521,7 @@ export default function ChatPanel({
         )}
         {/* CICLO DE PRUEBAS ACTIVO */}
         {(activeReviewPrompt || pendingPrompt) && (
-          <div className="bg-black/30 border border-qa-purple/30 rounded-xl px-4 py-3 text-[11px] text-qa-muted leading-relaxed">
+          <div className="bg-black/30 border border-qa-purple/30 rounded-xl px-4 py-3 text-[10px] text-qa-muted leading-relaxed">
             <div className="flex justify-between gap-3 items-center">
               <div className="flex-1">
                 <div className="text-qa-purple-light font-black uppercase tracking-wider mb-1">
@@ -581,7 +589,7 @@ export default function ChatPanel({
           </button>
 
           <div className="flex-1 bg-black/40 border border-qa-purple/20 rounded-xl px-4 py-2.5 flex items-center min-w-0">
-            <span className="text-[11px] text-qa-muted italic truncate">
+            <span className="text-[10px] text-qa-muted italic truncate">
               {selectedFile ? `📊 Dataset: ${selectedFile.name}` : selectedDocument ? `🧾 Documento: ${selectedDocument.name}` : "No hay archivo seleccionado..."}
             </span>
           </div>
@@ -591,7 +599,7 @@ export default function ChatPanel({
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <input
-              className="w-full bg-[#050509] border-2 border-qa-purple/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-qa-purple/60 transition-all placeholder:text-gray-500 shadow-inner"
+              className="w-full bg-[#050509] border-2 border-qa-purple/20 rounded-xl px-4 py-3 text-[10px] text-white focus:outline-none focus:border-qa-purple/60 transition-all placeholder:text-gray-500 shadow-inner"
               placeholder="Escribir mensaje..."
               value={input}
               onChange={(event) => setInput(event.target.value)}

@@ -16,6 +16,7 @@ export default function LeftPanel({
   setPhaseFilter,
 }) {
   const [sessionToRestore, setSessionToRestore] = useState("");
+  const [limitationsExpanded, setLimitationsExpanded] = useState(false);
 
   const activeSession = sessions.find(
     (session) => session.session_id === sessionId
@@ -133,9 +134,9 @@ export default function LeftPanel({
             onChange={(event) => setSearchText(event.target.value)}
           />
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <select
-              className="bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-[10px] outline-none focus:border-qa-purple"
+              className="qa-native-select w-full min-w-0 bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-[10px] outline-none focus:border-qa-purple"
               value={projectFilter}
               onChange={(event) => setProjectFilter(event.target.value)}
             >
@@ -148,7 +149,7 @@ export default function LeftPanel({
             </select>
 
             <select
-              className="bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-[10px] outline-none focus:border-qa-purple"
+              className="qa-native-select w-full min-w-0 bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-[10px] outline-none focus:border-qa-purple"
               value={phaseFilter}
               onChange={(event) => setPhaseFilter(event.target.value)}
             >
@@ -207,7 +208,7 @@ export default function LeftPanel({
         <div className="flex flex-col gap-2">
           <input
             className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-[11px] outline-none focus:border-qa-purple"
-            placeholder="O introduce un ID técnico del ciclo"
+            placeholder="Buscar por ID proyecto o nombre"
             value={sessionToRestore}
             onChange={(e) => setSessionToRestore(e.target.value)}
           />
@@ -230,57 +231,70 @@ export default function LeftPanel({
       </div>
 
       {/* LIMITACIONES */}
-      <div className="flex items-center gap-2 text-qa-purple-light font-[900] text-[12px] tracking-[0.15em] uppercase">
-        <div className="w-5 h-5 border border-qa-purple-light rounded-full flex items-center justify-center text-[10px] font-bold">
-          i
-        </div>
-        LIMITACIONES
-      </div>
-
-      <div className="bg-[#0c0d21]/50 border border-qa-border-glow rounded-[20px] p-4 flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-[40px] h-[40px] rounded-3xl bg-qa-bot-gradient shadow-[0_0_20px_rgba(142,53,255,0.70)]">
-            <img
-              src="/QABotIcon.png"
-              alt="Bot Icon"
-              className="w-full h-full object-contain scale-105"
-            />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-qa-purple-light font-[900] text-[12px] tracking-[0.15em] uppercase">
+          <div className="w-5 h-5 border border-qa-purple-light rounded-full flex items-center justify-center text-[10px] font-bold">
+            i
           </div>
-
-          <div className="leading-tight">
-            <span className="text-[13px] font-black text-white block uppercase tracking-tight">
-              QABot en fase
-            </span>
-            <span className="text-[13px] font-black text-white block uppercase tracking-tight">
-              de mejora
-            </span>
-          </div>
+          LIMITACIONES
         </div>
 
-        <p className="text-[11.5px] text-qa-muted leading-relaxed font-medium">
-          Soy QABot, un asistente orientado a asegurar la calidad de los artefactos generados en las distintas fases del ciclo del dato en proyectos de IA y Big Data mediante la ejecución de ciclos de pruebas.
-        </p>
-
-        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-qa-purple/30 to-transparent" />
-
-        <ul className="flex flex-col gap-3">
-          {[
-            "No corrijo artefactos: identifico defectos y evidencias.",
-            "Puedo cometer errores en la interpretación.",
-            "La ejecución de las pruebas depende de los artefactos aportados.",
-            "Las conclusiones deben validarse dentro del ciclo de pruebas.",
-          ].map((text, index) => (
-            <li key={index} className="flex gap-2 items-start">
-              <span className="text-qa-magenta text-[14px] leading-[14px] mt-0.5">
-                ●
-              </span>
-              <span className="text-[11px] text-[#f3f1ff] leading-snug">
-                {text}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <button
+          type="button"
+          className="px-2 py-1 rounded-lg bg-black/30 border border-white/10 text-white/70 hover:bg-qa-purple hover:text-white transition-all text-[10px] font-black uppercase"
+          onClick={() => setLimitationsExpanded((value) => !value)}
+          title={limitationsExpanded ? "Colapsar limitaciones" : "Expandir limitaciones"}
+        >
+          {limitationsExpanded ? "Ocultar" : "Expandir"}
+        </button>
       </div>
+
+      {limitationsExpanded && (
+        <div className="bg-[#0c0d21]/50 border border-qa-border-glow rounded-[20px] p-4 flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-[40px] h-[40px] rounded-3xl bg-qa-bot-gradient shadow-[0_0_20px_rgba(142,53,255,0.70)]">
+              <img
+                src="/QABotIcon.png"
+                alt="Bot Icon"
+                className="w-full h-full object-contain scale-105"
+              />
+            </div>
+
+            <div className="leading-tight">
+              <span className="text-[13px] font-black text-white block uppercase tracking-tight">
+                QABot en fase
+              </span>
+              <span className="text-[13px] font-black text-white block uppercase tracking-tight">
+                de mejora
+              </span>
+            </div>
+          </div>
+
+          <p className="text-[11.5px] text-qa-muted leading-relaxed font-medium">
+            Soy QABot, un asistente orientado a asegurar la calidad de los artefactos generados en las distintas fases del ciclo del dato en proyectos de IA y Big Data mediante la ejecución de ciclos de pruebas.
+          </p>
+
+          <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-qa-purple/30 to-transparent" />
+
+          <ul className="flex flex-col gap-3">
+            {[
+              "No corrijo artefactos: identifico defectos y evidencias.",
+              "Puedo cometer errores en la interpretación.",
+              "La ejecución de las pruebas depende de los artefactos aportados.",
+              "Las conclusiones deben validarse dentro del ciclo de pruebas.",
+            ].map((text, index) => (
+              <li key={index} className="flex gap-2 items-start">
+                <span className="text-qa-magenta text-[14px] leading-[14px] mt-0.5">
+                  ●
+                </span>
+                <span className="text-[11px] text-[#f3f1ff] leading-snug">
+                  {text}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* NUEVO CICLO DE PRUEBAS */}
       <div className="mt-auto pt-4 border-t border-qa-border/20">

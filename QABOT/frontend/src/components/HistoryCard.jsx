@@ -126,7 +126,7 @@ export default function HistoryCard({
             <div className="flex gap-2 justify-end mt-1">
               <button
                 type="button"
-                className="text-[10px] uppercase font-black text-white/60 border border-white/10 rounded-lg px-4 py-2 hover:bg-white/5 transition-all"
+                className="text-[10px] uppercase font-black text-white bg-[#BF00FF] border border-[#BF00FF]/50 rounded-lg px-4 py-2 hover:brightness-110 transition-all"
                 onClick={() => {
                   toast(
                     `No se gestiona la eliminación de la iteración ${confirmDelete.iterationNumber} del proyecto por petición del usuario.`
@@ -181,7 +181,7 @@ export default function HistoryCard({
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                className="text-[10px] uppercase font-black text-white/60 border border-white/10 rounded-lg px-4 py-2 hover:bg-white/5 transition-all"
+                className="text-[10px] uppercase font-black text-white bg-[#BF00FF] border border-[#BF00FF]/50 rounded-lg px-4 py-2 hover:brightness-110 transition-all"
                 onClick={() => {
                   toast(
                     `No se gestiona la eliminación de la iteración ${confirmDelete.iterationNumber} del proyecto por petición del usuario.`
@@ -321,7 +321,7 @@ export default function HistoryCard({
 
                   <button
                     type="button"
-                    className="text-[14px] leading-none text-qa-magenta hover:text-white transition-all px-1"
+                    className="text-[14px] leading-none text-red-500 hover:text-red-300 transition-all px-1"
                     onClick={(event) => {
                       event.stopPropagation();
                       setConfirmDelete({ executionId, iterationNumber });
