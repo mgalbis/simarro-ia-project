@@ -27,6 +27,7 @@ METADATA_PATH = BASE_DIR / "model_metadata.json"
 
 
 def load_metadata() -> dict[str, Any]:
+    """Carga la metadata del modelo desde el archivo JSON local."""
     with open(METADATA_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -38,6 +39,7 @@ MODEL_PATH = MODEL_DIR / metadata["model_filename"]
 
 
 def load_model() -> Any:
+    """Carga el artefacto del modelo entrenado indicado en la metadata."""
     if not MODEL_PATH.exists():
         raise FileNotFoundError(f"No se encontró el modelo en {MODEL_PATH}")
     artifact = joblib.load(MODEL_PATH)
@@ -50,6 +52,8 @@ model = load_model()
 
 
 class OccupancyInput(BaseModel):
+    """Esquema del payload de entrada para predecir ocupación."""
+
     IndoorTemperature: float = Field(
         ..., description="Temperatura interior del aula en °C"
     )
@@ -59,6 +63,8 @@ class OccupancyInput(BaseModel):
 
 
 class PredictionResponse(BaseModel):
+    """Esquema de respuesta devuelto por el endpoint de predicción."""
+
     prediction: int
     prediction_label: str
     probability_occupied: float | None = None
@@ -88,16 +94,19 @@ app.add_middleware(
 
 @app.get("/health")
 def health() -> dict[str, str]:
+    """Devuelve el estado del servicio y el nombre del modelo cargado."""
     return {"status": "ok", "model": metadata.get("model_name", "unknown")}
 
 
 @app.get("/metadata")
 def get_metadata() -> dict[str, Any]:
+    """Devuelve la metadata usada por el modelo en ejecución."""
     return metadata
 
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(payload: OccupancyInput) -> PredictionResponse:
+    """Predice la ocupación del aula a partir de las lecturas de sensores."""
     data = payload.model_dump()
 
     try:
