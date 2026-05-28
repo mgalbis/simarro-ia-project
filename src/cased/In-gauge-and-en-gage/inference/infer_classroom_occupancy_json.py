@@ -77,7 +77,6 @@ def find_best_model_path(metadata: dict[str, Any] | None = None) -> Path:
     2. metadata['models'][best_model_name]['path'] si existe.
     3. Primer archivo local con patrón best_*.joblib.
     """
-
     if metadata:
         model_filename = metadata.get("model_filename")
         if model_filename:
@@ -111,10 +110,7 @@ def find_best_model_path(metadata: dict[str, Any] | None = None) -> Path:
 
 
 def load_metadata() -> dict[str, Any]:
-    """
-    Carga metadata si está disponible. Si no existe, devuelve metadata mínima.
-    """
-
+    """Carga metadata si está disponible; si no existe, devuelve metadata mínima."""
     for filename in METADATA_CANDIDATES:
         path = BASE_DIR / filename
         if path.exists():
@@ -143,7 +139,6 @@ def load_model_artifact(model_path: Path) -> tuple[Any, dict[str, Any]]:
     1. Pipeline/modelo directo de scikit-learn.
     2. Artefacto tipo dict con claves: model, features, target, metrics, etc.
     """
-
     loaded = joblib.load(model_path)
 
     if isinstance(loaded, dict) and "model" in loaded:
@@ -157,10 +152,7 @@ def load_model_artifact(model_path: Path) -> tuple[Any, dict[str, Any]]:
 
 
 def load_model_and_metadata() -> tuple[Any, dict[str, Any], Path]:
-    """
-    Carga metadata y modelo desde el directorio actual.
-    """
-
+    """Carga metadata y modelo desde el directorio actual."""
     print("=" * 80)
     print("Carga de modelo")
     print("=" * 80)
@@ -201,7 +193,6 @@ def load_cases_from_json() -> pd.DataFrame:
       }
     ]
     """
-
     if not CASES_PATH.exists():
         raise FileNotFoundError(
             f"No se encontró el archivo de casos simulados en:\n{CASES_PATH}\n\n"
@@ -229,10 +220,7 @@ def load_cases_from_json() -> pd.DataFrame:
 
 
 def validate_input(df: pd.DataFrame, features: list[str]) -> pd.DataFrame:
-    """
-    Valida columnas y devuelve features_df con las features en el orden correcto.
-    """
-
+    """Valida columnas y devuelve features_df con las features en el orden correcto."""
     missing_features = [col for col in features if col not in df.columns]
 
     if missing_features:
@@ -263,10 +251,7 @@ def validate_input(df: pd.DataFrame, features: list[str]) -> pd.DataFrame:
 def predict_cases(
     model: Any, metadata: dict[str, Any], cases_df: pd.DataFrame
 ) -> pd.DataFrame:
-    """
-    Realiza inferencia usando el modelo cargado.
-    """
-
+    """Realiza inferencia usando el modelo cargado."""
     features = metadata.get("features") or DEFAULT_FEATURES
     target = metadata.get("target", DEFAULT_TARGET)
 
@@ -330,10 +315,7 @@ def predict_cases(
 
 
 def print_results(results_df: pd.DataFrame):
-    """
-    Imprime los resultados de forma legible.
-    """
-
+    """Imprime los resultados de forma legible."""
     print("=" * 80)
     print("Resultados de inferencia")
     print("=" * 80)
@@ -381,10 +363,7 @@ def print_results(results_df: pd.DataFrame):
 
 
 def save_results_to_csv(results_df: pd.DataFrame):
-    """
-    Guarda los resultados en un CSV en el directorio actual.
-    """
-
+    """Guarda los resultados en un CSV en el directorio actual."""
     results_df.to_csv(OUTPUT_PATH, index=False, encoding="utf-8-sig")
 
     print()
@@ -395,16 +374,7 @@ def save_results_to_csv(results_df: pd.DataFrame):
 
 
 def run_inference():
-    """
-    Flujo principal:
-    1. Carga metadata y modelo.
-    2. Carga casos desde JSON.
-    3. Valida columnas.
-    4. Ejecuta inferencia.
-    5. Muestra resultados.
-    6. Guarda resultados en CSV.
-    """
-
+    """Ejecuta el flujo completo de inferencia."""
     model, metadata, _ = load_model_and_metadata()
     cases_df = load_cases_from_json()
 

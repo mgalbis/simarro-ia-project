@@ -36,14 +36,13 @@ CASES_PATH = BASE_DIR / "simulated_cases.json"
 
 
 def load_json(path):
-    """Load a JSON file."""
+    """Carga un archivo JSON."""
     with path.open("r", encoding="utf-8") as file:
         return json.load(file)
 
 
 def load_model_and_metadata():
-    """Load model, metadata and simulated cases."""
-
+    """Carga el modelo, la metadata y los casos simulados."""
     print("=" * 80)
     print("Carga de modelo")
     print("=" * 80)
@@ -70,7 +69,7 @@ def load_model_and_metadata():
 
 
 def get_features(metadata):
-    """Get model features from metadata."""
+    """Obtiene las variables del modelo desde la metadata."""
     features = metadata.get("features")
 
     if not features:
@@ -82,7 +81,7 @@ def get_features(metadata):
 
 
 def cases_to_dataframe(cases):
-    """Convert simulated cases JSON to a DataFrame."""
+    """Convierte los casos simulados de JSON a DataFrame."""
     if isinstance(cases, dict):
         if "cases" in cases:
             records = cases["cases"]
@@ -102,7 +101,7 @@ def cases_to_dataframe(cases):
 
 
 def validate_input(cases_df, features):
-    """Validate that all expected model features are present."""
+    """Valida que estén presentes todas las variables esperadas."""
     missing_features = [
         feature for feature in features if feature not in cases_df.columns
     ]
@@ -129,7 +128,7 @@ def validate_input(cases_df, features):
 
 
 def predict_cases(model, cases_df, features):
-    """Run predictions for the provided cases."""
+    """Ejecuta predicciones para los casos proporcionados."""
     features_df = validate_input(cases_df, features)
 
     predictions = model.predict(features_df)
@@ -150,7 +149,7 @@ def predict_cases(model, cases_df, features):
 
 
 def print_metadata(metadata, features):
-    """Print a short metadata summary."""
+    """Imprime un resumen breve de la metadata."""
     print("=" * 80)
     print("Metadata del modelo")
     print("=" * 80)
@@ -168,7 +167,7 @@ def print_metadata(metadata, features):
 
 
 def print_results(results_df):
-    """Print prediction results."""
+    """Imprime los resultados de inferencia."""
     print("=" * 80)
     print("Resultados de inferencia")
     print("=" * 80)
@@ -182,7 +181,7 @@ def print_results(results_df):
 
 
 def main():
-    """Run UCI occupancy inference."""
+    """Ejecuta la inferencia de ocupación para UCI."""
     model, metadata, cases = load_model_and_metadata()
     features = get_features(metadata)
     cases_df = cases_to_dataframe(cases)

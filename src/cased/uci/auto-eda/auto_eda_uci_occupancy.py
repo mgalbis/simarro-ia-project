@@ -1,3 +1,5 @@
+"""Auto-EDA del dataset UCI Occupancy Detection para el Caso D."""
+
 import zipfile
 from pathlib import Path
 
@@ -29,7 +31,6 @@ def read_uci_occupancy_from_zip(zip_path: Path) -> dict[str, pd.DataFrame]:
     - datatest.txt
     - datatest2.txt
     """
-
     if not zip_path.exists():
         raise FileNotFoundError(f"No se encuentra el archivo: {zip_path}")
 
@@ -49,13 +50,7 @@ def read_uci_occupancy_from_zip(zip_path: Path) -> dict[str, pd.DataFrame]:
 
 
 def clean_uci_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Limpieza mínima del dataset:
-    - Elimina columna índice si aparece como 'Unnamed: 0'
-    - Convierte date a datetime
-    - Ordena temporalmente
-    """
-
+    """Aplica limpieza mínima al dataset UCI."""
     df = df.copy()
 
     if "Unnamed: 0" in df.columns:
@@ -68,10 +63,7 @@ def clean_uci_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Añade variables temporales útiles para el análisis exploratorio.
-    """
-
+    """Añade variables temporales útiles para el análisis exploratorio."""
     df = df.copy()
 
     df["hour"] = df["date"].dt.hour
@@ -82,10 +74,7 @@ def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_profile_report(df: pd.DataFrame, title: str, output_path: Path) -> None:
-    """
-    Genera un informe HTML de Auto-EDA.
-    """
-
+    """Genera un informe HTML de Auto-EDA."""
     profile = ProfileReport(
         df,
         title=title,
@@ -115,6 +104,7 @@ def create_profile_report(df: pd.DataFrame, title: str, output_path: Path) -> No
 
 
 def main() -> None:
+    """Ejecuta el flujo de limpieza y generación de informes de Auto-EDA."""
     datasets = read_uci_occupancy_from_zip(ZIP_PATH)
 
     training = datasets["datatraining"]
