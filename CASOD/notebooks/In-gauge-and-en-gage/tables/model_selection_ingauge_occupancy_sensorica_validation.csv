@@ -1,7 +1,0 @@
-model,feature_set,split,accuracy,precision,recall,f1,auc_roc,candidate_id,params
-LogisticRegression,sensorica_ambiental,validation,0.8841348650051921,0.5912149670931006,0.8321190674437968,0.691280100298301,0.9396916034189946,8,"{'model__C': 10.0, 'model__class_weight': 'balanced'}"
-RandomForest,sensorica_ambiental,validation,0.8743347611630322,0.5627399474641341,0.8695878434637802,0.6832958495195257,0.9421741150932963,10,"{'model__max_depth': None, 'model__min_samples_leaf': 20, 'model__n_estimators': 200}"
-HistGradientBoosting,sensorica_ambiental,validation,0.906217549325026,0.7303803562831006,0.6315570358034971,0.6773833444965394,0.9464582575367443,2,"{'model__l2_regularization': 0.0, 'model__learning_rate': 0.03, 'model__max_iter': 100, 'model__max_leaf_nodes': 31}"
-GaussianNB,sensorica_ambiental,validation,0.8984942886812046,0.6878502577897332,0.6387385512073273,0.6623853211009174,0.9351442632222647,1,{'model__var_smoothing': 1e-09}
-DecisionTree,sensorica_ambiental,validation,0.8487798546209762,0.5083546066372708,0.9119483763530392,0.6528088213381016,0.937810965409163,1,"{'model__max_depth': 4, 'model__min_samples_leaf': 20}"
-Baseline_MostFrequent,sensorica_ambiental,validation,0.8441069574247144,0.0,0.0,0.0,0.5,1,{}

@@ -1,9 +1,0 @@
-cliente_id,edad,importe,abandono,canal
-1,45,100,1,web
-2,,50,1,web
-3,desconocida,120,1,web
-4,61,999999,1,telefono
-4,61,999999,1,telefono
-6,,10,1,
-7,30,20,1,web
-8,31,25,1,web
