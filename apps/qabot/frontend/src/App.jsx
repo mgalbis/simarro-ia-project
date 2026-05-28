@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import LeftPanel from "./components/LeftPanel";
-import ChatPanel from "./components/ChatPanel";
-import RightPanel from "./components/RightPanel";
-import useQABotChat from "./hooks/useQABotChat";
+import LeftPanel from "./components/LeftPanel.jsx";
+import ChatPanel from "./components/ChatPanel.jsx";
+import RightPanel from "./components/RightPanel.jsx";
+import useQABotChat from "./hooks/useQABotChat.js";
 import { Toaster } from "react-hot-toast";
 
 export default function App({ user, onLogout }) {

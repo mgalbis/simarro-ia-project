@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import HistoryCard from "./HistoryCard";
-import MetricsCard from "./MetricsCard";
+import HistoryCard from "./HistoryCard.jsx";
+import MetricsCard from "./MetricsCard.jsx";
 
 const TEST_LABELS = {
   nulls: "Nulos",

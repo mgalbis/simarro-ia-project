@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import Login from "./components/Login";
-import App from "./App";
+import Login from "./components/Login.jsx";
+import App from "./App.jsx";
 
 export default function AppRouter() {
   const [user, setUser] = useState(() => {

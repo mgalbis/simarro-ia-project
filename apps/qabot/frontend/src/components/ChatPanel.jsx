@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import MessageBubble from "./MessageBubble";
+import MessageBubble from "./MessageBubble.jsx";
 
 export default function ChatPanel({
   messages,
