@@ -1,0 +1,13 @@
+{
+  "best_model_name":"LogisticRegression",
+  "features":[
+    "Temperature",
+    "Humidity",
+    "Light",
+    "CO2",
+    "HumidityRatio"
+  ],
+  "target":"Occupancy",
+  "selection_metric":"f1 on test_combined",
+  "model_path":"outputs_uci_occupancy\/best_model_LogisticRegression.joblib"
+}
