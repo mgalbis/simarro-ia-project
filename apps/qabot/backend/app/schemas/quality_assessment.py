@@ -1,9 +1,14 @@
+"""Esquemas y enums del dominio de evaluación de calidad QA."""
+
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+
 class ActivityType(str, Enum):
+    """Catálogo de actividades QA soportadas por el sistema."""
+
     MINABLE_DATASET_VALIDATION = "MINABLE_DATASET_VALIDATION"
     DATASET_SPLIT_VALIDATION = "DATASET_SPLIT_VALIDATION"
     DATASET_SPLIT_VALIDATION_3DS = "DATASET_SPLIT_VALIDATION_3DS"
@@ -15,10 +20,14 @@ class ActivityType(str, Enum):
 
 
 class ExecutionMode(str, Enum):
+    """Modos de ejecución admitidos para evaluaciones QA."""
+
     READ_ONLY_QUALITY_ASSESSMENT = "read_only_quality_assessment"
 
 
 class AssessmentStatus(str, Enum):
+    """Estados globales posibles de una evaluación QA."""
+
     PASS = "PASS"
     WARN = "WARN"
     FAIL = "FAIL"
@@ -26,6 +35,8 @@ class AssessmentStatus(str, Enum):
 
 
 class TestSeverity(str, Enum):
+    """Niveles de severidad para pruebas y hallazgos QA."""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -34,6 +45,8 @@ class TestSeverity(str, Enum):
 
 
 class ArtifactDescriptor(BaseModel):
+    """Describe un artefacto de entrada requerido por una actividad."""
+
     required: bool = True
     provided: bool = False
     name: Optional[str] = None
@@ -43,6 +56,8 @@ class ArtifactDescriptor(BaseModel):
 
 
 class ExecutionConstraints(BaseModel):
+    """Restricciones operativas de ejecución para mantener modo read-only."""
+
     modify_artifacts: bool = False
     train_model: bool = False
     update_threshold: bool = False
@@ -51,6 +66,8 @@ class ExecutionConstraints(BaseModel):
 
 
 class QualityAssessmentOrder(BaseModel):
+    """Orden estructurada de evaluación QA interpretada desde la solicitud."""
+
     request_id: str
     activity_type: ActivityType
     execution_mode: ExecutionMode = ExecutionMode.READ_ONLY_QUALITY_ASSESSMENT
@@ -61,18 +78,22 @@ class QualityAssessmentOrder(BaseModel):
     constraints: ExecutionConstraints = Field(default_factory=ExecutionConstraints)
     acceptance_criteria: Dict[str, Any] = Field(default_factory=dict)
     missing_information: List[str] = Field(default_factory=list)
-    expected_outputs: List[str] = Field(default_factory=lambda: [
-        "quality_assessment_summary",
-        "test_plan",
-        "test_results",
-        "evidence",
-        "risks",
-        "",
-        "non_modification_statement",
-    ])
+    expected_outputs: List[str] = Field(
+        default_factory=lambda: [
+            "quality_assessment_summary",
+            "test_plan",
+            "test_results",
+            "evidence",
+            "risks",
+            "",
+            "non_modification_statement",
+        ]
+    )
 
 
 class TestCase(BaseModel):
+    """Definición de una prueba concreta dentro del plan QA."""
+
     model_config = ConfigDict(use_enum_values=True)
 
     test_id: str
@@ -84,6 +105,8 @@ class TestCase(BaseModel):
 
 
 class TestPlan(BaseModel):
+    """Plan de pruebas generado para una orden de evaluación."""
+
     model_config = ConfigDict(use_enum_values=True)
 
     plan_id: str
@@ -94,6 +117,8 @@ class TestPlan(BaseModel):
 
 
 class Finding(BaseModel):
+    """Hallazgo detectado durante la ejecución de pruebas QA."""
+
     finding_id: str
     severity: str
     description: str
@@ -103,11 +128,15 @@ class Finding(BaseModel):
 
 
 class NonModificationStatement(BaseModel):
+    """Declaración explícita de no modificación de artefactos de entrada."""
+
     artifacts_modified: bool = False
     message: str = "No input artifact has been modified during this assessment."
 
 
 class AssessmentResult(BaseModel):
+    """Resultado completo de una evaluación de calidad QA."""
+
     assessment_status: AssessmentStatus
     activity_type: ActivityType
     summary: Dict[str, Any] = Field(default_factory=dict)

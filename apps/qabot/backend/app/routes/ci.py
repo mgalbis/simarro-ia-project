@@ -1,12 +1,11 @@
+"""Endpoints CI/CD para ejecutar quality gates de QABot."""
+
 import json
 import uuid
 from io import StringIO
 from typing import Optional
 
 import pandas as pd
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel, Field
-
 from app.schemas.quality_assessment import (
     ActivityType,
     ArtifactDescriptor,
@@ -15,12 +14,16 @@ from app.schemas.quality_assessment import (
 )
 from app.services.activity_catalog import ACTIVITY_OBJECTIVES, DEFAULT_TESTS_BY_ACTIVITY
 from app.services.qa_specialist_agent import QASpecialistAgent
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/ci", tags=["CI/CD Quality Gate"])
 specialist = QASpecialistAgent()
 
 
 class QualityGateResponse(BaseModel):
+    """Respuesta estructurada para integración con pipelines CI/CD."""
+
     execution_id: str
     pipeline_status: str
     should_fail_pipeline: bool
@@ -66,7 +69,9 @@ def _parse_json_list(value: Optional[str], field_name: str) -> Optional[list[str
         # Also accept comma-separated values for simple CI/CD calls.
         parsed = [item.strip() for item in value.split(",") if item.strip()]
 
-    if not isinstance(parsed, list) or not all(isinstance(item, str) for item in parsed):
+    if not isinstance(parsed, list) or not all(
+        isinstance(item, str) for item in parsed
+    ):
         raise HTTPException(
             status_code=400,
             detail=f"{field_name} debe ser una lista JSON de strings o una lista separada por comas.",
@@ -225,6 +230,7 @@ def _build_order(
 
 @router.get("/activities")
 async def list_ci_quality_gate_activities():
+    """Devuelve el catálogo de actividades QA ejecutables en CI/CD."""
     return {
         "activities": [
             {

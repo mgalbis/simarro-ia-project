@@ -1,10 +1,11 @@
-def check_skewness(df, target_column=None):
+"""Regla QA para medir asimetría en variables numéricas."""
 
+
+def check_skewness(df, target_column=None):
+    """Calcula skewness de la variable objetivo y clasifica el riesgo."""
     if target_column is None:
 
-        numerical_cols = df.select_dtypes(
-            include=["int64", "float64"]
-        ).columns.tolist()
+        numerical_cols = df.select_dtypes(include=["int64", "float64"]).columns.tolist()
 
         if not numerical_cols:
             return {
@@ -16,9 +17,7 @@ def check_skewness(df, target_column=None):
                         "issue": "No se encontró ninguna columna numérica para evaluar asimetria"
                     }
                 ],
-                "recommendations": [
-                    "Especificar una columna objetivo numérica"
-                ]
+                "recommendations": ["Especificar una columna objetivo numérica"],
             }
 
         target_column = numerical_cols[0]
@@ -39,19 +38,15 @@ def check_skewness(df, target_column=None):
     return {
         "rule": "QA-SKEWNESS",
         "status": status,
-        "metrics": {
-            "target_column": target_column,
-            "skewness": round(skewness, 4)
-        },
+        "metrics": {"target_column": target_column, "skewness": round(skewness, 4)},
         "warnings": (
-            [{
-                "column": target_column,
-                "issue": "Dataset con asimetria significativa"
-            }]
-            if status in ["WARN", "FAIL"] else []
+            [{"column": target_column, "issue": "Dataset con asimetria significativa"}]
+            if status in ["WARN", "FAIL"]
+            else []
         ),
         "recommendations": (
             ["Considerar transformaciones de datos para reducir la asimetria"]
-            if status in ["WARN", "FAIL"] else []
-        )
+            if status in ["WARN", "FAIL"]
+            else []
+        ),
     }

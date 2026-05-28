@@ -1,3 +1,5 @@
+"""Análisis funcional de documentos conceptuales para mapear actividades QA."""
+
 import html
 import json
 import re
@@ -5,24 +7,60 @@ import uuid
 import zipfile
 from io import BytesIO
 from typing import Any, Dict, List
-from xml.etree import ElementTree as ET
+from xml.etree import ElementTree
 
 SUPPORTED_EXTENSIONS = {".docx", ".ipynb", ".txt", ".md"}
 SUPPORTED_ACTIVITY_CATALOG = {
     "MINABLE_DATASET_VALIDATION": {
         "label": "Validación de tabla minable",
-        "tests": ["nulls", "duplicates", "data_types", "outliers", "balance", "skewness"],
-        "keywords": ["nulos", "duplicados", "outliers", "tipos", "balance", "tabla minable", "dataset", "calidad del dato"],
+        "tests": [
+            "nulls",
+            "duplicates",
+            "data_types",
+            "outliers",
+            "balance",
+            "skewness",
+        ],
+        "keywords": [
+            "nulos",
+            "duplicados",
+            "outliers",
+            "tipos",
+            "balance",
+            "tabla minable",
+            "dataset",
+            "calidad del dato",
+        ],
     },
     "DATASET_SPLIT_VALIDATION": {
         "label": "Validación de particiones train/validation/test",
         "tests": ["dataset_split"],
-        "keywords": ["split", "partición", "particion", "train", "training", "validation", "validación", "test"],
+        "keywords": [
+            "split",
+            "partición",
+            "particion",
+            "train",
+            "training",
+            "validation",
+            "validación",
+            "test",
+        ],
     },
     "MODEL_PERFORMANCE_EVALUATION": {
         "label": "Evaluación de desempeño del modelo",
         "tests": ["model_performance"],
-        "keywords": ["accuracy", "precision", "recall", "f1", "auc", "roc", "matriz de confusión", "modelo", "predicción", "score"],
+        "keywords": [
+            "accuracy",
+            "precision",
+            "recall",
+            "f1",
+            "auc",
+            "roc",
+            "matriz de confusión",
+            "modelo",
+            "predicción",
+            "score",
+        ],
     },
     "THRESHOLD_QUALITY_EVALUATION": {
         "label": "Evaluación de umbral de clasificación",
@@ -31,13 +69,31 @@ SUPPORTED_ACTIVITY_CATALOG = {
     },
 }
 KNOWN_BUT_NOT_EXECUTABLE = {
-    "FEATURE_SET_QUALITY_REVIEW": ["feature", "variable derivada", "variables explicativas", "feature set"],
-    "MODEL_CONFIGURATION_REVIEW": ["hiperparámetro", "hiperparametro", "configuración del modelo", "entrenamiento del modelo"],
-    "DASHBOARD_RESULT_VALIDATION": ["dashboard", "cuadro de mando", "power bi", "tableau", "métrica de negocio", "kpi"],
+    "FEATURE_SET_QUALITY_REVIEW": [
+        "feature",
+        "variable derivada",
+        "variables explicativas",
+        "feature set",
+    ],
+    "MODEL_CONFIGURATION_REVIEW": [
+        "hiperparámetro",
+        "hiperparametro",
+        "configuración del modelo",
+        "entrenamiento del modelo",
+    ],
+    "DASHBOARD_RESULT_VALIDATION": [
+        "dashboard",
+        "cuadro de mando",
+        "power bi",
+        "tableau",
+        "métrica de negocio",
+        "kpi",
+    ],
 }
 
 
 def analyze_conceptual_document(filename: str, content: bytes) -> Dict[str, Any]:
+    """Analiza un documento y devuelve actividades QA detectadas y contexto."""
     text = extract_text(filename, content)
     normalized = _normalize(text)
 
@@ -48,8 +104,16 @@ def analyze_conceptual_document(filename: str, content: bytes) -> Dict[str, Any]
     executable = _detect_supported_activities(normalized)
     unsupported = _detect_unsupported_activities(normalized)
 
-    if not executable and any(word in normalized for word in ["dataset", "dato", "calidad", "validación", "validacion"]):
-        executable.append(_activity_payload("MINABLE_DATASET_VALIDATION", "Actividad inferida por mención genérica a dataset/calidad del dato."))
+    if not executable and any(
+        word in normalized
+        for word in ["dataset", "dato", "calidad", "validación", "validacion"]
+    ):
+        executable.append(
+            _activity_payload(
+                "MINABLE_DATASET_VALIDATION",
+                "Actividad inferida por mención genérica a dataset/calidad del dato.",
+            )
+        )
 
     suggested_tests = []
     for activity in executable:
@@ -72,10 +136,23 @@ def analyze_conceptual_document(filename: str, content: bytes) -> Dict[str, Any]
         "unsupported_activities": unsupported,
         "suggested_validation_tests": suggested_tests,
         "data_cycle": {
-            "input": datasets or ["Documento conceptual aportado por el usuario", "Dataset pendiente de carga"],
-            "transformation": ["Interpretación funcional", "Mapeo a catálogo QA", "Generación de pruebas read-only"],
-            "validation": suggested_tests or ["Pendiente de selección de actividad ejecutable"],
-            "output": ["Resultado en pantalla", "Informe PDF de ejecución", "Evidencias en panel de resultados"],
+            "input": datasets
+            or [
+                "Documento conceptual aportado por el usuario",
+                "Dataset pendiente de carga",
+            ],
+            "transformation": [
+                "Interpretación funcional",
+                "Mapeo a catálogo QA",
+                "Generación de pruebas read-only",
+            ],
+            "validation": suggested_tests
+            or ["Pendiente de selección de actividad ejecutable"],
+            "output": [
+                "Resultado en pantalla",
+                "Informe PDF de ejecución",
+                "Evidencias en panel de resultados",
+            ],
         },
     }
     analysis["assistant_message"] = build_conceptual_analysis_message(analysis)
@@ -83,6 +160,7 @@ def analyze_conceptual_document(filename: str, content: bytes) -> Dict[str, Any]
 
 
 def extract_text(filename: str, content: bytes) -> str:
+    """Extrae texto plano de documentos `.docx`, `.ipynb`, `.txt` o `.md`."""
     lower = filename.lower()
     if lower.endswith(".docx"):
         return _extract_docx_text(content)
@@ -90,27 +168,42 @@ def extract_text(filename: str, content: bytes) -> str:
         return _extract_ipynb_text(content)
     if lower.endswith(".txt") or lower.endswith(".md"):
         return content.decode("utf-8", errors="ignore")
-    raise ValueError("Formato no soportado. Sube un documento .docx, .ipynb, .txt o .md.")
+    raise ValueError(
+        "Formato no soportado. Sube un documento .docx, .ipynb, .txt o .md."
+    )
 
 
 def build_conceptual_analysis_message(analysis: Dict[str, Any]) -> str:
+    """Construye el mensaje HTML de resumen del análisis conceptual."""
     supported = analysis.get("supported_activities", [])
     unsupported = analysis.get("unsupported_activities", [])
     entities = analysis.get("entities", [])
     rules = analysis.get("business_rules", [])
 
-    supported_items = "".join(
-        f"<li><b>{html.escape(item['activity_type'])}</b> — {html.escape(item['label'])}. Pruebas: <code>{html.escape(', '.join(item.get('tests', [])))}</code></li>"
-        for item in supported
-    ) or "<li>No he identificado una actividad ejecutable con las reglas actuales.</li>"
+    supported_items = (
+        "".join(
+            f"<li><b>{html.escape(item['activity_type'])}</b> — {html.escape(item['label'])}. Pruebas: <code>{html.escape(', '.join(item.get('tests', [])))}</code></li>"
+            for item in supported
+        )
+        or "<li>No he identificado una actividad ejecutable con las reglas actuales.</li>"
+    )
 
-    unsupported_items = "".join(
-        f"<li><b>{html.escape(item['activity_type'])}</b> — detectada, pero todavía no está preparada para ejecución automática en esta versión.</li>"
-        for item in unsupported
-    ) or "<li>No se han detectado actividades fuera del catálogo ejecutable actual.</li>"
+    unsupported_items = (
+        "".join(
+            f"<li><b>{html.escape(item['activity_type'])}</b> — detectada, pero todavía no está preparada para ejecución automática en esta versión.</li>"
+            for item in unsupported
+        )
+        or "<li>No se han detectado actividades fuera del catálogo ejecutable actual.</li>"
+    )
 
-    entity_items = "".join(f"<li>{html.escape(entity)}</li>" for entity in entities[:8]) or "<li>No se han detectado entidades explícitas.</li>"
-    rule_items = "".join(f"<li>{html.escape(rule)}</li>" for rule in rules[:8]) or "<li>No se han detectado reglas textuales explícitas; se ha inferido el flujo por palabras clave.</li>"
+    entity_items = (
+        "".join(f"<li>{html.escape(entity)}</li>" for entity in entities[:8])
+        or "<li>No se han detectado entidades explícitas.</li>"
+    )
+    rule_items = (
+        "".join(f"<li>{html.escape(rule)}</li>" for rule in rules[:8])
+        or "<li>No se han detectado reglas textuales explícitas; se ha inferido el flujo por palabras clave.</li>"
+    )
 
     return f"""
 <div class="qa-result-card">
@@ -139,7 +232,7 @@ def build_conceptual_analysis_message(analysis: Dict[str, Any]) -> str:
 def _extract_docx_text(content: bytes) -> str:
     with zipfile.ZipFile(BytesIO(content)) as docx:
         xml_content = docx.read("word/document.xml")
-    root = ET.fromstring(xml_content)
+    root = ElementTree.fromstring(xml_content)
     namespace = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
     texts = [node.text for node in root.findall(".//w:t", namespace) if node.text]
     return "\n".join(texts)
@@ -187,34 +280,71 @@ def _extract_business_rules(text: str) -> List[str]:
         lower = sentence.lower()
         if len(sentence) < 12:
             continue
-        if any(marker in lower for marker in ["debe", "deberá", "obligatorio", "regla", "validar", "no puede", "umbral", "mínimo", "maximo", "máximo"]):
+        if any(
+            marker in lower
+            for marker in [
+                "debe",
+                "deberá",
+                "obligatorio",
+                "regla",
+                "validar",
+                "no puede",
+                "umbral",
+                "mínimo",
+                "maximo",
+                "máximo",
+            ]
+        ):
             rules.append(sentence[:240])
     return rules[:20]
 
 
 def _extract_datasets(text: str) -> List[str]:
     datasets = []
-    for match in re.finditer(r"(?:dataset|tabla|fichero|csv)\s+([A-Za-z0-9_ -]{3,60})", text or "", flags=re.IGNORECASE):
+    for match in re.finditer(
+        r"(?:dataset|tabla|fichero|csv)\s+([A-Za-z0-9_ -]{3,60})",
+        text or "",
+        flags=re.IGNORECASE,
+    ):
         datasets.append(match.group(0).strip())
     return list(dict.fromkeys(datasets))[:12]
 
 
 def _extract_models(text: str) -> List[str]:
     models = []
-    for match in re.finditer(r"(?:modelo|model)\s+([A-Za-z0-9_ -]{3,60})", text or "", flags=re.IGNORECASE):
+    for match in re.finditer(
+        r"(?:modelo|model)\s+([A-Za-z0-9_ -]{3,60})", text or "", flags=re.IGNORECASE
+    ):
         models.append(match.group(0).strip())
     return list(dict.fromkeys(models))[:12]
 
 
 def _extract_dashboards(text: str) -> List[str]:
     dashboards = []
-    for match in re.finditer(r"(?:dashboard|cuadro de mando|informe)\s+([A-Za-z0-9_ -]{3,60})", text or "", flags=re.IGNORECASE):
+    for match in re.finditer(
+        r"(?:dashboard|cuadro de mando|informe)\s+([A-Za-z0-9_ -]{3,60})",
+        text or "",
+        flags=re.IGNORECASE,
+    ):
         dashboards.append(match.group(0).strip())
     return list(dict.fromkeys(dashboards))[:12]
 
 
 def _extract_metrics(text: str) -> List[str]:
-    known = ["accuracy", "precision", "recall", "f1", "auc", "roc", "nulos", "duplicados", "outliers", "skewness", "balance", "umbral"]
+    known = [
+        "accuracy",
+        "precision",
+        "recall",
+        "f1",
+        "auc",
+        "roc",
+        "nulos",
+        "duplicados",
+        "outliers",
+        "skewness",
+        "balance",
+        "umbral",
+    ]
     normalized = _normalize(text)
     return [metric for metric in known if metric in normalized]
 
@@ -224,7 +354,9 @@ def _detect_supported_activities(normalized: str) -> List[Dict[str, Any]]:
     for activity_type, config in SUPPORTED_ACTIVITY_CATALOG.items():
         hits = [kw for kw in config["keywords"] if kw in normalized]
         if hits:
-            payload = _activity_payload(activity_type, f"Coincidencias detectadas: {', '.join(hits[:6])}.")
+            payload = _activity_payload(
+                activity_type, f"Coincidencias detectadas: {', '.join(hits[:6])}."
+            )
             activities.append(payload)
     return activities
 
@@ -233,7 +365,12 @@ def _detect_unsupported_activities(normalized: str) -> List[Dict[str, str]]:
     unsupported = []
     for activity_type, keywords in KNOWN_BUT_NOT_EXECUTABLE.items():
         if any(keyword in normalized for keyword in keywords):
-            unsupported.append({"activity_type": activity_type, "reason": "Actividad reconocida pero no ejecutable en el catálogo actual."})
+            unsupported.append(
+                {
+                    "activity_type": activity_type,
+                    "reason": "Actividad reconocida pero no ejecutable en el catálogo actual.",
+                }
+            )
     return unsupported
 
 

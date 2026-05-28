@@ -1,17 +1,22 @@
+"""Endpoints de autenticación para login y registro."""
+
+from app.services.auth_service import login_user, register_user
 from fastapi import APIRouter
 from pydantic import BaseModel
-from app.services.auth_service import login_user, register_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 class AuthRequest(BaseModel):
+    """Payload de entrada para autenticación de usuario."""
+
     username: str
     password: str
 
 
 @router.post("/login")
 def login(data: AuthRequest):
+    """Inicia sesión con usuario y contraseña."""
     result = login_user(data.username, data.password)
     if not result["ok"]:
         return {"ok": False, "error": result["error"]}
@@ -22,6 +27,7 @@ def login(data: AuthRequest):
 
 @router.post("/register")
 def register(data: AuthRequest):
+    """Registra un nuevo usuario en el sistema."""
     result = register_user(data.username, data.password)
     if not result["ok"]:
         return {"ok": False, "error": result["error"]}

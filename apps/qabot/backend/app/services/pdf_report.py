@@ -1,3 +1,5 @@
+"""Generación de informes PDF para resultados de evaluación QA."""
+
 import io
 from datetime import datetime
 from typing import Any, Dict, List
@@ -7,14 +9,7 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import (
-    Paragraph,
-    SimpleDocTemplate,
-    Spacer,
-    Table,
-    TableStyle,
-)
-
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 STATUS_COLORS = {
     "PASS": colors.HexColor("#2E7D32"),
@@ -38,6 +33,7 @@ TEST_LABELS = {
 
 
 def build_pdf_report(report: Dict[str, Any]) -> bytes:
+    """Genera el PDF final a partir del diccionario de reporte QA."""
     buffer = io.BytesIO()
 
     doc = SimpleDocTemplate(
@@ -238,10 +234,14 @@ def _add_metric_block(elements, styles, name, metrics, inner):
         rows = [["Columna", "Ratio nulos", "Nivel"]]
 
         for item in metrics.get("critical", []):
-            rows.append([item.get("column", ""), _pct(item.get("null_ratio", 0)), "Critico"])
+            rows.append(
+                [item.get("column", ""), _pct(item.get("null_ratio", 0)), "Critico"]
+            )
 
         for item in metrics.get("warnings", []):
-            rows.append([item.get("column", ""), _pct(item.get("null_ratio", 0)), "Aviso"])
+            rows.append(
+                [item.get("column", ""), _pct(item.get("null_ratio", 0)), "Aviso"]
+            )
 
         if len(rows) > 1:
             elements.append(Paragraph("Metricas principales", styles["small"]))
@@ -300,7 +300,10 @@ def _add_metric_block(elements, styles, name, metrics, inner):
             ["Ratio por particion", str(inner.get("split_ratios", {}))],
             ["Particiones ausentes", str(inner.get("missing_splits", []))],
             ["Particiones desconocidas", str(inner.get("unknown_splits", []))],
-            ["IDs repetidos entre particiones", str(inner.get("duplicate_ids_across_splits", None))],
+            [
+                "IDs repetidos entre particiones",
+                str(inner.get("duplicate_ids_across_splits", None)),
+            ],
         ]
         elements.append(_table(rows, [7 * cm, 16 * cm]))
 
@@ -368,13 +371,16 @@ def _add_evidence_block(elements, styles, name, metrics):
 
         elements.append(_table(table_rows, [8 * cm, 4 * cm, 4 * cm]))
 
+
 def _add_recommendations(elements, styles, result):
     recommendations = result.get("recommendations", [])
 
     if not recommendations:
         return
 
-    elements.append(Paragraph("Recomendaciones para el siguiente ciclo", styles["small"]))
+    elements.append(
+        Paragraph("Recomendaciones para el siguiente ciclo", styles["small"])
+    )
 
     rows = [["#", "Recomendacion"]]
     for index, rec in enumerate(recommendations, start=1):
@@ -383,16 +389,19 @@ def _add_recommendations(elements, styles, result):
     elements.append(_table(rows, [1.5 * cm, 22 * cm]))
 
 
-
 def _add_conceptual_document_context(elements, styles, report):
     dc = report.get("conceptual_document_context") or {}
 
     if not dc:
         return
 
-    elements.append(Paragraph("4. Trazabilidad con documento conceptual (DC)", styles["h1"]))
+    elements.append(
+        Paragraph("4. Trazabilidad con documento conceptual (DC)", styles["h1"])
+    )
 
-    selected = dc.get("selected_activity") or _infer_selected_activity_from_report(dc, report)
+    selected = dc.get("selected_activity") or _infer_selected_activity_from_report(
+        dc, report
+    )
     selected_label = "N/A"
     selected_type = report.get("activity_type", "N/A")
     selected_tests = []
@@ -407,7 +416,10 @@ def _add_conceptual_document_context(elements, styles, report):
         ["Análisis DC", dc.get("analysis_id", "N/A")],
         ["Actividad solicitada", selected_type],
         ["Fase/actividad DC", selected_label],
-        ["Pruebas solicitadas por DC", ", ".join(selected_tests) if selected_tests else _tests_from_report(report)],
+        [
+            "Pruebas solicitadas por DC",
+            ", ".join(selected_tests) if selected_tests else _tests_from_report(report),
+        ],
     ]
     elements.append(_table(overview_rows, [6 * cm, 19 * cm]))
     elements.append(Spacer(1, 0.2 * cm))
@@ -420,7 +432,9 @@ def _add_conceptual_document_context(elements, styles, report):
 
     rules = dc.get("business_rules") or []
     if rules:
-        elements.append(Paragraph("Reglas/criterios funcionales extraídos del DC", styles["h2"]))
+        elements.append(
+            Paragraph("Reglas/criterios funcionales extraídos del DC", styles["h2"])
+        )
         rows = [["#", "Regla del DC"]]
         for index, rule in enumerate(rules[:12], start=1):
             rows.append([index, _trim(rule, 260)])
@@ -442,7 +456,9 @@ def _add_conceptual_document_context(elements, styles, report):
         elements.append(_table(rows, [4 * cm, 21 * cm]))
         elements.append(Spacer(1, 0.2 * cm))
 
-    elements.append(Paragraph("Resultado de la prueba solicitada frente al DC", styles["h2"]))
+    elements.append(
+        Paragraph("Resultado de la prueba solicitada frente al DC", styles["h2"])
+    )
     rows = [["Prueba", "Estado", "Criterio DC aplicado", "Justificación del resultado"]]
     rules_text = " | ".join(str(rule) for rule in rules)
 
@@ -457,7 +473,12 @@ def _add_conceptual_document_context(elements, styles, report):
     if len(rows) > 1:
         elements.append(_table(rows, [4.5 * cm, 2.3 * cm, 8 * cm, 11 * cm]))
     else:
-        elements.append(Paragraph("No hay resultados ejecutados para contrastar con el DC.", styles["normal"]))
+        elements.append(
+            Paragraph(
+                "No hay resultados ejecutados para contrastar con el DC.",
+                styles["normal"],
+            )
+        )
 
     elements.append(Spacer(1, 0.25 * cm))
 
@@ -471,7 +492,10 @@ def _infer_selected_activity_from_report(dc, report):
 
 
 def _tests_from_report(report):
-    names = [TEST_LABELS.get(result.get("name", ""), result.get("name", "")) for result in report.get("results", [])]
+    names = [
+        TEST_LABELS.get(result.get("name", ""), result.get("name", ""))
+        for result in report.get("results", [])
+    ]
     return ", ".join([name for name in names if name]) or "N/A"
 
 
@@ -502,7 +526,14 @@ def _match_dc_criterion(test_name, rules_text, selected_tests, dc):
         "balance": ["balance", "desbalance", "clase"],
         "skewness": ["skew", "asimetr"],
         "model_performance": ["accuracy", "precision", "recall", "f1", "auc", "modelo"],
-        "dataset_split": ["split", "partición", "particion", "train", "validation", "test"],
+        "dataset_split": [
+            "split",
+            "partición",
+            "particion",
+            "train",
+            "validation",
+            "test",
+        ],
     }
 
     if not snippets:
@@ -529,7 +560,9 @@ def _build_dc_result_justification(result):
     if status in {"PASS", "SUCCESS"}:
         prefix = "PASADA: el dataset cumple el criterio evaluado."
     elif status in {"WARN", "WARNING"}:
-        prefix = "ADVERTENCIA: el dataset cumple parcialmente o presenta riesgo funcional."
+        prefix = (
+            "ADVERTENCIA: el dataset cumple parcialmente o presenta riesgo funcional."
+        )
     elif status in {"FAIL", "ERROR"}:
         prefix = "ERROR/FAIL: el dataset no cumple el criterio evaluado."
     else:
@@ -548,6 +581,7 @@ def _trim(value, max_chars=300):
     text = "" if value is None else str(value)
     return text if len(text) <= max_chars else text[: max_chars - 3] + "..."
 
+
 def _add_comparison(elements, styles, report):
     comparison = report.get("comparison_vs_previous")
 
@@ -555,7 +589,9 @@ def _add_comparison(elements, styles, report):
         return
 
     section_number = "5" if report.get("conceptual_document_context") else "4"
-    elements.append(Paragraph(f"{section_number}. Comparacion con revision anterior", styles["h1"]))
+    elements.append(
+        Paragraph(f"{section_number}. Comparacion con revision anterior", styles["h1"])
+    )
 
     if not comparison.get("comparable"):
         elements.append(
@@ -631,7 +667,12 @@ def _table(data: List[List[Any]], col_widths: List[float]) -> Table:
                 ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#D1D5DB")),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("FONTSIZE", (0, 0), (-1, -1), 7),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#FAFAFA")]),
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [colors.white, colors.HexColor("#FAFAFA")],
+                ),
             ]
         )
     )
@@ -656,11 +697,7 @@ def _dict_rows_table(rows: List[Dict[str, Any]], max_columns: int = 8) -> Table:
 
 def _cell(value: Any) -> Paragraph:
     text = "" if value is None else str(value)
-    text = (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-    )
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
     return Paragraph(text, ParagraphStyle("cell", fontSize=7, leading=8))
 

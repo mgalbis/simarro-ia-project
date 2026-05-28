@@ -1,3 +1,5 @@
+"""Ejecutor de pruebas QA read-only sobre datasets y metadatos."""
+
 from app.schemas.quality_assessment import (
     AssessmentResult,
     AssessmentStatus,
@@ -12,8 +14,8 @@ from app.services.rules.qa_duplicates import check_duplicates
 from app.services.rules.qa_model_performance import check_model_performance
 from app.services.rules.qa_nulls import check_nulls
 from app.services.rules.qa_outliers import check_outliers_iqr
-from app.services.rules.qa_split_validation import check_dataset_split
 from app.services.rules.qa_skewness import check_skewness
+from app.services.rules.qa_split_validation import check_dataset_split
 
 
 class QASpecialistAgent:
@@ -86,6 +88,7 @@ class QASpecialistAgent:
     }
 
     def build_test_plan(self, order) -> TestPlan:
+        """Genera el plan de pruebas a partir de la orden de evaluación."""
         requested_tests = order.parameters.get("requested_tests", [])
         tests = []
 
@@ -134,6 +137,7 @@ class QASpecialistAgent:
         )
 
     def run_test(self, test_name: str, df, parameters: dict | None = None):
+        """Ejecuta una prueba concreta del catálogo y normaliza su salida."""
         parameters = parameters or {}
 
         if test_name not in self.AVAILABLE_TESTS:
@@ -154,9 +158,7 @@ class QASpecialistAgent:
                         "status": "WARN",
                         "metrics": {},
                         "warnings": [
-                            {
-                                "issue": "Missing target column for balance analysis."
-                            }
+                            {"issue": "Missing target column for balance analysis."}
                         ],
                         "recommendations": [
                             "Indicar la variable objetivo si se desea revisar el balanceo de clases. Ejemplo: target es abandono."
@@ -203,6 +205,7 @@ class QASpecialistAgent:
         }
 
     def run_assessment(self, order, df):
+        """Ejecuta todas las pruebas del plan y consolida el resultado global."""
         parameters = order.parameters or {}
         test_plan = self.build_test_plan(order)
 
@@ -214,11 +217,7 @@ class QASpecialistAgent:
             for test_case in test_plan.tests
         ]
 
-        requested_tests = [
-            name
-            for name in requested_tests
-            if name
-        ]
+        requested_tests = [name for name in requested_tests if name]
 
         test_results = []
 
@@ -263,12 +262,8 @@ class QASpecialistAgent:
                 "failed_checks": sum(
                     1 for r in test_results if r.get("status") == "FAIL"
                 ),
-                "warnings": sum(
-                    1 for r in test_results if r.get("status") == "WARN"
-                ),
-                "errors": sum(
-                    1 for r in test_results if r.get("status") == "ERROR"
-                ),
+                "warnings": sum(1 for r in test_results if r.get("status") == "WARN"),
+                "errors": sum(1 for r in test_results if r.get("status") == "ERROR"),
             },
             test_plan=test_plan,
             test_results=test_results,
@@ -300,29 +295,20 @@ class QASpecialistAgent:
             duplicate_count = result.get("duplicated_count", 0)
             duplicate_ratio = result.get("duplicate_ratio", 0)
             return (
-                f"{duplicate_count} duplicados "
-                f"({round(duplicate_ratio * 100, 2)}%)"
+                f"{duplicate_count} duplicados " f"({round(duplicate_ratio * 100, 2)}%)"
             )
 
         if test_name == "data_types":
-            return (
-                f"{len(result.get('mismatches', []))} columnas con tipos inesperados"
-            )
+            return f"{len(result.get('mismatches', []))} columnas con tipos inesperados"
 
         if test_name == "outliers":
-            total = (
-                len(result.get("critical", []))
-                + len(result.get("warnings", []))
-            )
+            total = len(result.get("critical", [])) + len(result.get("warnings", []))
             return f"{total} columnas con outliers detectados"
 
         if test_name == "balance":
-            ratio = (
-                result.get("metrics", {})
-                .get("majority_class_ratio", 0)
-            )
+            ratio = result.get("metrics", {}).get("majority_class_ratio", 0)
             return f"Clase mayoritaria: {round(ratio * 100, 2)}%"
-        
+
         if test_name == "skewness":
             skewed_columns = result.get("metrics", {}).get("skewness_by_column", {})
             return f"{len(skewed_columns)} columnas con asimetria detectada"
@@ -396,8 +382,10 @@ class QASpecialistAgent:
             counter += 1
 
         return findings
-    
-    def _build_finding_description(self, test_name: str, result: dict, metrics: dict) -> str:
+
+    def _build_finding_description(
+        self, test_name: str, result: dict, metrics: dict
+    ) -> str:
         if test_name == "nulls":
             critical = metrics.get("critical", [])
             warnings = metrics.get("warnings", [])
@@ -457,12 +445,11 @@ class QASpecialistAgent:
                 f"Balanceo: la clase mayoritaria en '{target}' representa "
                 f"el {round(ratio * 100, 2)}% de los registros."
             )
-        
+
         if test_name == "skewness":
             skewed_columns = metrics.get("metrics", {}).get("skewness_by_column", {})
             affected_text = ", ".join(
-                f"{col} (skewness={skew:.4f})"
-                for col, skew in skewed_columns.items()
+                f"{col} (skewness={skew:.4f})" for col, skew in skewed_columns.items()
             )
 
             return (
@@ -531,9 +518,7 @@ class QASpecialistAgent:
             return "No se han detectado incumplimientos en las pruebas ejecutadas."
 
         if status == AssessmentStatus.WARN:
-            return (
-                "Se han detectado advertencias que deberían revisarse en el siguiente ciclo."
-            )
+            return "Se han detectado advertencias que deberían revisarse en el siguiente ciclo."
 
         if status == AssessmentStatus.FAIL:
             return "Se han detectado incumplimientos relevantes de calidad."

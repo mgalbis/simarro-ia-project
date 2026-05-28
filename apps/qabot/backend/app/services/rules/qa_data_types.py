@@ -1,14 +1,14 @@
-def check_data_types(df):
+"""Regla QA para revisar columnas en tipo `object` y consistencia de tipos."""
 
+
+def check_data_types(df):
+    """Detecta columnas en `object` y devuelve evaluación de tipos de dato."""
     mismatches = []
 
     for col, dtype in df.dtypes.items():
 
         if dtype == "object":
-            mismatches.append({
-                "column": col,
-                "dtype": str(dtype)
-            })
+            mismatches.append({"column": col, "dtype": str(dtype)})
 
     if mismatches:
         status = "WARN"
@@ -24,6 +24,7 @@ def check_data_types(df):
         },
         "recommendations": (
             ["Revisar columnas en formato object (posibles strings sucios)"]
-            if mismatches else []
-        )
+            if mismatches
+            else []
+        ),
     }

@@ -1,9 +1,10 @@
+"""Interpretación determinista de intención para solicitudes QA."""
+
 import re
 import unicodedata
 from typing import Any, Dict, List, Optional
 
 from app.schemas.quality_assessment import ActivityType
-
 
 VALID_TESTS = {
     "nulls",
@@ -108,23 +109,41 @@ def interpret_user_intent(message: str) -> Dict[str, Any]:
             "activity_type": None,
             "requested_tests": [],
         }
-        
+
     has_test_keywords = any(
-        keyword in lower
-        for tests in TEST_KEYWORDS.values()
-        for keyword in tests
+        keyword in lower for tests in TEST_KEYWORDS.values() for keyword in tests
     )
 
     has_action_keywords = any(
         word in lower
         for word in [
-            "analiza", "analizar", "revisa", "revisar",
-            "valida", "validar", "comprueba", "comprobar",
-            "ejecuta", "ejecutar", "verifica", "verificar",
-            "prueba", "pruebas", "test", "tests",
-            "dataset", "csv", "datos", "modelo",
-            "umbral", "threshold", "límite", "limite",
-            "punto de corte", "calidad", "quality",
+            "analiza",
+            "analizar",
+            "revisa",
+            "revisar",
+            "valida",
+            "validar",
+            "comprueba",
+            "comprobar",
+            "ejecuta",
+            "ejecutar",
+            "verifica",
+            "verificar",
+            "prueba",
+            "pruebas",
+            "test",
+            "tests",
+            "dataset",
+            "csv",
+            "datos",
+            "modelo",
+            "umbral",
+            "threshold",
+            "límite",
+            "limite",
+            "punto de corte",
+            "calidad",
+            "quality",
         ]
     )
 
@@ -191,7 +210,6 @@ def interpret_user_intent(message: str) -> Dict[str, Any]:
     }
 
 
-
 def _extract_explicit_activity_type(lower: str) -> Optional[str]:
     """Respeta directivas explícitas enviadas por el flujo de documento conceptual.
 
@@ -208,6 +226,7 @@ def _extract_explicit_activity_type(lower: str) -> Optional[str]:
         ):
             return activity_type.value
     return None
+
 
 def _is_download_request(lower: str) -> bool:
     return any(
@@ -275,10 +294,7 @@ def _detect_activity_type(lower: str, normalized: Optional[str] = None) -> str:
         ]
     )
 
-    mentions_split = any(
-        keyword in lower
-        for keyword in TEST_KEYWORDS["dataset_split"]
-    )
+    mentions_split = any(keyword in lower for keyword in TEST_KEYWORDS["dataset_split"])
 
     if mentions_split:
         return ActivityType.DATASET_SPLIT_VALIDATION.value

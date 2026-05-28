@@ -1,5 +1,6 @@
-from typing import Any, Dict, List, Optional
+"""Comparación de resultados QA entre dos ejecuciones consecutivas."""
 
+from typing import Any, Dict, List, Optional
 
 NUMERIC_METRIC_KEYS = {
     "accuracy",
@@ -20,11 +21,7 @@ def _assessment(report: Dict[str, Any]) -> Dict[str, Any]:
 
 def _test_results_by_name(report: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     results = report.get("results") or _assessment(report).get("test_results", [])
-    return {
-        item.get("name"): item
-        for item in results
-        if item.get("name")
-    }
+    return {item.get("name"): item for item in results if item.get("name")}
 
 
 def _summary_counts(report: Dict[str, Any]) -> Dict[str, Any]:
@@ -46,6 +43,7 @@ def build_assessment_comparison(
     previous_report: Optional[Dict[str, Any]],
     current_report: Dict[str, Any],
 ) -> Optional[Dict[str, Any]]:
+    """Compara dos informes y devuelve deltas de estado, tests y métricas."""
     if not previous_report:
         return None
 
@@ -199,7 +197,9 @@ def _build_metric_deltas(
         previous_value = previous_metrics.get(key)
         current_value = current_metrics.get(key)
 
-        if isinstance(previous_value, (int, float)) and isinstance(current_value, (int, float)):
+        if isinstance(previous_value, (int, float)) and isinstance(
+            current_value, (int, float)
+        ):
             metric_deltas.append(
                 {
                     "metric": key,
@@ -210,6 +210,7 @@ def _build_metric_deltas(
             )
 
     return metric_deltas
+
 
 def _count_value(
     count_deltas: Dict[str, Any],
@@ -225,6 +226,7 @@ def _count_value(
         return int(value)
 
     return 0
+
 
 def _build_interpretation(
     count_deltas: Dict[str, Any],
@@ -244,18 +246,10 @@ def _build_interpretation(
     current_errors = _count_value(count_deltas, "errors", "current")
 
     previous_total = (
-        previous_passed
-        + previous_failed
-        + previous_warnings
-        + previous_errors
+        previous_passed + previous_failed + previous_warnings + previous_errors
     )
 
-    current_total = (
-        current_passed
-        + current_failed
-        + current_warnings
-        + current_errors
-    )
+    current_total = current_passed + current_failed + current_warnings + current_errors
 
     previous_all_success = (
         previous_total > 0
@@ -307,8 +301,7 @@ def _build_interpretation(
     else:
         if fixed:
             fragments.append(
-                "defectos corregidos: "
-                + ", ".join(item["test_name"] for item in fixed)
+                "defectos corregidos: " + ", ".join(item["test_name"] for item in fixed)
             )
 
         if new_failures:
@@ -343,29 +336,15 @@ def _build_interpretation(
                     fragments.append("se mantiene el número total de pruebas fallidas")
 
     if metric_deltas:
-        improved = [
-            m["metric"]
-            for m in metric_deltas
-            if m["delta"] > 0
-        ]
-        worsened = [
-            m["metric"]
-            for m in metric_deltas
-            if m["delta"] < 0
-        ]
+        improved = [m["metric"] for m in metric_deltas if m["delta"] > 0]
+        worsened = [m["metric"] for m in metric_deltas if m["delta"] < 0]
 
         if improved:
-            fragments.append(
-                "mejoran métricas: " + ", ".join(sorted(improved))
-            )
+            fragments.append("mejoran métricas: " + ", ".join(sorted(improved)))
 
         if worsened:
-            fragments.append(
-                "empeoran métricas: " + ", ".join(sorted(worsened))
-            )
+            fragments.append("empeoran métricas: " + ", ".join(sorted(worsened)))
 
     return (
-        "; ".join(fragments)
-        if fragments
-        else "No hay cambios comparables relevantes."
+        "; ".join(fragments) if fragments else "No hay cambios comparables relevantes."
     )

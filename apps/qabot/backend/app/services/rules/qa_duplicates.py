@@ -1,4 +1,8 @@
+"""Regla QA para detectar registros duplicados en el dataset."""
+
+
 def check_duplicates(df):
+    """Calcula ratio de duplicados y devuelve evidencias de filas repetidas."""
     duplicated_mask = df.duplicated(keep=False)
     duplicated_rows = df.loc[duplicated_mask].copy()
 
@@ -17,7 +21,11 @@ def check_duplicates(df):
     if not duplicated_rows.empty:
         evidence_df = duplicated_rows.head(20).copy()
         evidence_df.insert(0, "__row_number__", evidence_df.index + 1)
-        evidence_rows = evidence_df.astype(object).where(evidence_df.notna(), None).to_dict(orient="records")
+        evidence_rows = (
+            evidence_df.astype(object)
+            .where(evidence_df.notna(), None)
+            .to_dict(orient="records")
+        )
 
     return {
         "rule": "QA-DUPLICATES",
@@ -30,7 +38,10 @@ def check_duplicates(df):
             "rows": evidence_rows,
         },
         "recommendations": (
-            ["Revisar las filas duplicadas antes de utilizar el dataset en fases posteriores."]
-            if duplicated_count > 0 else []
+            [
+                "Revisar las filas duplicadas antes de utilizar el dataset en fases posteriores."
+            ]
+            if duplicated_count > 0
+            else []
         ),
     }

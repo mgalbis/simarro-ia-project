@@ -1,5 +1,7 @@
+"""Regla QA para evaluación de desempeño de clasificación binaria."""
+
 import math
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import pandas as pd
 
@@ -11,12 +13,7 @@ def check_model_performance(
     threshold: float = 0.5,
     positive_class: Any = 1,
 ):
-    """
-    Evalúa el desempeño de un modelo binario a partir de una columna real
-    y una columna de predicción o score.
-
-    La evaluación es read-only: no modifica modelo, dataset ni umbral.
-    """
+    """Evalúa métricas de clasificación binaria sin modificar artefactos."""
     if not target_column:
         return _error(
             "Missing target column.",
@@ -123,53 +120,63 @@ def check_model_performance(
 
     if recall < 0.4:
         status = "FAIL"
-        warnings.append({
-            "issue": "Recall below critical diagnostic reference.",
-            "observed_recall": round(recall, 4),
-            "critical_reference": 0.4,
-        })
+        warnings.append(
+            {
+                "issue": "Recall below critical diagnostic reference.",
+                "observed_recall": round(recall, 4),
+                "critical_reference": 0.4,
+            }
+        )
         recommendations.append(
             "Revisar en una iteración posterior si la política de umbral o el entrenamiento del modelo permiten detectar más positivos reales."
         )
     elif recall < 0.6:
         status = "WARN"
-        warnings.append({
-            "issue": "Recall below diagnostic reference.",
-            "observed_recall": round(recall, 4),
-            "warning_reference": 0.6,
-        })
+        warnings.append(
+            {
+                "issue": "Recall below diagnostic reference.",
+                "observed_recall": round(recall, 4),
+                "warning_reference": 0.6,
+            }
+        )
         recommendations.append(
             "Analizar en una iteración posterior si el umbral actual reduce en exceso la detección de positivos reales."
         )
 
     if precision < 0.4:
         status = "FAIL"
-        warnings.append({
-            "issue": "Precision below critical diagnostic reference.",
-            "observed_precision": round(precision, 4),
-            "critical_reference": 0.4,
-        })
+        warnings.append(
+            {
+                "issue": "Precision below critical diagnostic reference.",
+                "observed_precision": round(precision, 4),
+                "critical_reference": 0.4,
+            }
+        )
         recommendations.append(
             "Revisar en una iteración posterior si el modelo produce demasiados falsos positivos."
         )
     elif precision < 0.6 and status != "FAIL":
         status = "WARN"
-        warnings.append({
-            "issue": "Precision below diagnostic reference.",
-            "observed_precision": round(precision, 4),
-            "warning_reference": 0.6,
-        })
+        warnings.append(
+            {
+                "issue": "Precision below diagnostic reference.",
+                "observed_precision": round(precision, 4),
+                "warning_reference": 0.6,
+            }
+        )
         recommendations.append(
             "Analizar en una iteración posterior el equilibrio entre falsos positivos y falsos negativos."
         )
 
     if f1 < 0.5 and status != "FAIL":
         status = "WARN"
-        warnings.append({
-            "issue": "F1 below diagnostic reference.",
-            "observed_f1": round(f1, 4),
-            "warning_reference": 0.5,
-        })
+        warnings.append(
+            {
+                "issue": "F1 below diagnostic reference.",
+                "observed_f1": round(f1, 4),
+                "warning_reference": 0.5,
+            }
+        )
         recommendations.append(
             "Revisar en una iteración posterior si el desempeño global del modelo es suficiente para el caso de uso."
         )
@@ -207,9 +214,7 @@ def _safe_div(numerator: float, denominator: float) -> float:
 
 
 def _roc_auc(y_true, y_score):
-    """
-    Implementación simple de ROC AUC para evitar añadir dependencia a scikit-learn.
-    """
+    """Implementación simple de ROC AUC sin depender de scikit-learn."""
     pairs = sorted(zip(y_score, y_true), key=lambda x: x[0])
     positives = sum(y_true)
     negatives = len(y_true) - positives

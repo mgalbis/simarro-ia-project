@@ -1,8 +1,9 @@
+"""Utilidades de almacenamiento de artefactos de ejecución QA."""
+
 import shutil
 import zipfile
 from pathlib import Path
 from typing import Optional
-
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 ARTIFACTS_DIR = BASE_DIR / "data" / "artifacts"
@@ -14,6 +15,7 @@ def save_uploaded_artifact(
     filename: str,
     source_path: str,
 ) -> str:
+    """Copia un artefacto subido a la ruta de sesión/ejecución."""
     target_dir = ARTIFACTS_DIR / session_id / execution_id
     target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -29,6 +31,7 @@ def build_artifacts_zip(
     session_id: str,
     execution_id: str,
 ) -> Optional[Path]:
+    """Comprime los artefactos de una ejecución en un ZIP descargable."""
     artifact_dir = ARTIFACTS_DIR / session_id / execution_id
 
     if not artifact_dir.exists() or not artifact_dir.is_dir():
@@ -37,11 +40,12 @@ def build_artifacts_zip(
     zip_path = ARTIFACTS_DIR / session_id / f"{execution_id}_artifacts.zip"
 
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
-      for file_path in artifact_dir.iterdir():
-          if file_path.is_file():
-              zip_file.write(file_path, arcname=file_path.name)
+        for file_path in artifact_dir.iterdir():
+            if file_path.is_file():
+                zip_file.write(file_path, arcname=file_path.name)
 
     return zip_path
+
 
 def save_uploaded_artifact_bytes(
     session_id: str,
@@ -49,6 +53,7 @@ def save_uploaded_artifact_bytes(
     filename: str,
     content: bytes,
 ) -> str:
+    """Guarda bytes de un artefacto en la ruta de sesión/ejecución."""
     target_dir = ARTIFACTS_DIR / session_id / execution_id
     target_dir.mkdir(parents=True, exist_ok=True)
 

@@ -1,24 +1,18 @@
+"""Regla QA para detectar nulos y priorizar columnas afectadas."""
+
+
 def check_nulls(df):
-    missing_ratio = (
-        df.isnull()
-        .mean()
-        .sort_values(ascending=False)
-    )
+    """Evalúa nulos por columna y devuelve evidencias de filas afectadas."""
+    missing_ratio = df.isnull().mean().sort_values(ascending=False)
 
     critical = []
     warnings = []
 
     for col, ratio in missing_ratio.items():
         if ratio > 0.05:
-            critical.append({
-                "column": col,
-                "null_ratio": round(ratio, 4)
-            })
+            critical.append({"column": col, "null_ratio": round(ratio, 4)})
         elif ratio > 0:
-            warnings.append({
-                "column": col,
-                "null_ratio": round(ratio, 4)
-            })
+            warnings.append({"column": col, "null_ratio": round(ratio, 4)})
 
     if critical:
         status = "FAIL"
@@ -39,18 +33,23 @@ def check_nulls(df):
 
         for _, row in evidence_df.iterrows():
             null_columns = [
-                col for col in affected_columns
+                col
+                for col in affected_columns
                 if col in df.columns and row[col] != row[col]
             ]
 
-            evidence_rows.append({
-                "__row_number__": int(row["__row_number__"]),
-                "null_columns": null_columns,
-                "row": {
-                    key: (None if value != value else value)
-                    for key, value in row.drop(labels=["__row_number__"]).to_dict().items()
+            evidence_rows.append(
+                {
+                    "__row_number__": int(row["__row_number__"]),
+                    "null_columns": null_columns,
+                    "row": {
+                        key: (None if value != value else value)
+                        for key, value in row.drop(labels=["__row_number__"])
+                        .to_dict()
+                        .items()
+                    },
                 }
-            })
+            )
 
     return {
         "rule": "QA-NULLS",
@@ -59,7 +58,7 @@ def check_nulls(df):
         "warnings": warnings,
         "metrics": {
             "global_null_ratio": round(global_null_ratio, 4),
-            "null_ratio_by_column": missing_ratio.to_dict()
+            "null_ratio_by_column": missing_ratio.to_dict(),
         },
         "evidence": {
             "description": "Primeras filas que contienen valores nulos en columnas críticas o con aviso.",
@@ -67,7 +66,6 @@ def check_nulls(df):
             "rows": evidence_rows,
         },
         "recommendations": (
-            ["Tratar valores nulos en columnas críticas."]
-            if critical else []
-        )
+            ["Tratar valores nulos en columnas críticas."] if critical else []
+        ),
     }

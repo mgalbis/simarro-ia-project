@@ -1,8 +1,8 @@
-import html
+"""Orquestador principal para convertir prompts en evaluaciones QA."""
+
 import uuid
 
 import pandas as pd
-
 from app.schemas.quality_assessment import (
     ActivityType,
     ArtifactDescriptor,
@@ -22,9 +22,11 @@ class QAAgent:
     """
 
     def __init__(self):
+        """Inicializa el agente especialista usado para ejecutar pruebas QA."""
         self.specialist = QASpecialistAgent()
 
     def perceive(self, df: pd.DataFrame, user_message: str):
+        """Construye la percepción inicial con intención, dataset y columnas."""
         intent_data = interpret_user_intent(user_message)
 
         return {
@@ -35,10 +37,11 @@ class QAAgent:
         }
 
     def decide(self, perception):
+        """Decide la acción a ejecutar según intención y artefactos disponibles."""
         df = perception.get("dataset")
         intent = perception.get("intent", {})
         user_message = perception.get("user_message", "")
-        
+
         if intent.get("intent") == "unknown":
             return {
                 "action": "unknown_action",
@@ -76,6 +79,7 @@ class QAAgent:
         }
 
     def act(self, decision_data, execution_id="EXEC-DEFAULT", intent=None):
+        """Construye la respuesta final del asistente para la decisión tomada."""
         action = decision_data.get("action")
 
         if action == "download_report":
@@ -142,7 +146,14 @@ class QAAgent:
             "execution_id": execution_id,
         }
 
-    def _infer_column_from_dataset(self, df, explicit_name, candidates, contains_candidates=None, suffix_candidates=None):
+    def _infer_column_from_dataset(
+        self,
+        df,
+        explicit_name,
+        candidates,
+        contains_candidates=None,
+        suffix_candidates=None,
+    ):
         if df is None or df.empty:
             return explicit_name
 
@@ -167,13 +178,17 @@ class QAAgent:
         contains_candidates = contains_candidates or candidates
         for column in columns:
             column_lower = str(column).lower()
-            if any(candidate.lower() in column_lower for candidate in contains_candidates):
+            if any(
+                candidate.lower() in column_lower for candidate in contains_candidates
+            ):
                 return str(column)
 
         suffix_candidates = suffix_candidates or []
         for column in columns:
             column_lower = str(column).lower()
-            if any(column_lower.endswith(suffix.lower()) for suffix in suffix_candidates):
+            if any(
+                column_lower.endswith(suffix.lower()) for suffix in suffix_candidates
+            ):
                 return str(column)
 
         return explicit_name
@@ -191,7 +206,9 @@ class QAAgent:
 
         activity_type = ActivityType(activity_type_value)
 
-        requested_tests = intent.get("requested_tests") or DEFAULT_TESTS_BY_ACTIVITY.get(
+        requested_tests = intent.get(
+            "requested_tests"
+        ) or DEFAULT_TESTS_BY_ACTIVITY.get(
             activity_type,
             [],
         )
@@ -207,20 +224,64 @@ class QAAgent:
         target_column = self._infer_column_from_dataset(
             df,
             target_column,
-            candidates=["target", "abandono", "churn", "y_true", "real", "label", "clase"],
-            contains_candidates=["target", "abandono", "churn", "label", "clase", "real"],
+            candidates=[
+                "target",
+                "abandono",
+                "churn",
+                "y_true",
+                "real",
+                "label",
+                "clase",
+            ],
+            contains_candidates=[
+                "target",
+                "abandono",
+                "churn",
+                "label",
+                "clase",
+                "real",
+            ],
         )
         prediction_column = self._infer_column_from_dataset(
             df,
             prediction_column,
-            candidates=["probabilidad_abandono", "churn_probability", "score", "prediction", "prediccion", "predicción", "y_pred", "probabilidad", "predicted"],
-            contains_candidates=["probabilidad", "churn_probability", "score", "pred", "prediction"],
+            candidates=[
+                "probabilidad_abandono",
+                "churn_probability",
+                "score",
+                "prediction",
+                "prediccion",
+                "predicción",
+                "y_pred",
+                "probabilidad",
+                "predicted",
+            ],
+            contains_candidates=[
+                "probabilidad",
+                "churn_probability",
+                "score",
+                "pred",
+                "prediction",
+            ],
         )
         split_column = self._infer_column_from_dataset(
             df,
             split_column,
-            candidates=["split", "conjunto", "partition", "particion", "partición", "subset"],
-            contains_candidates=["split", "conjunto", "partition", "particion", "subset"],
+            candidates=[
+                "split",
+                "conjunto",
+                "partition",
+                "particion",
+                "partición",
+                "subset",
+            ],
+            contains_candidates=[
+                "split",
+                "conjunto",
+                "partition",
+                "particion",
+                "subset",
+            ],
         )
         id_column = self._infer_column_from_dataset(
             df,
@@ -487,7 +548,9 @@ class QAAgent:
 
             description_html = self._html_escape(description)
             impact_html = self._html_escape(impact) if impact else ""
-            recommendation_html = self._html_escape(recommendation) if recommendation else ""
+            recommendation_html = (
+                self._html_escape(recommendation) if recommendation else ""
+            )
 
             body_parts = []
 
@@ -495,16 +558,18 @@ class QAAgent:
                 body_parts.append(f"<div>{description_html}</div>")
 
             if impact_html:
-                body_parts.append(
-                    f"<div class='qa-muted-line'>{impact_html}</div>"
-                )
+                body_parts.append(f"<div class='qa-muted-line'>{impact_html}</div>")
 
             if recommendation_html:
                 body_parts.append(
                     f"<div class='qa-muted-line'><b>Recomendación:</b> {recommendation_html}</div>"
                 )
 
-            body = "".join(body_parts) if body_parts else "<div>Defecto sin descripción.</div>"
+            body = (
+                "".join(body_parts)
+                if body_parts
+                else "<div>Defecto sin descripción.</div>"
+            )
 
             items.append(
                 f"""
@@ -581,7 +646,6 @@ class QAAgent:
 
         return f'<span class="{css_class}">{label}</span>'
 
-
     @staticmethod
     def _severity_badge(severity: str) -> str:
         normalized = (severity or "").upper()
@@ -601,10 +665,10 @@ class QAAgent:
 
         return f'<span class="{css_class}">{label}</span>'
 
-
     @staticmethod
     def _html_escape(value) -> str:
         import html
+
         return html.escape(str(value or ""))
 
     def _get_attr_or_dict(self, source, key: str, default=None):

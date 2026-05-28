@@ -1,5 +1,6 @@
-from app.schemas.quality_assessment import ActivityType
+"""Catálogo de actividades QA, pruebas por defecto y objetivos funcionales."""
 
+from app.schemas.quality_assessment import ActivityType
 
 DEFAULT_TESTS_BY_ACTIVITY = {
     ActivityType.MINABLE_DATASET_VALIDATION: [

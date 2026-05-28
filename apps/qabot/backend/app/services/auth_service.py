@@ -1,14 +1,15 @@
+"""Servicios de autenticación y gestión de usuarios locales."""
+
 import hashlib
 import secrets
 import sqlite3
 from typing import Any, Dict
+
 from app.services.session_store import _connect, _now, init_db
 
+
 def init_users_table():
-    """
-    Crea la tabla users si no existe y genera el admin por defecto.
-    Se llama desde init_db() o al arrancar el servidor.
-    """
+    """Crea la tabla de usuarios y garantiza el usuario admin por defecto."""
     init_db()
 
     with _connect() as conn:
@@ -46,11 +47,7 @@ def _create_default_admin(conn):
 
 
 def _hash_password(password: str, salt: str = None):
-    """
-    Devuelve (salt, hash).
-    Si no se pasa salt, genera uno nuevo (registro).
-    Si se pasa salt, lo reutiliza (login).
-    """
+    """Calcula `salt` y hash SHA-256 para registro o validación de login."""
     if salt is None:
         salt = secrets.token_hex(16)
     password_hash = hashlib.sha256((salt + password).encode()).hexdigest()
@@ -58,10 +55,7 @@ def _hash_password(password: str, salt: str = None):
 
 
 def register_user(username: str, password: str) -> Dict[str, Any]:
-    """
-    Registra un nuevo usuario.
-    Devuelve {"ok": True, "username": ...} o {"ok": False, "error": ...}
-    """
+    """Registra un nuevo usuario y devuelve resultado estructurado."""
     init_users_table()
 
     username = username.strip()
@@ -91,11 +85,7 @@ def register_user(username: str, password: str) -> Dict[str, Any]:
 
             user_id = cursor.lastrowid
 
-        return {
-            "ok": True,
-            "id": user_id,
-            "username": username
-        }
+        return {"ok": True, "id": user_id, "username": username}
 
     except sqlite3.IntegrityError:
         return {"ok": False, "error": "El nombre de usuario ya está en uso."}
@@ -105,10 +95,7 @@ def register_user(username: str, password: str) -> Dict[str, Any]:
 
 
 def login_user(username: str, password: str) -> Dict[str, Any]:
-    """
-    Verifica las credenciales del usuario.
-    Devuelve {"ok": True, "username": ...} o {"ok": False, "error": ...}
-    """
+    """Verifica credenciales de usuario y devuelve resultado estructurado."""
     init_users_table()
 
     username = username.strip()
@@ -131,8 +118,4 @@ def login_user(username: str, password: str) -> Dict[str, Any]:
     if password_hash != row["password_hash"]:
         return {"ok": False, "error": "Credenciales incorrectas."}
 
-    return {
-        "ok": True,
-        "id": row["id"],
-        "username": row["username"]
-    }
+    return {"ok": True, "id": row["id"], "username": row["username"]}

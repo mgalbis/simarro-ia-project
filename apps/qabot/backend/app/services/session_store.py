@@ -1,10 +1,11 @@
+"""Persistencia de sesiones, mensajes, informes y feedback de QABot."""
+
 import json
 import sqlite3
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = BASE_DIR / "data"
@@ -28,6 +29,7 @@ def _table_columns(conn, table_name: str) -> set[str]:
 
 
 def init_db():
+    """Inicializa y migra de forma defensiva el esquema SQLite de QABot."""
     with _connect() as conn:
         conn.execute(
             """
@@ -101,7 +103,9 @@ def init_db():
 def _require_user_id(user_id: Optional[str]) -> str:
     clean = str(user_id or "").strip()
     if not clean:
-        raise ValueError("user_id es obligatorio para operaciones de sesión autenticadas.")
+        raise ValueError(
+            "user_id es obligatorio para operaciones de sesión autenticadas."
+        )
     return clean
 
 
@@ -111,6 +115,7 @@ def create_session(
     review_label: Optional[str] = None,
     user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
+    """Crea una nueva sesión QA asociada a un usuario autenticado."""
     init_db()
     clean_user_id = _require_user_id(user_id)
 
@@ -150,6 +155,7 @@ def create_session(
 
 
 def get_session(session_id: str, user_id: Optional[str]) -> Optional[Dict[str, Any]]:
+    """Recupera una sesión con su histórico de mensajes e informes."""
     init_db()
     clean_user_id = _require_user_id(user_id)
 
@@ -191,18 +197,14 @@ def get_session(session_id: str, user_id: Optional[str]) -> Optional[Dict[str, A
     return {
         "session_id": session["session_id"],
         "user_id": session["user_id"],
-
         "project_label": session["project_label"],
         "test_phase": session["test_phase"],
         "review_label": session["review_label"],
-
         "active_review_prompt": session["active_review_prompt"],
         "pending_prompt": session["pending_prompt"],
         "last_processed_file_name": session["last_processed_file_name"],
-
         "created_at": session["created_at"],
         "updated_at": session["updated_at"],
-
         "messages": [dict(row) for row in messages],
         "reports": parsed_reports,
         "last_report": parsed_reports[0] if parsed_reports else None,
@@ -210,6 +212,7 @@ def get_session(session_id: str, user_id: Optional[str]) -> Optional[Dict[str, A
 
 
 def list_sessions(user_id: Optional[str]) -> List[Dict[str, Any]]:
+    """Lista sesiones de un usuario ordenadas por fecha de actualización."""
     init_db()
     clean_user_id = _require_user_id(user_id)
 
@@ -244,18 +247,14 @@ def list_sessions(user_id: Optional[str]) -> List[Dict[str, Any]]:
                 {
                     "session_id": session["session_id"],
                     "user_id": session["user_id"],
-
                     "project_label": session["project_label"],
                     "test_phase": session["test_phase"],
                     "review_label": session["review_label"],
-
                     "active_review_prompt": session["active_review_prompt"],
                     "pending_prompt": session["pending_prompt"],
                     "last_processed_file_name": session["last_processed_file_name"],
-
                     "created_at": session["created_at"],
                     "updated_at": session["updated_at"],
-
                     "iteration_count": len(parsed_reports),
                     "last_status": (
                         last_report.get("global_status") if last_report else None
@@ -263,7 +262,8 @@ def list_sessions(user_id: Optional[str]) -> List[Dict[str, Any]]:
                     "last_execution_id": (
                         last_report.get("execution_id") if last_report else None
                     ),
-                    "title": session["review_label"] or _build_session_title(session, parsed_reports),
+                    "title": session["review_label"]
+                    or _build_session_title(session, parsed_reports),
                 }
             )
 
@@ -277,6 +277,7 @@ def update_session_state(
     pending_prompt: Optional[str] = None,
     last_processed_file_name: Optional[str] = None,
 ):
+    """Actualiza estado transitorio de ejecución dentro de una sesión."""
     init_db()
     clean_user_id = _require_user_id(user_id)
 
@@ -309,6 +310,7 @@ def update_session_metadata(
     test_phase: Optional[str] = None,
     review_label: Optional[str] = None,
 ):
+    """Actualiza metadatos funcionales de proyecto/fase/título del ciclo."""
     init_db()
     clean_user_id = _require_user_id(user_id)
 
@@ -340,6 +342,7 @@ def add_message(
     content: str,
     timestamp: Optional[str] = None,
 ):
+    """Inserta un mensaje en la sesión y actualiza su marca temporal."""
     init_db()
 
     with _connect() as conn:
@@ -362,6 +365,7 @@ def add_message(
 
 
 def add_report(session_id: str, report: Dict[str, Any]):
+    """Guarda o reemplaza un informe de ejecución dentro de la sesión."""
     init_db()
 
     execution_id = report.get("execution_id")
@@ -394,6 +398,7 @@ def add_report(session_id: str, report: Dict[str, Any]):
 
 
 def get_report(execution_id: str, user_id: Optional[str]) -> Optional[Dict[str, Any]]:
+    """Recupera un informe concreto validando pertenencia por usuario."""
     init_db()
     clean_user_id = _require_user_id(user_id)
 
@@ -415,6 +420,7 @@ def get_report(execution_id: str, user_id: Optional[str]) -> Optional[Dict[str, 
 
 
 def clear_session(session_id: str, user_id: Optional[str]) -> bool:
+    """Elimina una sesión y todos sus mensajes/informes asociados."""
     init_db()
     clean_user_id = _require_user_id(user_id)
 
@@ -482,6 +488,7 @@ def add_phase_feedback(
     detected_phase: Optional[str] = None,
     comment: Optional[str] = None,
 ):
+    """Registra feedback de usuario sobre clasificación de fase QA."""
     init_db()
 
     with _connect() as conn:
@@ -507,7 +514,9 @@ def add_phase_feedback(
         )
         conn.commit()
 
+
 def delete_report(execution_id: str, user_id: Optional[str]) -> bool:
+    """Elimina un informe concreto si pertenece al usuario autenticado."""
     init_db()
     clean_user_id = _require_user_id(user_id)
 

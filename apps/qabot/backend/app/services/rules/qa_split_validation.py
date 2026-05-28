@@ -1,7 +1,8 @@
+"""Regla QA para validar consistencia de particiones train/validation/test."""
+
 from typing import Any, Dict
 
 import pandas as pd
-
 
 VALIDATION_ALIASES = {"validation", "valid", "val"}
 
@@ -27,22 +28,18 @@ def _distribution(series: pd.Series) -> Dict[str, float]:
 
     counts = series.value_counts(dropna=False)
 
-    return {
-        str(k): round(float(v) / total, 4)
-        for k, v in counts.items()
-    }
+    return {str(k): round(float(v) / total, 4) for k, v in counts.items()}
 
 
-def _max_abs_distribution_delta(reference: Dict[str, float], candidate: Dict[str, float]) -> float:
+def _max_abs_distribution_delta(
+    reference: Dict[str, float], candidate: Dict[str, float]
+) -> float:
     keys = set(reference) | set(candidate)
 
     if not keys:
         return 0.0
 
-    return max(
-        abs(reference.get(k, 0.0) - candidate.get(k, 0.0))
-        for k in keys
-    )
+    return max(abs(reference.get(k, 0.0) - candidate.get(k, 0.0)) for k in keys)
 
 
 def check_dataset_split(
@@ -51,20 +48,13 @@ def check_dataset_split(
     target_column: str | None = None,
     id_column: str | None = None,
 ):
-    """
-    Valida una partición train/validation/test representada mediante una columna
-    de split. La prueba no crea ni modifica particiones.
-    """
+    """Valida particiones de dataset y detecta riesgos de fuga o sesgo."""
     if split_column is None:
         return {
             "rule": "QA-SPLIT-VALIDATION",
             "status": "ERROR",
             "metrics": {},
-            "warnings": [
-                {
-                    "issue": "Missing split column."
-                }
-            ],
+            "warnings": [{"issue": "Missing split column."}],
             "recommendations": [
                 "Indicar la columna que identifica la partición. Ejemplo: split es conjunto."
             ],
@@ -74,14 +64,8 @@ def check_dataset_split(
         return {
             "rule": "QA-SPLIT-VALIDATION",
             "status": "ERROR",
-            "metrics": {
-                "available_columns": list(df.columns)
-            },
-            "warnings": [
-                {
-                    "issue": f"Column not found: {split_column}"
-                }
-            ],
+            "metrics": {"available_columns": list(df.columns)},
+            "warnings": [{"issue": f"Column not found: {split_column}"}],
             "recommendations": [
                 "Revisar el nombre de la columna de partición proporcionada."
             ],
@@ -107,38 +91,42 @@ def check_dataset_split(
 
     if missing_splits:
         status = "FAIL"
-        warnings.append({
-            "issue": "Missing expected split partitions.",
-            "missing_splits": missing_splits,
-        })
+        warnings.append(
+            {
+                "issue": "Missing expected split partitions.",
+                "missing_splits": missing_splits,
+            }
+        )
         recommendations.append(
             "Revisar en una iteración posterior la estrategia de particionado para asegurar train, validation y test."
         )
 
     if unknown_splits:
         status = "WARN" if status == "PASS" else status
-        warnings.append({
-            "issue": "Unexpected split labels detected.",
-            "unknown_splits": unknown_splits,
-        })
+        warnings.append(
+            {
+                "issue": "Unexpected split labels detected.",
+                "unknown_splits": unknown_splits,
+            }
+        )
         recommendations.append(
             "Normalizar los valores de la columna de partición para evitar interpretaciones ambiguas."
         )
 
     if split_ratios.get("test", 0) < 0.05:
         status = "WARN" if status == "PASS" else status
-        warnings.append({
-            "issue": "Test partition ratio is below diagnostic reference 5%."
-        })
+        warnings.append(
+            {"issue": "Test partition ratio is below diagnostic reference 5%."}
+        )
         recommendations.append(
             "Revisar en una iteración posterior si el conjunto de test tiene tamaño suficiente para una evaluación fiable."
         )
 
     if "validation" in expected_splits and split_ratios.get("validation", 0) < 0.05:
         status = "WARN" if status == "PASS" else status
-        warnings.append({
-            "issue": "Validation partition ratio is below diagnostic reference 5%."
-        })
+        warnings.append(
+            {"issue": "Validation partition ratio is below diagnostic reference 5%."}
+        )
         recommendations.append(
             "Revisar en una iteración posterior si el conjunto de validación tiene tamaño suficiente."
         )
@@ -149,9 +137,7 @@ def check_dataset_split(
     if target_column:
         if target_column not in df.columns:
             status = "ERROR"
-            warnings.append({
-                "issue": f"Target column not found: {target_column}"
-            })
+            warnings.append({"issue": f"Target column not found: {target_column}"})
             recommendations.append(
                 "Revisar el nombre de la variable objetivo proporcionada."
             )
@@ -176,10 +162,12 @@ def check_dataset_split(
 
             if max_delta > 0.15:
                 status = "WARN" if status == "PASS" else status
-                warnings.append({
-                    "issue": "Target distribution differs across partitions.",
-                    "max_distribution_delta": max_delta,
-                })
+                warnings.append(
+                    {
+                        "issue": "Target distribution differs across partitions.",
+                        "max_distribution_delta": max_delta,
+                    }
+                )
                 recommendations.append(
                     "Revisar en una iteración posterior si la partición debería ser estratificada o si existe sesgo de muestreo."
                 )
@@ -189,9 +177,7 @@ def check_dataset_split(
     if id_column:
         if id_column not in df.columns:
             status = "ERROR"
-            warnings.append({
-                "issue": f"ID column not found: {id_column}"
-            })
+            warnings.append({"issue": f"ID column not found: {id_column}"})
             recommendations.append(
                 "Revisar el nombre de la columna identificadora proporcionada."
             )
@@ -205,10 +191,12 @@ def check_dataset_split(
 
             if duplicate_ids_across_splits > 0:
                 status = "FAIL"
-                warnings.append({
-                    "issue": "Same identifier appears in more than one partition.",
-                    "duplicate_ids_across_splits": duplicate_ids_across_splits,
-                })
+                warnings.append(
+                    {
+                        "issue": "Same identifier appears in more than one partition.",
+                        "duplicate_ids_across_splits": duplicate_ids_across_splits,
+                    }
+                )
                 recommendations.append(
                     "Revisar en una iteración posterior la generación de particiones para evitar fuga de información entre conjuntos."
                 )
@@ -221,10 +209,7 @@ def check_dataset_split(
             "target_column": target_column,
             "id_column": id_column,
             "rows": int(len(df)),
-            "split_counts": {
-                str(k): int(v)
-                for k, v in split_counts.items()
-            },
+            "split_counts": {str(k): int(v) for k, v in split_counts.items()},
             "split_ratios": split_ratios,
             "missing_splits": missing_splits,
             "unknown_splits": unknown_splits,

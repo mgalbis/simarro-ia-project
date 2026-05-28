@@ -1,33 +1,37 @@
-from datetime import datetime
-from fastapi import APIRouter, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
-import io
+"""Endpoints principales de conversación, sesiones y descargas de QABot."""
+
 import html
-import pandas as pd
+import io
+import json
+import uuid
 from io import StringIO
 from typing import Optional
-import uuid
-import json
-from app.services.qa_agent import QAAgent
+
+import pandas as pd
+from app.services.artifact_store import (
+    build_artifacts_zip,
+    save_uploaded_artifact_bytes,
+)
 from app.services.assessment_comparison import build_assessment_comparison
+from app.services.conceptual_document_analysis import analyze_conceptual_document
 from app.services.pdf_report import build_pdf_report
-from pydantic import BaseModel
-from typing import Optional
+from app.services.qa_agent import QAAgent
 from app.services.session_store import (
     add_message,
     add_phase_feedback,
     add_report,
     clear_session,
     create_session,
+    delete_report,
     get_report,
     get_session,
-    delete_report, 
     list_sessions,
     update_session_metadata,
     update_session_state,
 )
-from app.services.artifact_store import build_artifacts_zip, save_uploaded_artifact_bytes
-from app.services.conceptual_document_analysis import analyze_conceptual_document
+from fastapi import APIRouter, File, Form, UploadFile
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 router = APIRouter()
 # Instanciamos el agente fuera para que mantenga su configuración
@@ -36,66 +40,84 @@ agent = QAAgent()
 last_report_cache: dict = {}
 reports_history: list[dict] = []
 
+
 class SessionStatePayload(BaseModel):
+    """Payload para actualizar el estado operativo de una sesión."""
+
     session_id: str
     user_id: str
     active_review_prompt: Optional[str] = None
     pending_prompt: Optional[str] = None
     last_processed_file_name: Optional[str] = None
 
+
 class MessagePayload(BaseModel):
+    """Payload para persistir un mensaje en una sesión."""
+
     session_id: str
     user_id: Optional[str] = None
     role: str
     content: str
     timestamp: Optional[str] = None
 
+
 class ReportStorePayload(BaseModel):
+    """Payload para persistir un informe de ejecución QA."""
+
     session_id: str
     user_id: Optional[str] = None
     report: dict
-    
+
+
 class SessionMetadataPayload(BaseModel):
+    """Payload para actualizar metadatos funcionales de una sesión."""
+
     session_id: str
     user_id: str
     project_label: Optional[str] = None
     test_phase: Optional[str] = None
     review_label: Optional[str] = None
 
+
 class PhaseFeedbackPayload(BaseModel):
+    """Payload para registrar feedback sobre la fase detectada."""
+
     session_id: str
     user_id: Optional[str] = None
     prompt: Optional[str] = None
     detected_phase: Optional[str] = None
     comment: Optional[str] = None
 
+
 @router.post("/sessions")
 async def create_qabot_session(user_id: str):
+    """Crea una nueva sesión QA para el usuario autenticado."""
     return create_session(user_id=user_id)
+
 
 @router.get("/sessions")
 async def list_qabot_sessions(user_id: str):
-    return {
-        "sessions": list_sessions(user_id=user_id)
-    }
+    """Lista las sesiones QA del usuario autenticado."""
+    return {"sessions": list_sessions(user_id=user_id)}
+
 
 @router.get("/sessions/{session_id}")
 async def get_qabot_session(session_id: str, user_id: str):
+    """Recupera una sesión concreta y su histórico asociado."""
     session = get_session(session_id, user_id)
 
     if not session:
-        return {
-            "found": False,
-            "message": "Sesión no encontrada."
-        }
+        return {"found": False, "message": "Sesión no encontrada."}
 
     return {
         "found": True,
         "session": session,
     }
 
+
 @router.put("/sessions/state")
 async def update_qabot_session_state(payload: SessionStatePayload):
+    """Actualiza estado transitorio de una sesión QA."""
     update_session_state(
         session_id=payload.session_id,
         user_id=payload.user_id,
@@ -104,12 +126,12 @@ async def update_qabot_session_state(payload: SessionStatePayload):
         last_processed_file_name=payload.last_processed_file_name,
     )
 
-    return {
-        "ok": True
-    }
+    return {"ok": True}
+
 
 @router.post("/sessions/messages")
 async def store_qabot_message(payload: MessagePayload):
+    """Guarda un mensaje de usuario o asistente en la sesión."""
     add_message(
         session_id=payload.session_id,
         role=payload.role,
@@ -117,31 +139,31 @@ async def store_qabot_message(payload: MessagePayload):
         timestamp=payload.timestamp,
     )
 
-    return {
-        "ok": True
-    }
+    return {"ok": True}
+
 
 @router.post("/sessions/reports")
 async def store_qabot_report(payload: ReportStorePayload):
+    """Guarda un informe QA generado para la sesión."""
     add_report(
         session_id=payload.session_id,
         report=payload.report,
     )
 
-    return {
-        "ok": True
-    }
+    return {"ok": True}
+
 
 @router.delete("/sessions/{session_id}")
 async def delete_qabot_session(session_id: str, user_id: str):
+    """Elimina una sesión y sus artefactos lógicos asociados."""
     clear_session(session_id, user_id)
 
-    return {
-        "ok": True
-    }
+    return {"ok": True}
+
 
 @router.delete("/sessions/{session_id}/reports/{execution_id}")
 async def delete_qabot_report(session_id: str, execution_id: str, user_id: str):
+    """Elimina una iteración de informe dentro de una sesión."""
     deleted = delete_report(execution_id=execution_id, user_id=user_id)
 
     if not deleted:
@@ -149,12 +171,14 @@ async def delete_qabot_report(session_id: str, execution_id: str, user_id: str):
 
     return {"ok": True, "deleted": execution_id}
 
+
 @router.post("/conceptual-documents/analyze")
 async def analyze_conceptual_document_endpoint(
     file: UploadFile = File(...),
     session_id: Optional[str] = Form(None),
     user_id: Optional[str] = Form(None),
 ):
+    """Analiza un documento conceptual y devuelve propuesta de actividades QA."""
     content = await file.read()
 
     try:
@@ -194,6 +218,7 @@ async def analyze_conceptual_document_endpoint(
         "hasReport": False,
     }
 
+
 @router.post("/chat")
 async def chat(
     user_message: str = Form(...),
@@ -202,6 +227,7 @@ async def chat(
     user_id: Optional[str] = Form(None),
     conceptual_analysis: Optional[str] = Form(None),
 ):
+    """Ejecuta el flujo principal de conversación y evaluación QA."""
     global last_report_cache, reports_history
     df = None
 
@@ -210,7 +236,10 @@ async def chat(
         try:
             df = pd.read_csv(StringIO(content.decode("utf-8")))
         except Exception as e:
-            return {"assistant_message": f"Error al leer el archivo: {str(e)}", "report": None}
+            return {
+                "assistant_message": f"Error al leer el archivo: {str(e)}",
+                "report": None,
+            }
 
     perception = agent.perceive(df, user_message)
     intent = perception.get("intent", {})
@@ -228,7 +257,7 @@ async def chat(
                 "assistant_message": "Todavía no hay ningún análisis realizado en esta sesión de usuario. Carga un CSV y ejecuta una validación primero.",
                 "hasReport": False,
                 "report": None,
-                "execution_id": None
+                "execution_id": None,
             }
 
         cached_id = last_report_cache.get("execution_id")
@@ -237,7 +266,7 @@ async def chat(
             "hasReport": True,
             "report": last_report_cache,
             "execution_id": cached_id,
-            "addToHistory": False
+            "addToHistory": False,
         }
 
     execution_id = f"EXEC-{uuid.uuid4().hex[:6].upper()}"
@@ -266,9 +295,8 @@ async def chat(
             response["report"]["comparison_vs_previous"] = comparison
 
             if comparison.get("comparable"):
-                response["assistant_message"] += (
-                    "<br/><br/>"
-                    + _build_comparison_html(comparison)
+                response["assistant_message"] += "<br/><br/>" + _build_comparison_html(
+                    comparison
                 )
             else:
                 response["assistant_message"] += (
@@ -355,8 +383,10 @@ def _parse_conceptual_analysis_payload(raw: Optional[str]) -> Optional[dict]:
     cleaned = {key: value for key, value in payload.items() if key in allowed_keys}
     return cleaned or None
 
+
 @router.put("/sessions/metadata")
 async def update_qabot_session_metadata(payload: SessionMetadataPayload):
+    """Actualiza proyecto, fase y título del ciclo de pruebas."""
     update_session_metadata(
         session_id=payload.session_id,
         user_id=payload.user_id,
@@ -366,6 +396,7 @@ async def update_qabot_session_metadata(payload: SessionMetadataPayload):
     )
 
     return {"ok": True}
+
 
 def _build_comparison_html(comparison: dict) -> str:
     transitions = comparison.get("test_transitions", {})
@@ -464,23 +495,30 @@ def _status_badge(status: str) -> str:
 def _html_escape(value) -> str:
     return html.escape(str(value or ""))
 
+
 @router.get("/download/{execution_id}")
 async def download_report(execution_id: str, user_id: str):
+    """Descarga el informe PDF de una ejecución QA."""
     report = None
 
-    if execution_id == "latest" and str(last_report_cache.get("user_id")) == str(user_id):
+    if execution_id == "latest" and str(last_report_cache.get("user_id")) == str(
+        user_id
+    ):
         report = last_report_cache
 
-    if not report and last_report_cache and last_report_cache.get("execution_id") == execution_id and str(last_report_cache.get("user_id")) == str(user_id):
+    if (
+        not report
+        and last_report_cache
+        and last_report_cache.get("execution_id") == execution_id
+        and str(last_report_cache.get("user_id")) == str(user_id)
+    ):
         report = last_report_cache
 
     if not report:
         report = get_report(execution_id, user_id)
 
     if not report:
-        return {
-            "error": "Reporte no encontrado."
-        }
+        return {"error": "Reporte no encontrado."}
 
     pdf_content = build_pdf_report(report)
     stream = io.BytesIO(pdf_content)
@@ -495,21 +533,19 @@ async def download_report(execution_id: str, user_id: str):
         },
     )
 
+
 @router.get("/download/artifacts/{session_id}/{execution_id}")
 async def download_artifacts(session_id: str, execution_id: str, user_id: str):
+    """Descarga el ZIP de artefactos asociados a una iteración."""
     session = get_session(session_id, user_id)
 
     if not session:
-        return {
-            "error": "Sesión no encontrada."
-        }
+        return {"error": "Sesión no encontrada."}
 
     zip_path = build_artifacts_zip(session_id, execution_id)
 
     if not zip_path:
-        return {
-            "error": "No se han encontrado artefactos para esta iteración."
-        }
+        return {"error": "No se han encontrado artefactos para esta iteración."}
 
     return StreamingResponse(
         open(zip_path, "rb"),
@@ -519,8 +555,10 @@ async def download_artifacts(session_id: str, execution_id: str, user_id: str):
         },
     )
 
+
 @router.post("/sessions/phase-feedback")
 async def create_phase_feedback(payload: PhaseFeedbackPayload):
+    """Registra una incidencia sobre clasificación de fase de pruebas."""
     add_phase_feedback(
         session_id=payload.session_id,
         prompt=payload.prompt,
