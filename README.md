@@ -57,15 +57,12 @@ MLflow + Grafana + reports
 ```text
 simarro-ia-project/
 ├── docs/              # Documentación técnica y runbooks
-├── infra/             # Dockerfiles y configuración de infraestructura
+├── docker/            # Dockerfiles y configuración de infraestructura
 ├── config/            # Configuración declarativa del proyecto
 ├── data/              # Estructura local de datos, sin datasets pesados
 ├── notebooks/         # Notebooks documentados por caso de uso
 ├── src/               # Código fuente principal
-├── scripts/           # Scripts operativos
-├── tests/             # Tests automatizados
-├── reports/           # Informes y resultados generados
-└── artifacts/         # Artefactos ligeros o placeholders
+└── test/              # Tests automatizados
 ```
 
 ## Requisitos

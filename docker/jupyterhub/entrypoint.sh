@@ -80,7 +80,20 @@ done < "$ALL_USERS_FILE"
 
 rm -f "$CASE_USERS_FILE" "$ALL_USERS_FILE"
 
-# TODO: Arrancar pipeline server aqui
+# Arranca el servidor webhook del pipeline en segundo plano para recibir
+# eventos de lakeFS y disparar reentrenamientos.
+PIPELINE_SERVER_PATH="/app/src/mlops/pipeline/pipeline_server.py"
+PIPELINE_SERVER_PORT="${PIPELINE_PORT:-8080}"
+
+if [ -n "$PYTHON_BIN" ] && [ -f "$PIPELINE_SERVER_PATH" ]; then
+    echo "Arrancando pipeline server en puerto ${PIPELINE_SERVER_PORT}..."
+    PIPELINE_PORT="$PIPELINE_SERVER_PORT" \
+            "$PYTHON_BIN" "$PIPELINE_SERVER_PATH" &
+    PIPELINE_SERVER_PID="$!"
+    echo "Pipeline server arrancado (PID ${PIPELINE_SERVER_PID})"
+else
+    echo "[WARN] No se pudo arrancar pipeline server (python o script no disponible)."
+fi
 
 echo "Arrancando JupyterHub..."
 exec jupyterhub -f /app/jupyterhub_config.py

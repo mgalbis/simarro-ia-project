@@ -1,0 +1,9 @@
+{
+  "event_type": "post-create-tag",
+  "event_time": "2026-05-23T10:15:30Z",
+  "action_name": " retrain-on-dataset-release",
+  "hook_id": "trigger-model-training",
+  "repository_id": "casod--uci-occupancy",
+  "source_ref": "main",
+  "tag_id": "uci-occupancy_v1"
+}
