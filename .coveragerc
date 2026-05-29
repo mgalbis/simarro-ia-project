@@ -1,6 +1,6 @@
 [run]
 branch = True
-source = src/simarro/mlops
+source = src/mlops
 
 [report]
 show_missing = True

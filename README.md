@@ -1,163 +1,92 @@
-
 # simarro-ia-project
 
-Proyecto final del Curso de Especialización en Inteligencia Artificial y Big Data del IES Dr. Lluís Simarro.
+Proyecto integrador del Curso de Especialización en Inteligencia Artificial y Big Data del IES Dr. Lluís Simarro.
 
-El repositorio contiene una solución integrada para trabajar con datos de edificios inteligentes, calidad ambiental, MLOps y agentes de calidad software, alineada con la arquitectura de CENTINELA+.
+El repositorio agrupa los desarrollos principales del equipo en analítica de datos, MLOps y herramientas de calidad para proyectos de IA.
 
-## Casos de uso incluidos
+## Dónde está la documentación
 
-Este repositorio agrupa los casos de uso desarrollados por el equipo:
+### Visión global
 
-- **Caso F — MLOps y ciclo de vida de modelos**
-  - MLflow para registro de experimentos.
-  - lakeFS para versionado de datasets.
-  - Trazabilidad entre código, datos, modelos y métricas.
+- Arquitectura Medallion del proyecto: `docs/arquitectura_medallion.md`
+- Infraestructura Docker del stack MLOps: `docker/README.md`
 
-- **Caso D — Calidad del aire, confort interior y ocupación**
-  - Análisis de variables ambientales.
-  - Predicción de ocupación.
-  - Índice IAQ.
-  - Visualización en Grafana.
+### Caso D - Calidad del aire, confort interior y ocupación
 
-- **Caso nuevo — Agentes especialistas de calidad**
-  - Validación de datos.
-  - Auditoría de experimentos.
-  - Generación y evaluación de pruebas.
-  - Evaluación de respuestas de sistemas IA.
+- Documento principal del caso: `docs/caso_d/README.md`
+- Arquitectura del caso: `docs/caso_d/arquitectura.md`
+- Runbook operativo: `docs/caso_d/runbook.md`
 
-## Arquitectura
+### Caso F - MLOps
 
-El proyecto sigue una arquitectura Medallion:
+- Arquitectura de infraestructura MLOps: `docs/caso_f_mlops/arquitectura.md`
+- Runbook operativo: `docs/caso_f_mlops/runbook.md`
+- Ciclo de vida de modelos: `docs/caso_f_mlops/model_lifecycle.md`
+- Versionado del schema CAPTIA: `docs/caso_f_mlops/captia_schema_versioning.md`
 
-```text
-Capa Bronce  → datos originales versionados
-Capa Plata   → datos normalizados con schema CAPTIA en InfluxDB
-Capa Oro     → features, modelos, métricas, informes y artefactos
-````
+### QABot
 
-Flujo general:
+- Documento funcional del caso: `docs/qabot/README.md`
+- Arquitectura: `docs/qabot/arquitectura.md`
+- Runbook de instalación y operación: `docs/qabot/runbook.md`
+- README de la aplicación: `apps/qabot/README-QABOT.md`
 
-```text
-Datasets públicos
-    ↓
-lakeFS
-    ↓
-ETL bronce → plata
-    ↓
-InfluxDB con schema CAPTIA
-    ↓
-features / modelos / agentes
-    ↓
-MLflow + Grafana + reports
+## Guía rápida de comandos `make`
+
+Consultar ayuda:
+
+```shell
+make help
 ```
 
-## Estructura del repositorio
+Inicializar entorno (requirements + certificados TLS):
 
-```text
-simarro-ia-project/
-├── docs/              # Documentación técnica y runbooks
-├── infra/             # Dockerfiles y configuración de infraestructura
-├── config/            # Configuración declarativa del proyecto
-├── data/              # Estructura local de datos, sin datasets pesados
-├── notebooks/         # Notebooks documentados por caso de uso
-├── src/               # Código fuente principal
-├── scripts/           # Scripts operativos
-├── tests/             # Tests automatizados
-├── reports/           # Informes y resultados generados
-└── artifacts/         # Artefactos ligeros o placeholders
+```shell
+make init
 ```
 
-## Requisitos
+Construir imágenes MLOps:
 
-* Docker
-* Docker Compose
-* Python 3.10
-* Git
-
-## Configuración inicial
-
-Clonar el repositorio:
-
-```bash
-git clone <repo-url>
-cd simarro-ia-project
+```shell
+make build
 ```
 
-TODO
+Arrancar stack MLOps:
 
-## Arranque de servicios
-
-### Servicios MLOps
-
-TODO
-
-### Servicios de datos y visualización
-
-TODO
-
-### Servicios de notebooks
-
-TODO
-
-
-## Caso F — MLOps
-
-TODO
-
-
-## Datos
-
-Los datasets completos no deben subirse al repositorio.
-
-Reglas:
-
-* `data/raw/` contiene solo placeholders o muestras pequeñas.
-* Los datasets se versionan en lakeFS.
-* Los modelos se registran en MLflow.
-* Los artefactos pesados no van a Git.
-
-## Calidad de código
-
-Instala dependencias de desarrollo y activa hooks:
-
-```bash
-pip install -r requirements-dev.txt
-pre-commit install
+```shell
+make start
 ```
 
-Validación manual completa:
+Parar stack MLOps (manteniendo volúmenes):
 
-```bash
-pre-commit run --all-files
+```shell
+make stop
 ```
 
-Notas:
+Parar stack MLOps y eliminar volúmenes:
 
-* `black`, `isort` y `flake8` se ejecutan automáticamente en cada commit con
-  `pre-commit`.
-* `flake8` usa `pep8-naming` para forzar convenciones de nombres (`snake_case`,
-  `CamelCase`, `UPPER_CASE`).
-
-## Documentación
-
-La documentación principal está en:
-
-```text
-docs/
-├── arquitectura.md
-├── arquitectura_medallion.md
-├── runbook.md
-├── distribucion_tareas.md
-├── caso_f_mlops/
-├── caso_d_iaq_ocupacion/
-└── caso_qabot/
+```shell
+make destroy
 ```
 
-## Licencia
+Arrancar y parar QABot:
 
-Este proyecto se distribuye bajo licencia MIT.
-
-Los datasets, modelos entrenados, credenciales y artefactos pesados no forman parte del repositorio.
-
+```shell
+make qabot-up
+make qabot-down
+make qabot-logs
 ```
+
+Arrancar y parar In-Gauge and En-Gage:
+
+```shell
+make ingauge-up
+make ingauge-down
+make ingauge-logs
+```
+
+## Reparto de tareas del equipo
+
+El reparto de tareas se documenta en la siguiente imagen:
+
+![Reparto de tareas del equipo](docs/tareas_equipo.png)

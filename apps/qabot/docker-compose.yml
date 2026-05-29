@@ -1,0 +1,18 @@
+services:
+  qabot-backend:
+    build:
+      context: ./backend
+    container_name: qabot-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/data:/app/data
+
+  qabot-frontend:
+    build:
+      context: ./frontend
+    container_name: qabot-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - qabot-backend

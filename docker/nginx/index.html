@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.png?v=20260525" type="image/png" />
+    <title>Simarro MLOps</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b1020;
+        --panel: #121a2f;
+        --text: #e8edf8;
+        --muted: #9aa8c7;
+        --accent: #4f8cff;
+        --border: #253150;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px 20px 72px;
+        font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+        background: radial-gradient(circle at top right, #162547 0%, var(--bg) 45%);
+        color: var(--text);
+      }
+
+      .wrap {
+        width: min(920px, 92vw);
+        padding: 36px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: color-mix(in oklab, var(--panel) 88%, black);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 32px;
+        font-weight: 700;
+      }
+
+      p {
+        margin: 0 0 28px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      a.card {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 18px;
+        background: #0f1730;
+        transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+      }
+
+      a.card:hover {
+        transform: translateY(-1px);
+        border-color: var(--accent);
+        background: #132044;
+      }
+
+      .title {
+        font-size: 17px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      .head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 6px;
+      }
+
+      .icon {
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+      }
+
+      .icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+
+      .desc {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      .footer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10;
+        padding: 12px 20px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        align-items: center;
+        margin: 0;
+        font-size: 12px;
+        letter-spacing: 0.2px;
+        color: color-mix(in oklab, var(--muted) 88%, white);
+        background: color-mix(in oklab, var(--bg) 84%, black);
+      }
+
+      .footer b {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      @media (max-width: 800px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <h1>Índice MLOps</h1>
+      <p>Acceso unificado a los servicios principales del entorno del proyecto CENTINELA+.</p>
+      <section class="grid">
+        <a class="card" href="/lakefs/">
+          <div class="head">
+            <svg class="icon" viewBox="0 0 145.17 81.68" fill="none" aria-hidden="true">
+              <defs><style>.cls-1{fill:#258c82;}.cls-2{fill:#2ce5b5;}</style></defs>
+              <g id="Layer_2" data-name="Layer 2">
+                <g id="Layer_1-2" data-name="Layer 1">
+                  <path class="cls-1" d="M143.92,40a25.74,25.74,0,0,0-5-9.56c-1.13-5.66-3.54-11-7.52-14.32a21,21,0,0,0-8.64-4.63,1,1,0,0,0-1.15,1.31c1,2.61,2.64,8,1.91,12.21a24.08,24.08,0,0,0-3.24-5.6c-1.87-2.42-2.92-3.77-2.35-6.65.49-2.5,3.81-4.58,7.89-5.29a1,1,0,0,0,.5-1.65C124,3.73,119.2,0,113.55,0c-7.9,0-12.14,4.06-13.34,10.87-1,5.79.55,9.92,1.69,12.94.19.48.35.92.49,1.31-.92-.63-2-1.29-3.11-1.95a53.56,53.56,0,0,0-26.7-6.85,53.54,53.54,0,0,0-26.69,6.85c-1.15.66-2.19,1.32-3.11,1.95.14-.39.3-.83.49-1.31,1.14-3,2.71-7.15,1.69-12.94C43.75,4.06,39.52,0,31.62,0,26,0,21.16,3.73,18.88,5.86a1,1,0,0,0,.5,1.65c4.08.71,7.4,2.79,7.89,5.29.57,2.88-.48,4.23-2.35,6.65a23.73,23.73,0,0,0-3.24,5.6c-.73-4.23.94-9.6,1.91-12.21a1,1,0,0,0-1.16-1.31,21.08,21.08,0,0,0-8.63,4.63c-4,3.36-6.39,8.66-7.52,14.32a25.74,25.74,0,0,0-5,9.56c-1.9,8.07-2.5,16.78,4.59,25.11,4.54,5.34,11.82,8.11,20.82,8.11a23.12,23.12,0,0,1,5.41,1.61c6.91,2.55,18.49,6.81,40.51,6.81s33.61-4.26,40.52-6.81a23.12,23.12,0,0,1,5.41-1.61c9,0,16.27-2.77,20.82-8.11C146.42,56.82,145.82,48.11,143.92,40Z"/>
+                  <path class="cls-2" d="M118.51,68.36c-6.13,0-15.31,8.42-45.93,8.42s-39.8-8.42-45.92-8.42C2.17,68.36,4.92,45.25,4.92,45.25S9.46,56.79,21,56.79a20.33,20.33,0,0,0,4.16-.44.56.56,0,0,0,0-1.08c-17.84-5.33-18-26.17-7.4-36.2-4.48,19.06,8.88,25,14,26.61a.51.51,0,0,0,.51-.84C29,41.43,21.46,32,28.8,22.44,38,10.5,25.74,5.91,25.74,5.91a19.24,19.24,0,0,1,5.88-1c3.54,0,7.54,1.29,8.51,6.82,1.81,10.23-7,13.81-.66,22.06a.41.41,0,0,0,.66,0h0s11-12.55,32.45-12.55S105,33.77,105,33.77h0a.41.41,0,0,0,.66,0c6.37-8.25-2.47-11.83-.66-22.06,1-5.53,5-6.82,8.51-6.82a19.24,19.24,0,0,1,5.88,1s-12.25,4.59-3.07,16.53c7.34,9.54-.18,19-3.49,22.4a.51.51,0,0,0,.51.84c5.13-1.56,18.49-7.55,14-26.61,10.62,10,10.43,30.87-7.4,36.2a.56.56,0,0,0,0,1.08,20.33,20.33,0,0,0,4.16.44c11.52,0,16.05-11.54,16.05-11.54S143,68.36,118.51,68.36Z"/>
+                  <path class="cls-1" d="M52.38,48a4.29,4.29,0,1,0-8.57,0c0,2.36,1.92,3.06,4.28,3.06S52.38,50.39,52.38,48Z"/>
+                  <path class="cls-1" d="M101.36,48a4.29,4.29,0,1,0-8.57,0c0,2.36,1.92,3.06,4.29,3.06S101.36,50.39,101.36,48Z"/>
+                  <path class="cls-1" d="M72.58,64.87A39.57,39.57,0,0,1,53.81,60a2,2,0,0,1-.3-3.22h0a2,2,0,0,1,2.22-.24c3.8,2.11,10.08,3.4,16.85,3.4s13-1.29,16.86-3.4a2,2,0,0,1,2.22.24h0a2,2,0,0,1-.3,3.22A39.58,39.58,0,0,1,72.58,64.87Z"/>
+                  <path class="cls-1" d="M34.33,70.52a11.67,11.67,0,0,1-5.9-5.22.24.24,0,0,0-.45.11V66a2.82,2.82,0,0,1-1.15,2.27l-.19.14,1.34.14Z"/>
+                  <path class="cls-1" d="M110.8,70.52a11.7,11.7,0,0,0,5.91-5.22.24.24,0,0,1,.45.11V66a2.82,2.82,0,0,0,1.15,2.27l.19.14-1.34.14Z"/>
+                  <path class="cls-1" d="M41.65,32.28a28.13,28.13,0,0,0-2.91,3.17.23.23,0,0,1-.4-.19c.13-.65.26-1.25.36-1.68a1.76,1.76,0,0,0-.2-1.25l-.35-.57Z"/>
+                  <path class="cls-1" d="M103.53,32.28a28.13,28.13,0,0,1,2.91,3.17.23.23,0,0,0,.41-.19c-.14-.65-.27-1.25-.37-1.68a1.76,1.76,0,0,1,.2-1.25l.35-.57Z"/>
+                </g>
+              </g>
+            </svg>
+            <div class="title">lakeFS</div>
+          </div>
+          <div class="desc">Versionado de datos y gestión de ramas de dataset.</div>
+        </a>
+        <a class="card" href="/mlflow/">
+          <div class="head">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path fill="#43c9ed" d="M11.883.002a12.044 12.044 0 0 0-9.326 19.463l3.668-2.694A7.573 7.573 0 0 1 12.043 4.45v2.867l6.908-5.14A12 12 0 0 0 11.883.002"/>
+              <path fill="#0194e2" d="M21.445 4.533L17.777 7.23a7.573 7.573 0 0 1-5.818 12.322v-2.867l-6.908 5.14a12.046 12.046 0 0 0 16.394-17.29"/>
+            </svg>
+            <div class="title">MLflow</div>
+          </div>
+          <div class="desc">Tracking de experimentos, runs y registro de modelos.</div>
+        </a>
+        <a class="card" href="/jupyter/">
+          <div class="head">
+            <svg class="icon" viewBox="0 0 128 128" fill="none" aria-hidden="true">
+              <path d="M109.766 7.281a7.691 7.691 0 01-1.09 4.282 7.583 7.583 0 01-3.262 2.949 7.49 7.49 0 01-4.34.62 7.525 7.525 0 01-3.953-1.913A7.642 7.642 0 0195.137 5a7.606 7.606 0 012.629-3.531 7.509 7.509 0 014.136-1.461 7.51 7.51 0 015.422 1.996 7.627 7.627 0 012.438 5.273zm0 0" fill="#767677"/>
+              <path d="M65.758 96.79c-20.098 0-37.649-7.364-46.766-18.267a49.95 49.95 0 0018.102 24.254 49.251 49.251 0 0028.676 9.215 49.279 49.279 0 0028.675-9.215 49.917 49.917 0 0018.094-24.254C103.406 89.426 85.855 96.79 65.758 96.79zm0 0M65.75 25.883c20.098 0 37.652 7.367 46.766 18.265a49.95 49.95 0 00-18.102-24.253 49.27 49.27 0 00-28.672-9.22 49.27 49.27 0 00-28.672 9.22A49.909 49.909 0 0018.97 44.148C28.102 33.27 45.652 25.883 65.75 25.883zm0 0" fill="#f37726"/>
+              <path d="M38.164 117.984a9.671 9.671 0 01-1.371 5.399 9.5 9.5 0 01-9.59 4.504 9.405 9.405 0 01-4.98-2.418 9.671 9.671 0 01-2.809-4.797 9.73 9.73 0 01.313-5.567 9.624 9.624 0 013.328-4.453 9.466 9.466 0 0112.043.688 9.63 9.63 0 013.066 6.648zm0 0" fill="#989798"/>
+              <path d="M21.285 23.418a5.53 5.53 0 01-3.14-.816 5.627 5.627 0 01-2.618-5.672 5.612 5.612 0 011.407-2.95 5.593 5.593 0 012.789-1.664 5.46 5.46 0 013.238.184 5.539 5.539 0 012.586 1.969 5.66 5.66 0 01-.399 7.129 5.557 5.557 0 01-3.867 1.82zm0 0" fill="#6f7070"/>
+            </svg>
+            <div class="title">JupyterHub</div>
+          </div>
+          <div class="desc">Entorno colaborativo para notebooks y análisis.</div>
+        </a>
+      </section>
+    </main>
+    <footer class="footer" aria-label="Información del proyecto">
+      <span>© 2026 · Curso de Especialización en Inteligencia Artificial y Big Data · IES Dr. Lluís Simarro</span>
+    </footer>
+  </body>
+</html>

@@ -17,6 +17,7 @@ mypy==1.14.1
 
 # Project dependencies useful for mlops tests
 mlflow==2.19.0
+lakefs-sdk>=1.33.0
 requests==2.32.3
 PyYAML==6.0.2
 joblib==1.4.2

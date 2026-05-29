@@ -1,0 +1,11 @@
+name: retrain-on-dataset-release
+on:
+  post-create-tag:
+
+hooks:
+  - id: trigger-model-training
+    type: webhook
+    description: Trigger model training when a dataset version tag is created
+    properties:
+      url: http://jupyterhub:8080
+      timeout: 10s
