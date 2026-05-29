@@ -1,0 +1,5 @@
+﻿case_id,IndoorTemperature,IndoorHumidity,IndoorCO2,IndoorNoise,Occupied_pred,pred_label,prob_no_ocupado,prob_ocupado
+caso_1_aula_vacia_bajo_co2_bajo_ruido,21.4,42.0,430.0,34.0,0,No ocupado,0.941523396607494,0.05847660339250603
+caso_2_posible_ocupacion_co2_moderado_ruido_medio,22.1,45.5,780.0,48.0,1,Ocupado,0.40165453278532715,0.5983454672146729
+caso_3_aula_ocupada_co2_alto_ruido_alto,23.0,48.0,1150.0,61.0,1,Ocupado,0.03333962206090535,0.9666603779390947
+caso_4_ambiente_intermedio,22.5,44.0,650.0,41.0,0,No ocupado,0.7606410795360843,0.2393589204639157
