@@ -2,36 +2,22 @@
 
 Proyecto integrador del Curso de Especialización en Inteligencia Artificial y Big Data del IES Dr. Lluís Simarro.
 
-El repositorio agrupa los desarrollos principales del equipo en analítica de datos, MLOps y herramientas de calidad para proyectos de IA.
+El repositorio agrupa los desarrollos principales del equipo en analítica de datos, MLOps y herramientas de calidad para
+proyectos de IA.
 
-## Dónde está la documentación
+## Resúmen
 
-### Visión global
+El proyecto se estructura en tres líneas de trabajo complementarias:
 
-- Arquitectura Medallion del proyecto: `docs/arquitectura_medallion.md`
-- Infraestructura Docker del stack MLOps: `docker/README.md`
+- **Caso D:** analítica de datos ambientales y modelos de ocupación de aulas, con ejecución en batch y servicio
+API/frontend de demostración.
+- **Caso F (MLOps):** infraestructura de versionado, trazabilidad y operación de modelos con lakeFS, MLflow, JupyterHub
+y automatización de pipelines.
+- **QABot:** asistente QA para validación de datasets y resultados de modelos, con backend FastAPI y frontend web.
 
-### Caso D - Calidad del aire, confort interior y ocupación
+Para ampliar información sobre la arquitectura y los detalles de cada caso, explorar la carpeta `docs`.
 
-- Documento principal del caso: `docs/caso_d/README.md`
-- Arquitectura del caso: `docs/caso_d/arquitectura.md`
-- Runbook operativo: `docs/caso_d/runbook.md`
-
-### Caso F - MLOps
-
-- Arquitectura de infraestructura MLOps: `docs/caso_f_mlops/arquitectura.md`
-- Runbook operativo: `docs/caso_f_mlops/runbook.md`
-- Ciclo de vida de modelos: `docs/caso_f_mlops/model_lifecycle.md`
-- Versionado del schema CAPTIA: `docs/caso_f_mlops/captia_schema_versioning.md`
-
-### QABot
-
-- Documento funcional del caso: `docs/qabot/README.md`
-- Arquitectura: `docs/qabot/arquitectura.md`
-- Runbook de instalación y operación: `docs/qabot/runbook.md`
-- README de la aplicación: `apps/qabot/README-QABOT.md`
-
-## Guía rápida de comandos `make`
+## Guía rápida de comandos
 
 Consultar ayuda:
 
