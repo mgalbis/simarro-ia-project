@@ -87,6 +87,43 @@ make ingauge-logs
 
 ## Reparto de tareas del equipo
 
-El reparto de tareas se documenta en la siguiente imagen:
+### FEDE B. (Caso D)
 
-![Reparto de tareas del equipo](docs/tareas_equipo.png)
+- Preparación y estructuración de datasets.
+- Definición de variables (señales físicas del entorno).
+- Entrenamiento y evaluación de modelos.
+- Análisis de resultados e interpretación.
+- Registro de experimentos en MLflow.
+
+### Mª JESÚS G. (QABot)
+
+- Definir métricas de calidad de datos.
+- Diseñar validaciones (completitud, consistencia).
+- Diseñar lógica de desarrollo de planes de pruebas.
+- Diseño de pruebas de validación del modelo.
+- Definir criterios de aceptación/rechazo.
+- Definir reglas del sistema asistido.
+
+### LUCIA F. (QABot)
+
+- Implementar backend agéntico.
+- Implementar lógica de planes de prueba.
+- Construir interfaz conversacional.
+- Orquestar interacción usuario-sistema.
+- Integrar reglas de negocio definidas.
+- Generar planes ejecutables.
+
+### JOSE V. (Caso F)
+
+- Despliegue de MLflow, lakeFS y JupyterHub.
+- Configuración de entornos.
+- Desarrollo notebook demo.
+- Desarrollo de pipelines (CI/CD de modelos).
+
+### MARIA G. (Caso F)
+
+- Despliegue de MLflow, lakeFS y JupyterHub.
+- Configuración de entornos.
+- Definición de estándares y convenciones.
+- Garantizar coherencia end-to-end del sistema.
+- Gestión del repositorio.
