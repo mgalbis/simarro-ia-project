@@ -26,31 +26,23 @@ field:
 Ubicación recomendada:
 
 ```text
-config/captia_schema.yml
+config/captia_schema.json
 ```
 
 Contenido mínimo:
 
-```yaml
-measurement: captia_point
-field: value
-required_tags:
-  - captia_env
-  - domain_id
-  - site_id
-  - asset_id
-  - variable
-variables:
-  co2:
-    unit: ppm
-    metric_kind: analog_gauge
-    range_min: 300
-    range_max: 5000
-  temperature-indoor:
-    unit: celsius
-    metric_kind: analog_gauge
-    range_min: -10
-    range_max: 50
+```json
+{
+  "schema_id": "captia_canonical_schema",
+  "version": "1.0",
+  "silver_layer": {
+    "logical_schema": {
+      "measurement": "captia_point",
+      "field": "value",
+      "tags": ["captia_env", "domain_id", "site_id", "asset_id", "variable"]
+    }
+  }
+}
 ```
 
 ## Versionado en lakeFS
