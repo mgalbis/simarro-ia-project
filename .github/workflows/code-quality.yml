@@ -45,7 +45,7 @@ jobs:
       - name: Run unit tests with coverage
         run: |
           python -m pytest "test/unit" \
-            --cov=src \
+            --cov=src/mlops \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-report=html \
