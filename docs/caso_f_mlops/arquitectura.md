@@ -8,7 +8,8 @@ El **Caso F** define la infraestructura MLOps del proyecto para cubrir:
 2. tracking y registro de modelos,
 3. entorno colaborativo de notebooks,
 4. control de acceso por caso,
-5. disparo automatico de reentrenamiento.
+5. disparo automatico de reentrenamiento,
+6. observabilidad basica de datos con Evidently AI.
 
 ## Diagrama de arquitectura
 
@@ -80,7 +81,8 @@ flowchart LR
 - `aclserver` + `aclserver-db`: autorizacion RBAC de lakeFS.
 - `mlflow`: tracking de experimentos y model registry.
 - `pipeline_server.py`: receptor de webhooks de lakeFS.
-- `pipeline_train.py`: reentrenamiento automatico y registro en MLflow.
+- `pipeline_train.py`: reentrenamiento automatico y registro en MLflow de las métricas, evaluacion de drift y resumen de
+calidad entre `train` y `test`, registrado como artefacto en MLflow.
 
 ## Flujo operativo
 
@@ -108,12 +110,24 @@ Desde `make.bat`:
 2. `pipeline_server.py` valida el evento (`trigger_resolver.py`).
 3. Se lanza `pipeline_train.py` en segundo plano.
 4. El pipeline descarga `gold/train.parquet` y `gold/test.parquet` por tag.
-5. Entrena, evalua y registra metricas/modelo en MLflow.
-6. Promueve la ultima version al alias `staging` en Model Registry.
+5. Entrena y evalua el modelo.
+6. Ejecuta Evidently AI para generar reportes de observabilidad (HTML/JSON) sobre drift de datos.
+7. Registra metricas, modelo y artefactos de Evidently en MLflow.
+8. Promueve la ultima version al alias `staging` en Model Registry.
+
+## Observabilidad y evaluacion
+
+La observabilidad de datos se integra en el pipeline de entrenamiento:
+
+- referencia: `src/mlops/pipeline/pipeline_train.py` (`registrar_report_evidently`).
+- entrada de comparacion: `x_train` (referencia) vs `x_test` (current).
+- salida: reportes Evidently en HTML y JSON.
+- persistencia: MLflow, en `monitoring/evidently`.
+
+Si Evidently no esta disponible en runtime, el pipeline continua y marca el estado mediante tags (`evidently_status`).
 
 ## Rutas de acceso unificadas
 
 - `https://localhost/jupyter/`
 - `https://localhost/mlflow/`
 - `https://localhost/lakefs/`
-
