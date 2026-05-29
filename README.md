@@ -31,6 +31,60 @@ El repositorio agrupa los desarrollos principales del equipo en analítica de da
 - Runbook de instalación y operación: `docs/qabot/runbook.md`
 - README de la aplicación: `apps/qabot/README-QABOT.md`
 
+## Guía rápida de comandos `make`
+
+Consultar ayuda:
+
+```shell
+make help
+```
+
+Inicializar entorno (requirements + certificados TLS):
+
+```shell
+make init
+```
+
+Construir imágenes MLOps:
+
+```shell
+make build
+```
+
+Arrancar stack MLOps:
+
+```shell
+make start
+```
+
+Parar stack MLOps (manteniendo volúmenes):
+
+```shell
+make stop
+```
+
+Parar stack MLOps y eliminar volúmenes:
+
+```shell
+make destroy
+```
+
+Arrancar y parar QABot:
+
+```shell
+make qabot-up
+make qabot-down
+make qabot-logs
+```
+
+Arrancar y parar In-Gauge and En-Gage:
+
+```shell
+make ingauge-up
+make ingauge-down
+make ingauge-logs
+```
+
 ## Reparto de tareas del equipo
 
 El reparto de tareas se documenta en la siguiente imagen:
