@@ -9,14 +9,11 @@ env/
 .env
 !.env.example
 .ipynb_checkpoints/
-data/*
-artifacts/*
 mlruns/
 *.parquet
 *.zip
 *.pkl
 *.onnx
-!data/.gitkeep
 !models/.gitkeep
 !artifacts/.gitkeep
 .vscode/
