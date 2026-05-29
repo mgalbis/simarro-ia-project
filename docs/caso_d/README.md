@@ -26,35 +26,39 @@ La entrega incluye:
 - frontend web demostrativo;
 - archivos Docker para ejecutar API y frontend de forma reproducible.
 
-## Nueva estructura del proyecto
+## Estructura del proyecto (Caso D)
 
 ```text
-main/
+simarro-ia-project/
 ├── data/
-│   ├── uci/
-│   └── In-gauge-and-en-gage/
+│   └── casod/
+│       ├── uci/
+│       ├── In-gauge-and-en-gage/
+│       └── examples/
 ├── notebooks/
-│   ├── uci/
-│   └── In-gauge-and-en-gage/
+│   ├── casoD/uci/
+│   └── casoD/In-gauge-and-en-gage/
 ├── src/
-│   ├── uci/
-│   ├── In-gauge-and-en-gage/
-│   ├── api-In-gauge-and-en-gage/
-│   └── frontend-In-gauge-and-en-gage/
-├── docker-compose-caso-d-ingauge.yml
-└── README.md
+│   └── cased/
+│       ├── uci/
+│       └── In-gauge-and-en-gage/
+└── apps/
+    └── In-gauge-and-en-gage/
+        ├── api/
+        ├── frontend/
+        └── docker-compose.yml
 ```
 
 ### Contenido de cada directorio
 
-- `data/uci/`: datos originales del caso UCI Occupancy Detection y documentación del dataset.
-- `data/In-gauge-and-en-gage/`: muestra de datos del dataset In-Gauge and En-Gage y diccionarios asociados.
-- `notebooks/uci/`: notebook, tablas y figuras del análisis UCI.
-- `notebooks/In-gauge-and-en-gage/`: notebook, tablas y resultados del análisis de aulas In-Gauge/En-Gage.
-- `src/uci/`: scripts de inferencia, modelos y utilidades del caso UCI.
-- `src/In-gauge-and-en-gage/`: modelos entrenados y scripts de inferencia batch del caso In-Gauge/En-Gage.
-- `src/api-In-gauge-and-en-gage/`: API FastAPI para predicción online de ocupación.
-- `src/frontend-In-gauge-and-en-gage/`: frontend web que consume la API y simula visualmente un aula.
+- `data/casod/uci/`: datos y documentación del caso UCI Occupancy Detection.
+- `data/casod/In-gauge-and-en-gage/`: muestra de datos del dataset In-Gauge and En-Gage y diccionarios asociados.
+- `notebooks/casoD/uci/`: notebook, tablas y figuras del análisis UCI.
+- `notebooks/casoD/In-gauge-and-en-gage/`: notebook, tablas y resultados del análisis de aulas In-Gauge/En-Gage.
+- `src/cased/uci/`: scripts de inferencia, modelos y utilidades del caso UCI.
+- `src/cased/In-gauge-and-en-gage/`: modelos entrenados y scripts de inferencia batch del caso In-Gauge/En-Gage.
+- `apps/In-gauge-and-en-gage/api/`: API FastAPI para predicción online de ocupación.
+- `apps/In-gauge-and-en-gage/frontend/`: frontend web que consume la API y simula visualmente un aula.
 
 ## Datos de entrada
 
@@ -63,7 +67,7 @@ main/
 El caso UCI usa archivos de entrenamiento y test ubicados en:
 
 ```text
-data/uci/occupancy_detection/
+data/casod/uci/occupancy_detection/
 ├── datatraining.txt
 ├── datatest.txt
 └── datatest2.txt
@@ -83,7 +87,7 @@ Variables principales usadas en el enfoque de sensórica:
 El caso de aulas usa una muestra de ficheros CSV ubicada en:
 
 ```text
-data/In-gauge-and-en-gage/occupancy_detection_muestra/
+data/casod/In-gauge-and-en-gage/occupancy_detection_muestra/
 ├── 19.csv
 ├── 41.csv
 └── KB4.csv
@@ -104,7 +108,7 @@ En esta versión se evita usar variables de calendario, horario lectivo o contex
 El notebook principal se encuentra en:
 
 ```text
-notebooks/In-gauge-and-en-gage/CASO_D_CLASSROOM_sensorica.ipynb
+notebooks/casoD/In-gauge-and-en-gage/CASO_D_CLASSROOM_sensorica.ipynb
 ```
 
 Flujo general:
@@ -137,7 +141,7 @@ La selección se realizó usando `F1` en validación porque el problema puede te
 En el caso In-Gauge/En-Gage se conservan modelos en:
 
 ```text
-src/In-gauge-and-en-gage/models/
+src/cased/In-gauge-and-en-gage/models/
 ```
 
 Incluye, entre otros:
@@ -151,33 +155,33 @@ Incluye, entre otros:
 La API usa el modelo:
 
 ```text
-src/api-In-gauge-and-en-gage/models/best_sensorica_ambiental_LogisticRegression.joblib
+apps/In-gauge-and-en-gage/api/models/best_sensorica_ambiental_LogisticRegression.joblib
 ```
 
 ## Inferencia batch
 
 ### UCI
 
-Desde la raíz `develop/`:
+Desde la raíz del repositorio:
 
 ```powershell
-cd .\src\uci\inference
+cd .\src\cased\uci\inference
 python .\infer_uci_occupancy_json.py
 ```
 
 También puede ejecutarse indicando el Python concreto instalado:
 
 ```powershell
-cd .\src\uci\inference
+cd .\src\cased\uci\inference
 & "C:\Program Files\Python31210\python.exe" ".\infer_uci_occupancy_json.py"
 ```
 
 ### In-Gauge and En-Gage
 
-Desde la raíz `develop/`:
+Desde la raíz del repositorio:
 
 ```powershell
-cd .\src\In-gauge-and-en-gage\inference
+cd .\src\cased\In-gauge-and-en-gage\inference
 python .\infer_classroom_occupancy_json.py
 ```
 
@@ -186,8 +190,7 @@ python .\infer_classroom_occupancy_json.py
 Desde la raíz del proyecto:
 
 ```bash
-cd develop
-docker compose -f .\docker-compose-caso-d-ingauge.yml up --build
+docker compose -f apps/In-gauge-and-en-gage/docker-compose.yml up --build
 ```
 
 Servicios disponibles:
@@ -220,13 +223,13 @@ Respuesta esperada, en formato aproximado:
 
 ## Ejecución en Google Colab
 
-Los notebooks pueden abrirse directamente desde `notebooks/uci/` o `notebooks/In-gauge-and-en-gage/`. En Colab, se recomienda subir la carpeta completa `develop/` a Google Drive y ajustar las rutas base al directorio montado, por ejemplo:
+Los notebooks pueden abrirse directamente desde `notebooks/casoD/uci/` o `notebooks/casoD/In-gauge-and-en-gage/`. En Colab, se recomienda subir la carpeta completa del repositorio a Google Drive y ajustar las rutas base al directorio montado, por ejemplo:
 
 ```python
 from google.colab import drive
 drive.mount('/content/drive')
 
-BASE_DIR = '/content/drive/MyDrive/develop'
+BASE_DIR = '/content/drive/MyDrive/simarro-ia-project'
 ```
 
 A partir de esa ruta, los datos quedan bajo `data/` y las salidas de entrenamiento pueden guardarse en `src/.../models` o en `notebooks/.../tables`.

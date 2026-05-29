@@ -109,7 +109,7 @@ Los datasets completos no deben subirse al repositorio.
 
 Reglas:
 
-* `data/raw/` contiene solo placeholders o muestras pequeñas.
+* `data/casod/` y `data/qabot/` contienen muestras y recursos ligeros.
 * Los datasets se versionan en lakeFS.
 * Los modelos se registran en MLflow.
 * Los artefactos pesados no van a Git.
@@ -142,13 +142,10 @@ La documentación principal está en:
 
 ```text
 docs/
-├── arquitectura.md
 ├── arquitectura_medallion.md
-├── runbook.md
-├── distribucion_tareas.md
+├── caso_d/
 ├── caso_f_mlops/
-├── caso_d_iaq_ocupacion/
-└── caso_qabot/
+└── qabot/
 ```
 
 ## Licencia

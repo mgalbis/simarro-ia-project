@@ -28,11 +28,10 @@ apps/In-gauge-and-en-gage/
 
 ## Ejecución conjunta con Docker Compose
 
-Desde `apps/In-gauge-and-en-gage/`:
+Desde la raíz del repositorio:
 
 ```powershell
-cd .\apps\In-gauge-and-en-gage
-docker compose up --build
+docker compose -f apps/In-gauge-and-en-gage/docker-compose.yml up --build
 ```
 
 Servicios:

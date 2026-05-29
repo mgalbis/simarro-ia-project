@@ -11,10 +11,10 @@ Frontend estático servido con **Nginx**. Simula visualmente una sala de escuela
 
 ## Ejecución
 
-Desde la raíz `develop/`:
+Desde la raíz del repositorio:
 
 ```bash
-docker compose up --build
+docker compose -f apps/In-gauge-and-en-gage/docker-compose.yml up --build
 ```
 
 Abrir:

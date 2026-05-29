@@ -41,13 +41,14 @@ cd <NOMBRE_DEL_PROYECTO>
 
 ## Estructura esperada del proyecto
 
-```
-QABOT/
-├── backend/
-├── frontend/
-├── docs/
-├── docker-compose.yml
-└── README.md
+```text
+simarro-ia-project/
+└── apps/
+    └── qabot/
+        ├── backend/
+        ├── frontend/
+        ├── docker-compose.yml
+        └── README-QABOT.md
 ```
 
 ---
@@ -57,7 +58,7 @@ QABOT/
 ## Instalación
 
 ```bash
-cd backend
+cd apps/qabot/backend
 ```
 
 ---
@@ -75,7 +76,7 @@ source venv/bin/activate
 
 ```powershell
 python -m venv venv
-venv\Scripts\activate
+.\venv\Scripts\activate
 ```
 
 ---
@@ -116,7 +117,7 @@ uvicorn app.main:app --reload
 ## Instalación
 
 ```bash
-cd frontend
+cd apps/qabot/frontend
 npm install
 ```
 
@@ -158,9 +159,9 @@ docker compose down
 
 # SERVICIOS DISPONIBLES
 
-| Servicio | URL local | Docker |
-|----------|----------|--------|
-| Frontend | http://localhost:5173 | http://localhost:5173 |
+| Servicio | Local (dev) | Docker |
+|----------|-------------|--------|
+| Frontend | http://localhost:5173 | http://localhost:8080 |
 | Backend API | http://localhost:8000 | http://localhost:8000 |
 | Swagger UI | http://localhost:8000/docs | http://localhost:8000/docs |
 
@@ -206,7 +207,13 @@ npm install
 
 ---
 
-## Docker no arranca
+```bash
+cd apps/qabot
+docker compose down
+docker compose up --build
+```
+
+Opcional (mas agresivo, elimina recursos no usados):
 
 ```bash
 docker system prune -a

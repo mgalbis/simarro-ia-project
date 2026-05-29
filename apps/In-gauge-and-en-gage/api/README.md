@@ -32,10 +32,10 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 ## Ejecución con Docker Compose
 
-Desde la raíz `develop/`:
+Desde la raíz del repositorio:
 
 ```bash
-docker compose up --build
+docker compose -f apps/In-gauge-and-en-gage/docker-compose.yml up --build
 ```
 
 La API queda disponible en `http://localhost:8000`.

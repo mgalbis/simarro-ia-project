@@ -220,18 +220,16 @@ El frontend renderiza resultados y métricas.
 
 ## Arquitectura de carpetas
 
-```
-QABOT/
+```text
+apps/qabot/
 ├── backend/
 │   ├── app/
 │   │   ├── routes/
 │   │   ├── schemas/
 │   │   ├── services/
 │   │   └── main.py
-│   ├── data/
 │   ├── requirements.txt
-│   └── venv/
-│
+│   └── Dockerfile
 ├── frontend/
 │   ├── public/
 │   ├── src/
@@ -239,12 +237,8 @@ QABOT/
 │   │   ├── hooks/
 │   │   ├── App.jsx
 │   │   └── AppRouter.jsx
-│   └── package.json
-│
-├── docs/
-│   ├── arquitectura.md
-│   └── runbook.md
-│
+│   ├── package.json
+│   └── Dockerfile
 └── docker-compose.yml
 ```
 

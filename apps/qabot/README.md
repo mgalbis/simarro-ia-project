@@ -134,18 +134,16 @@ Arquitectura cliente-servidor:
 
 ## Estructura del proyecto
 
-```
-QABOT/
+```text
+apps/qabot/
 ├── backend/
 │   ├── app/
 │   │   ├── routes/
 │   │   ├── schemas/
 │   │   ├── services/
 │   │   └── main.py
-│   ├── data/
 │   ├── requirements.txt
-│   └── venv/
-│
+│   └── Dockerfile
 ├── frontend/
 │   ├── public/
 │   ├── src/
@@ -156,13 +154,9 @@ QABOT/
 │   │   ├── main.jsx
 │   │   └── index.css
 │   ├── package.json
-│   └── vite.config.js
-│
-├── docs/
-│   ├── arquitectura.md
-│   └── runbook.md
-│
-└── README.md
+│   └── Dockerfile
+├── docker-compose.yml
+└── README-QABOT.md
 ```
 
 ---
@@ -182,7 +176,7 @@ QABOT/
 ## Backend
 
 ```bash
-cd backend
+cd apps/qabot/backend
 python -m venv venv
 ```
 
@@ -219,7 +213,7 @@ Acceso:
 ## Frontend
 
 ```bash
-cd frontend
+cd apps/qabot/frontend
 npm install
 npm run dev
 ```
@@ -234,7 +228,7 @@ Acceso:
 Desde la raíz del proyecto:
 
 ```bash
-docker compose up --build
+docker compose -f apps/qabot/docker-compose.yml up --build
 ```
 
 Incluye:
